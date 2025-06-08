@@ -1,0 +1,278 @@
+import { createRoute } from '@tanstack/react-router';
+import { rootRoute } from './root';
+import { useQuery } from '@tanstack/react-query';
+import { useState } from 'react';
+import { ReceiptIcon, PlaneIcon, BriefcaseIcon, ChevronRight, Calendar, DollarSign } from 'lucide-react';
+import { supabase } from '../supabase/client';
+import DashboardCard from '../components/dashboard/DashboardCard';
+import RecentActivityCard from '../components/dashboard/RecentActivityCard';
+import { formatDistanceToNow } from 'date-fns';
+
+export const dashboardRoute = createRoute({
+  getParentRoute: () => rootRoute,
+  path: '/dashboard',
+  component: Dashboard,
+});
+
+function Dashboard() {
+  // Fetch user data
+  const { data: user } = useQuery({
+    queryKey: ['user'],
+    queryFn: async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      return user;
+    },
+  });
+
+  // Fetch recent emails
+  const { data: recentEmails, isLoading: emailsLoading } = useQuery({
+    queryKey: ['recent-emails'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('emails')
+        .select('*')
+        .order('created_at', { ascending: false })
+        .limit(5);
+      
+      if (error) throw error;
+      return data;
+    },
+  });
+
+  // Fetch receipt summary
+  const { data: receiptsSummary, isLoading: receiptsLoading } = useQuery({
+    queryKey: ['receipts-summary'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('receipts')
+        .select('*')
+        .order('date', { ascending: false })
+        .limit(5);
+      
+      if (error) throw error;
+      
+      // Calculate total spending
+      const total = data.reduce((sum, receipt) => sum + receipt.amount, 0);
+      
+      return {
+        total,
+        recentReceipts: data,
+      };
+    },
+  });
+
+  // Fetch travel data
+  const { data: travelData, isLoading: travelLoading } = useQuery({
+    queryKey: ['travel-summary'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('travel')
+        .select('*')
+        .order('start_date', { ascending: true })
+        .limit(5);
+      
+      if (error) throw error;
+      
+      // Find upcoming trips
+      const now = new Date();
+      const upcomingTrips = data.filter(trip => new Date(trip.start_date) > now);
+      
+      return {
+        upcomingTrips,
+        recentTrips: data,
+      };
+    },
+  });
+
+  // Fetch job applications
+  const { data: jobsData, isLoading: jobsLoading } = useQuery({
+    queryKey: ['jobs-summary'],
+    queryFn: async () => {
+      const { data, error } = await supabase
+        .from('job_applications')
+        .select('*')
+        .order('applied_date', { ascending: false })
+        .limit(5);
+      
+      if (error) throw error;
+      
+      return {
+        totalApplications: data.length,
+        recentApplications: data,
+      };
+    },
+  });
+
+  return (
+    <div className="py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+        <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
+      </div>
+      
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+        {/* Welcome Banner */}
+        <div className="bg-blue-600 rounded-lg shadow-md overflow-hidden mt-6">
+          <div className="px-6 py-5 sm:px-8 sm:py-6">
+            <div className="flex items-center justify-between">
+              <div>
+                <h2 className="text-xl font-bold text-white">
+                  Welcome back, {user?.email?.split('@')[0] || 'User'}!
+                </h2>
+                <p className="mt-1 text-sm text-blue-100">
+                  Your inbox is being monitored for actionable emails. Here's a summary of your recent activity.
+                </p>
+              </div>
+            </div>
+          </div>
+          <div className="border-t border-blue-500 bg-blue-500 px-6 py-2">
+            <div className="text-sm text-blue-100">
+              Pro tip: Use the Gmail add-on to see smart actions right in your inbox.
+            </div>
+          </div>
+        </div>
+        
+        {/* Stats Grid */}
+        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
+          <DashboardCard 
+            title="Receipts & Expenses"
+            value={receiptsLoading ? '...' : `$${receiptsSummary?.total.toFixed(2) || '0.00'}`}
+            description="Total spending tracked"
+            icon={<ReceiptIcon className="h-6 w-6" />}
+            iconBackground="bg-indigo-500"
+            link="/receipts"
+          />
+          
+          <DashboardCard 
+            title="Travel Plans"
+            value={travelLoading ? '...' : travelData?.upcomingTrips.length.toString() || '0'}
+            description="Upcoming trips"
+            icon={<PlaneIcon className="h-6 w-6" />}
+            iconBackground="bg-teal-500"
+            link="/travel"
+          />
+          
+          <DashboardCard 
+            title="Job Applications"
+            value={jobsLoading ? '...' : jobsData?.totalApplications.toString() || '0'}
+            description="Active applications"
+            icon={<BriefcaseIcon className="h-6 w-6" />}
+            iconBackground="bg-amber-500"
+            link="/jobs"
+          />
+        </div>
+        
+        {/* Recent Activity */}
+        <h2 className="text-lg font-medium text-gray-900 mt-8">Recent Activity</h2>
+        <div className="mt-2 overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+          <div className="bg-white">
+            {emailsLoading ? (
+              <div className="py-12 text-center text-gray-500">Loading recent activity...</div>
+            ) : recentEmails?.length ? (
+              <ul className="divide-y divide-gray-200">
+                {recentEmails.map((email) => (
+                  <RecentActivityCard
+                    key={email.id}
+                    title={email.subject}
+                    description={`From: ${email.from}`}
+                    type={email.classification}
+                    date={formatDistanceToNow(new Date(email.created_at), { addSuffix: true })}
+                  />
+                ))}
+              </ul>
+            ) : (
+              <div className="py-12 text-center text-gray-500">No recent activity to show</div>
+            )}
+          </div>
+        </div>
+        
+        {/* Upcoming Events and Pending Actions */}
+        <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
+          {/* Upcoming Events */}
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
+              <h3 className="text-lg font-medium text-gray-900">Upcoming Events</h3>
+              <Calendar className="h-5 w-5 text-gray-400" />
+            </div>
+            <div className="border-t border-gray-200 px-4 py-5 sm:p-6">
+              {travelLoading ? (
+                <div className="py-8 text-center text-gray-500">Loading events...</div>
+              ) : travelData?.upcomingTrips.length ? (
+                <ul className="divide-y divide-gray-200">
+                  {travelData.upcomingTrips.map((trip) => (
+                    <li key={trip.id} className="py-4">
+                      <div className="flex items-center space-x-4">
+                        <div className="flex-shrink-0">
+                          <div className="h-10 w-10 rounded-full bg-teal-100 flex items-center justify-center">
+                            <PlaneIcon className="h-6 w-6 text-teal-600" />
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {trip.type} to {trip.destination}
+                          </p>
+                          <p className="text-sm text-gray-500 truncate">
+                            {new Date(trip.start_date).toLocaleDateString()} - {new Date(trip.end_date).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div>
+                          <a
+                            href={`/travel/${trip.id}`}
+                            className="inline-flex items-center shadow-sm px-2.5 py-0.5 border border-gray-300 text-sm leading-5 font-medium rounded-full text-gray-700 bg-white hover:bg-gray-50"
+                          >
+                            View
+                          </a>
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="py-8 text-center text-gray-500">No upcoming events</div>
+              )}
+            </div>
+          </div>
+          
+          {/* Recent Expenses */}
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
+              <h3 className="text-lg font-medium text-gray-900">Recent Expenses</h3>
+              <DollarSign className="h-5 w-5 text-gray-400" />
+            </div>
+            <div className="border-t border-gray-200 px-4 py-5 sm:p-6">
+              {receiptsLoading ? (
+                <div className="py-8 text-center text-gray-500">Loading expenses...</div>
+              ) : receiptsSummary?.recentReceipts.length ? (
+                <ul className="divide-y divide-gray-200">
+                  {receiptsSummary.recentReceipts.map((receipt) => (
+                    <li key={receipt.id} className="py-4">
+                      <div className="flex items-center space-x-4">
+                        <div className="flex-shrink-0">
+                          <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
+                            <ReceiptIcon className="h-6 w-6 text-indigo-600" />
+                          </div>
+                        </div>
+                        <div className="flex-1 min-w-0">
+                          <p className="text-sm font-medium text-gray-900 truncate">
+                            {receipt.merchant}
+                          </p>
+                          <p className="text-sm text-gray-500 truncate">
+                            {receipt.category} • {new Date(receipt.date).toLocaleDateString()}
+                          </p>
+                        </div>
+                        <div className="text-sm font-medium text-indigo-600">
+                          {receipt.currency} {receipt.amount.toFixed(2)}
+                        </div>
+                      </div>
+                    </li>
+                  ))}
+                </ul>
+              ) : (
+                <div className="py-8 text-center text-gray-500">No recent expenses</div>
+              )}
+            </div>
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+}
