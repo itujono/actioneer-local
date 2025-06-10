@@ -96,30 +96,15 @@ export async function detectUserLocation(
             `⚠️ ipinfo.io failed: ${ipinfoResponse.status}, trying fallback...`
           );
 
-          // Fallback to ipapi.co
-          console.log("🌐 Trying ipapi.co as fallback...");
           const geoResponse = await fetch(
             `https://ipapi.co/${clientIP}/json/`,
-            {
-              signal: AbortSignal.timeout(5000),
-            }
+            { signal: AbortSignal.timeout(5000) }
           );
 
           if (geoResponse.ok) {
             const geoData = await geoResponse.json();
-            console.log(
-              `🌐 ipapi.co fallback response:`,
-              JSON.stringify(geoData, null, 2)
-            );
             countryCode = geoData.country_code;
             city = geoData.city;
-            console.log(
-              `✅ ipapi.co result - Country: ${countryCode}, City: ${city}`
-            );
-          } else {
-            console.log(
-              `⚠️ Both geolocation APIs failed: ipinfo.io (${ipinfoResponse.status}) and ipapi.co (${geoResponse.status})`
-            );
           }
         }
       }
@@ -132,15 +117,7 @@ export async function detectUserLocation(
     countryCode = "US";
   }
 
-  // Get airport and currency info using APIs
   const locationInfo = await getLocationInfo(countryCode, city);
-  console.log(
-    `✅ Final location detected:`,
-    JSON.stringify(locationInfo, null, 2)
-  );
-  console.log(
-    `🎯 Location will be used as: Airport=${locationInfo.airport}, Currency=${locationInfo.currency}`
-  );
 
   return locationInfo;
 }

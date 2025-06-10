@@ -170,8 +170,16 @@ function onGmailMessage(e) {
       console.log("✈️ Travel email detected - auto-processing...");
       const card = createTravelProcessedCard(gmailMessage, emailData);
       return [card];
-    } else if (classification.type === "job") {
-      console.log("💼 Job email detected - auto-processing...");
+    } else if (classification.type === "job_application") {
+      console.log("💼 Job application email detected - auto-processing...");
+      
+      // Trigger backend job processing
+      try {
+        processJobApplicationInBackground(emailData, userApiKey);
+      } catch (error) {
+        console.error("Background job processing failed:", error);
+      }
+      
       const card = createJobProcessedCard(gmailMessage, emailData);
       return [card];
     } else {
@@ -424,7 +432,17 @@ function classifyEmail(emailData, userApiKey) {
     });
 
     if (response.getResponseCode() === 200) {
-      return JSON.parse(response.getContentText());
+      const result = JSON.parse(response.getContentText());
+      
+      // If backend classification succeeded, return it
+      if (result && result.type && result.type !== 'other') {
+        return result;
+      }
+      
+      // If backend returned 'other' or invalid result, try client-side fallback
+      console.log("🔄 Backend returned 'other', trying client-side fallback...");
+      const fallbackResult = classifyEmailClientSide(emailData);
+      return fallbackResult || result; // Return fallback if better, otherwise original
     } else {
       console.error("Classification failed:", response.getContentText());
 
@@ -433,11 +451,193 @@ function classifyEmail(emailData, userApiKey) {
         PropertiesService.getUserProperties().deleteProperty("USER_API_KEY");
       }
 
-      return null;
+      // Try client-side fallback when backend fails
+      console.log("🔄 Backend classification failed, trying client-side fallback...");
+      return classifyEmailClientSide(emailData);
     }
   } catch (error) {
     console.error("Error classifying email:", error);
-    return null;
+    
+    // Try client-side fallback when there's an error
+    console.log("🔄 Backend classification error, trying client-side fallback...");
+    return classifyEmailClientSide(emailData);
+  }
+}
+
+/**
+ * Client-side pattern-based email classification
+ */
+function classifyEmailClientSide(emailData) {
+  if (!emailData) return null;
+  
+  console.log("🔍 Client-side classification for:", emailData.subject);
+  
+  const subject = (emailData.subject || '').toLowerCase();
+  const from = (emailData.from || '').toLowerCase();
+  const body = (emailData.body || '').toLowerCase();
+  
+  // Job application patterns
+  const jobPatterns = [
+    // Subject patterns
+    /job\s+application/i,
+    /application\s+update/i,
+    /interview/i,
+    /position/i,
+    /career/i,
+    /thank\s+you\s+for\s+your\s+application/i,
+    /application\s+status/i,
+    /job\s+offer/i,
+    /recruitment/i,
+    /hr\s+team/i,
+    
+    // Body patterns
+    /applied\s+to/i,
+    /your\s+application/i,
+    /interview\s+invitation/i,
+    /application\s+received/i,
+    /thank\s+you\s+for\s+applying/i,
+    /we\s+have\s+received\s+your\s+application/i,
+    /application\s+for\s+the\s+position/i,
+    /proceed\s+with\s+another\s+candidate/i,
+    /decided\s+to\s+proceed\s+with/i,
+    /job\s+search/i,
+    /future\s+openings/i,
+    /career\s+site/i,
+    /recruitment\s+team/i,
+    /application\s+process/i
+  ];
+  
+  // Check if it matches job patterns
+  const isJobEmail = jobPatterns.some(pattern => 
+    pattern.test(subject) || pattern.test(body) || pattern.test(from)
+  );
+  
+  if (isJobEmail) {
+    console.log("✅ Client-side classification: job_application");
+    return {
+      type: 'job_application',
+      confidence: 0.8,
+      actions: [
+        { 
+          type: 'complex', 
+          label: 'Track Application', 
+          handler: 'openJobTracker',
+          data: {} 
+        }
+      ],
+      method: 'client-side'
+    };
+  }
+  
+  // Travel patterns
+  const travelPatterns = [
+    /flight/i,
+    /booking/i,
+    /hotel/i,
+    /reservation/i,
+    /itinerary/i,
+    /boarding\s+pass/i,
+    /confirmation/i
+  ];
+  
+  const isTravelEmail = travelPatterns.some(pattern => 
+    pattern.test(subject) || pattern.test(body)
+  );
+  
+  if (isTravelEmail) {
+    console.log("✅ Client-side classification: travel");
+    return {
+      type: 'travel',
+      confidence: 0.7,
+      actions: [
+        { 
+          type: 'complex', 
+          label: 'Compare Hotel Prices', 
+          handler: 'openHotelComparison',
+          data: {} 
+        }
+      ],
+      method: 'client-side'
+    };
+  }
+  
+  // Receipt patterns
+  const receiptPatterns = [
+    /receipt/i,
+    /invoice/i,
+    /payment/i,
+    /purchase/i,
+    /order/i,
+    /transaction/i
+  ];
+  
+  const isReceiptEmail = receiptPatterns.some(pattern => 
+    pattern.test(subject) || pattern.test(body)
+  );
+  
+  if (isReceiptEmail) {
+    console.log("✅ Client-side classification: receipt");
+    return {
+      type: 'receipt',
+      confidence: 0.7,
+      actions: [
+        { 
+          type: 'simple', 
+          label: 'Track Expense', 
+          handler: 'handleTrackExpense',
+          data: {} 
+        }
+      ],
+      method: 'client-side'
+    };
+  }
+  
+  console.log("✅ Client-side classification: other");
+  return {
+    type: 'other',
+    confidence: 0.5,
+    actions: [],
+    method: 'client-side'
+  };
+}
+
+/**
+ * Process job application email in background
+ */
+function processJobApplicationInBackground(emailData, userApiKey) {
+  console.log("🔄 Starting background job processing...");
+  
+  try {
+    const payload = {
+      messageId: emailData.messageId,
+      subject: emailData.subject,
+      from: emailData.from,
+      emailBody: emailData.body
+    };
+
+    const headers = {
+      "Content-Type": "application/json",
+      "apikey": SUPABASE_ANON_KEY,
+      "x-user-api-key": userApiKey
+    };
+
+    // Call the job processing Edge Function
+    const response = UrlFetchApp.fetch(`${BACKEND_API_URL}/process-job-application`, {
+      method: "POST",
+      headers: headers,
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+    });
+
+    if (response.getResponseCode() === 200) {
+      const result = JSON.parse(response.getContentText());
+      console.log("✅ Job application processed successfully:", result.jobApplicationId);
+      console.log("📊 Extracted data:", JSON.stringify(result.extractedData, null, 2));
+    } else {
+      console.error("❌ Job processing failed:", response.getContentText());
+    }
+  } catch (error) {
+    console.error("💥 Error in background job processing:", error);
   }
 }
 

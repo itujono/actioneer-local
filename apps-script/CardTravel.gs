@@ -1,196 +1,9 @@
-// CardBuilders.js - Gmail Add-on UI Components
-// All card creation and UI-related functions for the Actioneer Gmail Add-on
-// Core logic is in Main.js, test functions are in Tests.gs
+// CardTravel.js - Travel and Price Comparison Card Components
+// All travel booking, price comparison, and travel analysis related cards
 
 // ============================================================================
-// DEBUG & UTILITY CARDS
+// TRAVEL PROCESSING CARDS
 // ============================================================================
-
-function createDebugCard(title, message) {
-  console.log(`🐛 Creating debug card: ${title} - ${message}`);
-
-  return CardService.newCardBuilder()
-    .setHeader(
-      CardService.newCardHeader()
-        .setTitle("🐛 Actioneer Debug")
-        .setSubtitle(title)
-    )
-    .addSection(
-      CardService.newCardSection()
-        .addWidget(
-          CardService.newTextParagraph().setText(
-            `<b>Debug Info:</b><br>${message}<br><br><i>Check Apps Script logs for details</i>`
-          )
-        )
-        .addWidget(
-          CardService.newTextButton()
-            .setText("Run Quick Test")
-            .setOnClickAction(
-              CardService.newAction().setFunctionName("runQuickTestFromCard")
-            )
-        )
-    )
-    .build();
-}
-
-// ============================================================================
-// SMART ACTIONS CARD
-// ============================================================================
-
-function createSmartActionsCard(classification, messageId) {
-  const card = CardService.newCardBuilder()
-    .setHeader(
-      CardService.newCardHeader()
-        .setTitle("Smart Actions")
-        .setSubtitle(`${classification.type} detected`)
-        .setImageUrl(ICON_URL)
-    )
-    .setName("smart_actions_card");
-
-  const section = CardService.newCardSection();
-
-  classification.actions.forEach((action) => {
-    let button;
-
-    if (action.type === "simple") {
-      button = CardService.newTextButton()
-        .setText(action.label)
-        .setOnClickAction(
-          CardService.newAction()
-            .setFunctionName(action.handler)
-            .setParameters({
-              messageId: messageId,
-              actionData: JSON.stringify(action.data),
-            })
-        );
-    } else {
-      const userEmail = Session.getActiveUser().getEmail();
-      let webAppUrl;
-
-      switch (action.type) {
-        case "expense_dashboard":
-          webAppUrl = `${BASE_URL}/expenses?from=gmail&messageId=${messageId}&email=${encodeURIComponent(
-            userEmail
-          )}`;
-          break;
-        case "travel_comparison":
-          webAppUrl = `${BASE_URL}/travel?from=gmail&messageId=${messageId}&email=${encodeURIComponent(
-            userEmail
-          )}`;
-          break;
-        case "job_tracker":
-          webAppUrl = `${BASE_URL}/jobs?from=gmail&messageId=${messageId}&email=${encodeURIComponent(
-            userEmail
-          )}`;
-          break;
-        default:
-          webAppUrl = `${BASE_URL}/dashboard?from=gmail&messageId=${messageId}&email=${encodeURIComponent(
-            userEmail
-          )}`;
-      }
-
-      button = CardService.newTextButton()
-        .setText(action.label)
-        .setOpenLink(
-          CardService.newOpenLink()
-            .setUrl(webAppUrl)
-            .setOpenAs(CardService.OpenAs.OVERLAY)
-        );
-    }
-
-    section.addWidget(button);
-  });
-
-  card.addSection(section);
-  return card.build();
-}
-
-// ============================================================================
-// AUTO-PROCESSED CARDS
-// ============================================================================
-
-/**
- * Auto-process receipt and show results
- */
-function createReceiptProcessedCard(gmailMessage, emailData) {
-  console.log("💰 Auto-processing receipt...");
-  
-  const expenseData = extractExpenseFromEmail(gmailMessage);
-  
-  // Save to backend (optional - you can enable this when ready)
-  // processExpense(expenseData, userApiKey);
-  
-  const recentExpenses = getRecentExpenses();
-  
-  const card = CardService.newCardBuilder()
-    .setHeader(
-      CardService.newCardHeader()
-        .setTitle("💰 Receipt Parsed")
-        .setSubtitle("Expense automatically tracked")
-        .setImageUrl(ICON_URL)
-    )
-    .setName("receipt_processed_card");
-
-  const currentExpenseSection = CardService.newCardSection()
-    .setHeader("📄 New Expense");
-    
-  const amount = expenseData.amount || "Unknown";
-  const merchant = expenseData.merchant || "Unknown Merchant";
-  const currency = expenseData.currency || "$";
-  const date = new Date(expenseData.date).toLocaleDateString();
-  
-  currentExpenseSection.addWidget(
-    CardService.newTextParagraph().setText(
-      `<b>${merchant}</b><br>` +
-      `<font color="#1a73e8"><b>${currency}${amount}</b></font><br>` +
-      `<font color="#5f6368">${date}</font>`
-    )
-  );
-
-  card.addSection(currentExpenseSection);
-
-  if (recentExpenses && recentExpenses.length > 0) {
-    const recentSection = CardService.newCardSection()
-      .setHeader("📊 Your expenses this month so far");
-    
-    const expensesToShow = recentExpenses.slice(0, 5);
-    let totalAmount = 0;
-    
-    expensesToShow.forEach(expense => {
-      totalAmount += expense.amount || 0;
-      const expenseDate = new Date(expense.date).toLocaleDateString();
-      recentSection.addWidget(
-        CardService.newTextParagraph().setText(
-          `<b>${expense.merchant || 'Unknown'}</b> - $${expense.amount || '0'}<br>` +
-          `<font color="#5f6368">${expenseDate}</font>`
-        )
-      );
-    });
-    
-    recentSection.addWidget(
-      CardService.newTextParagraph().setText(
-        `<br><b>Total this month: <font color="#1a73e8">$${totalAmount.toFixed(2)}</font></b>`
-      )
-    );
-    
-    card.addSection(recentSection);
-  }
-
-  const actionSection = CardService.newCardSection();
-  actionSection.addWidget(
-    CardService.newTextButton()
-      .setText("View All Your Expenses")
-      .setOpenLink(
-        CardService.newOpenLink()
-          .setUrl(`${BASE_URL}/expenses?from=gmail&messageId=${emailData.messageId}&email=${encodeURIComponent(Session.getActiveUser().getEmail())}`)
-          .setOpenAs(CardService.OpenAs.OVERLAY)
-      )
-  );
-  
-  card.addSection(actionSection);
-  
-  return card.build();
-}
 
 /**
  * Auto-process travel email with price comparison
@@ -238,6 +51,104 @@ function createTravelProcessedCard(gmailMessage, emailData) {
   
   return card.build();
 }
+
+/**
+ * Create travel card from cached/pre-processed data
+ */
+function createCachedTravelCard(preProcessedData, gmailMessage, emailData) {
+  console.log("🎯 Creating cached travel card from pre-processed data");
+  
+  // Extract travel data and comparisons from the details field
+  const details = preProcessedData.details || {};
+  const travelData = details.travelData || details; // Fallback to details if no nested structure
+  const comparisons = details.comparisons || [];
+  
+  console.log("📊 Cached travel data:", JSON.stringify(travelData, null, 2));
+  console.log("💰 Cached comparisons:", JSON.stringify(comparisons, null, 2));
+  
+  // Prepare the travel comparison data structure to determine what we have
+  const travelComparison = {
+    travelData: travelData,
+    comparisons: comparisons.comparisons || comparisons, // Handle nested structure
+    type: travelData.type
+  };
+  
+  const hasComparisons = travelComparison.comparisons && travelComparison.comparisons.length > 0;
+  const hasTravelData = travelData && Object.keys(travelData).length > 0;
+  
+  // If we don't have sufficient data, automatically trigger live analysis
+  if (!hasComparisons && !hasTravelData) {
+    console.log("🔄 Insufficient cached data, triggering automatic live analysis");
+    return createTravelProcessedCard(gmailMessage, emailData);
+  }
+  
+  const card = CardService.newCardBuilder()
+    .setHeader(
+      CardService.newCardHeader()
+        .setTitle("✈️ Travel Comparison")
+        .setSubtitle(hasComparisons ? "From cache • Previously analyzed" : "Analyzing prices...")
+        .setImageUrl(ICON_URL)
+    )
+    .setName("cached_travel_card");
+
+  // Add appropriate status message based on what data we have
+  const statusSection = CardService.newCardSection();
+  
+  if (hasComparisons) {
+    statusSection.addWidget(
+      CardService.newTextParagraph().setText(
+        "⚡ <strong>Complete travel analysis from cache</strong><br>" +
+        "<font color=\"#5f6368\">Travel details and price comparisons retrieved instantly from previous analysis.</font>"
+      )
+    );
+  } else if (hasTravelData) {
+    // If we have travel data but no comparisons, automatically trigger live analysis
+    console.log("🔄 Travel data found but no comparisons, triggering automatic live analysis");
+    return createTravelProcessedCard(gmailMessage, emailData);
+  }
+  
+  card.addSection(statusSection);
+
+  // Show content - at this point we know we have complete data
+  addTravelDetailsSection(card, travelComparison.travelData);
+  addPriceComparisonSection(card, travelComparison);
+  addTravelInsightsSection(card, travelComparison);
+
+  // Enhanced action section with cache-specific options
+  addCachedTravelActionSection(card, emailData, hasComparisons);
+  
+  return card.build();
+}
+
+function createTravelErrorCard(errorMessage) {
+  return CardService.newCardBuilder()
+    .setHeader(
+      CardService.newCardHeader()
+        .setTitle("⚠️ Travel Analysis Error")
+        .setSubtitle("Unable to process travel data")
+        .setImageUrl(ICON_URL)
+    )
+    .addSection(
+      CardService.newCardSection()
+        .addWidget(
+          CardService.newTextParagraph()
+            .setText(`<font color="#ea4335"><b>Error:</b> ${errorMessage}</font><br><br>Please try refreshing or contact support if the issue persists.`)
+        )
+        .addWidget(
+          CardService.newTextButton()
+            .setText("🔄 Try Again")
+            .setOnClickAction(
+              CardService.newAction()
+                .setFunctionName("refreshTravelAnalysis")
+            )
+        )
+    )
+    .build();
+}
+
+// ============================================================================
+// TRAVEL SECTION BUILDERS
+// ============================================================================
 
 // Helper function for travel details with better formatting
 function addTravelDetailsSection(card, travelData) {
@@ -367,19 +278,45 @@ function addTravelActionSection(card, emailData) {
       )
   );
   
-//   secondarySection.addWidget(
-//     CardService.newTextButton()
-//       .setText("📝 Add to Travel Planner")
-//       .setOpenLink(
-//         CardService.newOpenLink()
-//           .setUrl(`${BASE_URL}/travel/planner?import=${emailData.messageId}`)
-//           .setOpenAs(CardService.OpenAs.OVERLAY)
-//       )
-//   );
-  
   card.addSection(section);
   card.addSection(secondarySection);
 }
+
+/**
+ * Action section for cached travel cards
+ */
+function addCachedTravelActionSection(card, emailData, hasComparisons) {
+  const section = CardService.newCardSection()
+    .setHeader("📊 Actions");
+  
+  // Primary action - Travel Dashboard
+  section.addWidget(
+    CardService.newTextButton()
+      .setText("📊 View Travel Dashboard")
+      .setOpenLink(
+        CardService.newOpenLink()
+          .setUrl(`${BASE_URL}/travel?from=gmail&messageId=${emailData.messageId}&email=${encodeURIComponent(Session.getActiveUser().getEmail())}`)
+          .setOpenAs(CardService.OpenAs.OVERLAY)
+      )
+  );
+  
+  // Secondary action - Refresh data
+  section.addWidget(
+    CardService.newTextButton()
+      .setText("🔄 Refresh Price Data")
+      .setOnClickAction(
+        CardService.newAction()
+          .setFunctionName("reprocessTravelEmail")
+          .setParameters({ messageId: emailData.messageId })
+      )
+  );
+  
+  card.addSection(section);
+}
+
+// ============================================================================
+// TRAVEL WIDGET CREATORS
+// ============================================================================
 
 function createTravelDetailsWidget(travelData) {
   let detailsHtml = "";
@@ -403,11 +340,6 @@ function createTravelDetailsWidget(travelData) {
   if (summaryParts.length > 0) {
     detailsHtml += summaryParts.join(" &middot; ");
   }
-  
-  // Add additional details if available (for non-flight bookings or additional context)
-//   if (travelData.origin && travelData.type !== 'flight') {
-//     detailsHtml += `<br><font color="#5f6368">From ${travelData.origin}</font>`;
-//   }
   
   if (travelData.departureDate || travelData.checkInDate) {
     const date = travelData.departureDate || travelData.checkInDate;
@@ -501,11 +433,11 @@ function createComparisonWidget(comparison, travelType, isBestDeal) {
       
       comparisonHtml += `<b>${hotelName}</b><br>`;
       
-             if (minPrice === maxPrice) {
-         comparisonHtml += `<font color="#1a73e8"><b>${currency} ${minPrice}/night</b></font><br>`;
-       } else {
-         comparisonHtml += `<font color="#1a73e8"><b>${currency} ${minPrice} - ${currency} ${maxPrice}</b></font><br>`;
-       }
+      if (minPrice === maxPrice) {
+        comparisonHtml += `<font color="#1a73e8"><b>${currency} ${minPrice}/night</b></font><br>`;
+      } else {
+        comparisonHtml += `<font color="#1a73e8"><b>${currency} ${minPrice} - ${currency} ${maxPrice}</b></font><br>`;
+      }
       
       comparisonHtml += `<font color="#5f6368">⭐ ${rating} • ${location}</font>`;
     } else {
@@ -576,6 +508,10 @@ function createBookingButton(comparison, isBestDeal) {
         .setOpenAs(CardService.OpenAs.FULL_SIZE)
     );
 }
+
+// ============================================================================
+// BOOKING OPTIONS BUILDERS
+// ============================================================================
 
 function addHotelBookingOptions(section, hotelComparison) {
   // Add each OTA option as a button
@@ -664,33 +600,9 @@ function addAttractionBookingOptions(section, attractionComparison) {
   });
 }
 
-function createTravelErrorCard(errorMessage) {
-  return CardService.newCardBuilder()
-    .setHeader(
-      CardService.newCardHeader()
-        .setTitle("⚠️ Travel Analysis Error")
-        .setSubtitle("Unable to process travel data")
-        .setImageUrl(ICON_URL)
-    )
-    .addSection(
-      CardService.newCardSection()
-        .addWidget(
-          CardService.newTextParagraph()
-            .setText(`<font color="#ea4335"><b>Error:</b> ${errorMessage}</font><br><br>Please try refreshing or contact support if the issue persists.`)
-        )
-        .addWidget(
-          CardService.newTextButton()
-            .setText("🔄 Try Again")
-            .setOnClickAction(
-              CardService.newAction()
-                .setFunctionName("refreshTravelAnalysis")
-            )
-        )
-    )
-    .build();
-}
-
-// Utility functions
+// ============================================================================
+// TRAVEL UTILITY FUNCTIONS
+// ============================================================================
 
 function sortComparisonsByPrice(comparisons) {
   return comparisons.sort((a, b) => {
@@ -826,6 +738,10 @@ function generateTravelInsights(travelComparison) {
   return insights;
 }
 
+// ============================================================================
+// TRAVEL ACTION HANDLERS
+// ============================================================================
+
 // Action handlers for new functionality
 function refreshTravelAnalysis(e) {
   const messageId = e && e.parameter ? e.parameter.messageId : null;
@@ -849,311 +765,4 @@ function reprocessTravelEmail(e) {
   // Force reprocessing of the email with fresh data
   console.log("🔄 Reprocessing travel email:", messageId);
   return createTravelProcessedCard(null, { messageId: messageId });
-}
-
-/**
- * Auto-process job email
- */
-function createJobProcessedCard(gmailMessage, emailData) {
-  console.log("💼 Auto-processing job email...");
-  
-  const card = CardService.newCardBuilder()
-    .setHeader(
-      CardService.newCardHeader()
-        .setTitle("💼 Job Parsed")
-        .setSubtitle("Opportunity tracked")
-        .setImageUrl(ICON_URL)
-    )
-    .setName("job_processed_card");
-
-  // TODO: Add job processing
-  const section = CardService.newCardSection()
-    .addWidget(
-      CardService.newTextParagraph().setText(
-        "🚧 <b>Job auto-processing coming soon!</b><br><br>" +
-        "We detected this is a job-related email. Soon we'll automatically extract:<br>" +
-        "• Company details<br>" +
-        "• Position information<br>" +
-        "• Application status<br>" +
-        "• Interview schedules"
-      )
-    )
-    .addWidget(
-      CardService.newTextButton()
-        .setText("View Job Tracker")
-        .setOpenLink(
-          CardService.newOpenLink()
-            .setUrl(`${BASE_URL}/jobs?from=gmail&messageId=${emailData.messageId}`)
-            .setOpenAs(CardService.OpenAs.OVERLAY)
-        )
-    );
-
-  card.addSection(section);
-  return card.build();
-}
-
-// ============================================================================
-// PRE-PROCESSED EMAIL CARDS
-// ============================================================================
-
-/**
- * Create card for pre-processed email data
- */
-function createPreProcessedCard(preProcessedData, gmailMessage, emailData) {
-  console.log("🎨 Creating pre-processed card for type:", preProcessedData.type);
-  
-  // Special handling for travel - show full comparison data from cache
-  if (preProcessedData.type === 'travel') {
-    return createCachedTravelCard(preProcessedData, gmailMessage, emailData);
-  }
-  
-  const card = CardService.newCardBuilder()
-    .setHeader(
-      CardService.newCardHeader()
-        .setTitle("⚡ Auto-Processed")
-        .setSubtitle(`${preProcessedData.type} detected & processed`)
-        .setImageUrl(ICON_URL)
-    )
-    .setName("pre_processed_card");
-
-  // Add auto-processing indicator
-  const statusSection = CardService.newCardSection()
-    .setHeader("🤖 Automatically Processed")
-    .addWidget(
-      CardService.newTextParagraph().setText(
-        "✅ <b>This email was automatically processed when it arrived!</b><br><br>" +
-        "Your data has been extracted and is ready to view in your dashboard."
-      )
-    );
-  
-  card.addSection(statusSection);
-
-  // Show type-specific processed data
-  switch (preProcessedData.type) {
-    case 'receipt':
-      addReceiptPreProcessedSection(card, preProcessedData);
-      break;
-    case 'job_application':
-      addJobPreProcessedSection(card, preProcessedData);
-      break;
-    default:
-      addGenericPreProcessedSection(card, preProcessedData);
-  }
-
-  // Add dashboard link
-  const actionSection = CardService.newCardSection();
-  const userEmail = Session.getActiveUser().getEmail();
-  let dashboardUrl;
-  
-  switch (preProcessedData.type) {
-    case 'receipt':
-      dashboardUrl = `${BASE_URL}/expenses?from=gmail&messageId=${emailData.messageId}&email=${encodeURIComponent(userEmail)}`;
-      break;
-    case 'job_application':
-      dashboardUrl = `${BASE_URL}/jobs?from=gmail&messageId=${emailData.messageId}&email=${encodeURIComponent(userEmail)}`;
-      break;
-    default:
-      dashboardUrl = `${BASE_URL}/dashboard?from=gmail&messageId=${emailData.messageId}&email=${encodeURIComponent(userEmail)}`;
-  }
-  
-  actionSection.addWidget(
-    CardService.newTextButton()
-      .setText("View in Dashboard")
-      .setOpenLink(
-        CardService.newOpenLink()
-          .setUrl(dashboardUrl)
-          .setOpenAs(CardService.OpenAs.OVERLAY)
-      )
-  );
-  
-  card.addSection(actionSection);
-  return card.build();
-}
-
-/**
- * Create travel card from cached/pre-processed data
- */
-function createCachedTravelCard(preProcessedData, gmailMessage, emailData) {
-  console.log("🎯 Creating cached travel card from pre-processed data");
-  
-  // Extract travel data and comparisons from the details field
-  const details = preProcessedData.details || {};
-  const travelData = details.travelData || details; // Fallback to details if no nested structure
-  const comparisons = details.comparisons || [];
-  
-  console.log("📊 Cached travel data:", JSON.stringify(travelData, null, 2));
-  console.log("💰 Cached comparisons:", JSON.stringify(comparisons, null, 2));
-  
-  // Prepare the travel comparison data structure to determine what we have
-  const travelComparison = {
-    travelData: travelData,
-    comparisons: comparisons.comparisons || comparisons, // Handle nested structure
-    type: travelData.type
-  };
-  
-  const hasComparisons = travelComparison.comparisons && travelComparison.comparisons.length > 0;
-  const hasTravelData = travelData && Object.keys(travelData).length > 0;
-  
-  // If we don't have sufficient data, automatically trigger live analysis
-  if (!hasComparisons && !hasTravelData) {
-    console.log("🔄 Insufficient cached data, triggering automatic live analysis");
-    return createTravelProcessedCard(gmailMessage, emailData);
-  }
-  
-  const card = CardService.newCardBuilder()
-    .setHeader(
-      CardService.newCardHeader()
-        .setTitle("✈️ Travel Comparison")
-        .setSubtitle(hasComparisons ? "From cache • Previously analyzed" : "Analyzing prices...")
-        .setImageUrl(ICON_URL)
-    )
-    .setName("cached_travel_card");
-
-  // Add appropriate status message based on what data we have
-  const statusSection = CardService.newCardSection();
-  
-  if (hasComparisons) {
-    statusSection.addWidget(
-      CardService.newTextParagraph().setText(
-        "⚡ <strong>Complete travel analysis from cache</strong><br>" +
-        "<font color=\"#5f6368\">Travel details and price comparisons retrieved instantly from previous analysis.</font>"
-      )
-    );
-  } else if (hasTravelData) {
-    // If we have travel data but no comparisons, automatically trigger live analysis
-    console.log("🔄 Travel data found but no comparisons, triggering automatic live analysis");
-    return createTravelProcessedCard(gmailMessage, emailData);
-  }
-  
-  card.addSection(statusSection);
-
-  // Show content - at this point we know we have complete data
-  addTravelDetailsSection(card, travelComparison.travelData);
-  addPriceComparisonSection(card, travelComparison);
-  addTravelInsightsSection(card, travelComparison);
-
-  // Enhanced action section with cache-specific options
-  addCachedTravelActionSection(card, emailData, hasComparisons);
-  
-  return card.build();
-}
-
-/**
- * Action section for cached travel cards
- */
-function addCachedTravelActionSection(card, emailData, hasComparisons) {
-  const section = CardService.newCardSection()
-    .setHeader("📊 Actions");
-  
-  // Primary action - Travel Dashboard
-  section.addWidget(
-    CardService.newTextButton()
-      .setText("📊 View Travel Dashboard")
-      .setOpenLink(
-        CardService.newOpenLink()
-          .setUrl(`${BASE_URL}/travel?from=gmail&messageId=${emailData.messageId}&email=${encodeURIComponent(Session.getActiveUser().getEmail())}`)
-          .setOpenAs(CardService.OpenAs.OVERLAY)
-      )
-  );
-  
-  // Secondary action - Refresh data
-  section.addWidget(
-    CardService.newTextButton()
-      .setText("🔄 Refresh Price Data")
-      .setOnClickAction(
-        CardService.newAction()
-          .setFunctionName("reprocessTravelEmail")
-          .setParameters({ messageId: emailData.messageId })
-      )
-  );
-  
-  card.addSection(section);
-}
-
-// ============================================================================
-// PRE-PROCESSED CARD SECTIONS
-// ============================================================================
-
-function addReceiptPreProcessedSection(card, data) {
-  const section = CardService.newCardSection()
-    .setHeader("💰 Receipt Details Extracted");
-  
-  if (data.receiptData) {
-    let receiptInfo = "";
-    const receiptData = data.receiptData;
-    
-    if (receiptData.merchant) {
-      receiptInfo += `<strong>Merchant:</strong> ${receiptData.merchant}<br>`;
-    }
-    if (receiptData.amount && receiptData.currency) {
-      receiptInfo += `<strong>Amount:</strong> ${receiptData.currency} ${receiptData.amount}<br>`;
-    }
-    if (receiptData.date) {
-      receiptInfo += `<strong>Date:</strong> ${new Date(receiptData.date).toLocaleDateString()}<br>`;
-    }
-    if (receiptData.category) {
-      receiptInfo += `<strong>Category:</strong> ${receiptData.category}<br>`;
-    }
-    
-    section.addWidget(
-      CardService.newTextParagraph().setText(receiptInfo)
-    );
-  }
-  
-  section.addWidget(
-    CardService.newTextParagraph().setText(
-      "<br>✅ <strong>Expense automatically tracked!</strong>"
-    )
-  );
-  
-  card.addSection(section);
-}
-
-function addJobPreProcessedSection(card, data) {
-  const section = CardService.newCardSection()
-    .setHeader("💼 Job Details Extracted");
-  
-  if (data.jobData) {
-    let jobInfo = "";
-    const jobData = data.jobData;
-    
-    if (jobData.company) {
-      jobInfo += `<strong>Company:</strong> ${jobData.company}<br>`;
-    }
-    if (jobData.position) {
-      jobInfo += `<strong>Position:</strong> ${jobData.position}<br>`;
-    }
-    if (jobData.status) {
-      jobInfo += `<strong>Status:</strong> ${jobData.status}<br>`;
-    }
-    if (jobData.appliedDate) {
-      jobInfo += `<strong>Applied:</strong> ${new Date(jobData.appliedDate).toLocaleDateString()}<br>`;
-    }
-    
-    section.addWidget(
-      CardService.newTextParagraph().setText(jobInfo)
-    );
-  }
-  
-  section.addWidget(
-    CardService.newTextParagraph().setText(
-      "<br>✅ <strong>Application automatically tracked!</strong>"
-    )
-  );
-  
-  card.addSection(section);
-}
-
-function addGenericPreProcessedSection(card, data) {
-  const section = CardService.newCardSection()
-    .setHeader("📧 Email Processed");
-  
-  section.addWidget(
-    CardService.newTextParagraph().setText(
-      `✅ <strong>Email classified as:</strong> ${data.type}<br><br>` +
-      "Your email has been automatically processed and the relevant data has been extracted."
-    )
-  );
-  
-  card.addSection(section);
 } 
