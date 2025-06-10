@@ -103,8 +103,9 @@ app.post('/api/travel/compare', async (c) => {
     } else if (travelData.type === 'attraction') {
       comparisonData = await getAttractionComparisons(travelData);
     } else {
-      // Generic travel comparison
-      comparisonData = await getGenericTravelComparisons(travelData);
+      // For general or unclassified travel emails, default to hotel search
+      console.log('🏨 General travel detected, defaulting to hotel search');
+      comparisonData = await getHotelComparisons(travelData);
     }
 
     // Store travel data in database

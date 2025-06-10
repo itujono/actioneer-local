@@ -1,12 +1,16 @@
-// Code.js - Main Gmail Add-on Logic
-// Core functionality for the Actioneer Gmail Add-on
-// Test functions are located in Tests.gs
+// Code.js - Core Gmail Add-on Logic & Authentication
+// Main entry point and core functionality for the Actioneer Gmail Add-on
+// UI components are in CardBuilders.js, test functions are in Tests.gs
 
-const BASE_URL = "https://stellar-quokka-a92bb9.netlify.app";
+const BASE_URL = "https://actioneer.online";
 const BACKEND_API_URL = PropertiesService.getScriptProperties().getProperty("BACKEND_API_URL");
 const SUPABASE_ANON_KEY = PropertiesService.getScriptProperties().getProperty("SUPABASE_ANON_KEY");
 const MASTER_API_KEY = PropertiesService.getScriptProperties().getProperty("MASTER_API_KEY");
 const ICON_URL = "https://raw.githubusercontent.com/itujono/test-widget/refs/heads/main/assets/images/logo.png"
+
+// ============================================================================
+// HEADER UTILITIES
+// ============================================================================
 
 function getSupabaseHeaders(includeApiKey = false) {
   const headers = {
@@ -51,7 +55,7 @@ function getMasterKeyHeaders() {
   return headers;
 }
 
-// NEW: Special headers for Edge Functions that use our custom API key auth
+// Special headers for Edge Functions that use our custom API key auth
 function getEdgeFunctionHeaders() {
   const headers = {
     "Content-Type": "application/json",
@@ -70,6 +74,10 @@ function getEdgeFunctionHeaders() {
 
   return headers;
 }
+
+// ============================================================================
+// MAIN GMAIL ADD-ON ENTRY POINT
+// ============================================================================
 
 function onGmailMessage(e) {
   console.log("=== GMAIL ADD-ON TRIGGERED ===");
@@ -126,7 +134,15 @@ function onGmailMessage(e) {
 
     console.log("✅ User API key obtained");
 
-    console.log("🤖 Classifying email...");
+    // First, check if we have pre-processed data for this email
+    const preProcessedData = getPreProcessedEmailData(messageId, userApiKey);
+    
+    if (preProcessedData) {
+      console.log("⚡ Found pre-processed data:", preProcessedData.type);
+      return [createPreProcessedCard(preProcessedData, gmailMessage, emailData)];
+    }
+
+    console.log("🤖 No pre-processed data found, classifying email...");
     const classification = classifyEmail(emailData, userApiKey);
 
     if (!classification) {
@@ -170,14 +186,12 @@ function onGmailMessage(e) {
         ];
       }
 
-      console.log(`✅ Found ${classification.actions.length} smart actions`);
       const card = createSmartActionsCard(classification, messageId);
       console.log("🎨 Smart actions card created successfully");
       return [card];
     }
   } catch (error) {
     console.error("💥 Critical error in onGmailMessage:", error);
-    console.error("Error stack:", error.stack);
 
     return [
       createDebugCard(
@@ -186,33 +200,6 @@ function onGmailMessage(e) {
       ),
     ];
   }
-}
-
-function createDebugCard(title, message) {
-  console.log(`🐛 Creating debug card: ${title} - ${message}`);
-
-  return CardService.newCardBuilder()
-    .setHeader(
-      CardService.newCardHeader()
-        .setTitle("🐛 Actioneer Debug")
-        .setSubtitle(title)
-    )
-    .addSection(
-      CardService.newCardSection()
-        .addWidget(
-          CardService.newTextParagraph().setText(
-            `<b>Debug Info:</b><br>${message}<br><br><i>Check Apps Script logs for details</i>`
-          )
-        )
-        .addWidget(
-          CardService.newTextButton()
-            .setText("Run Quick Test")
-            .setOnClickAction(
-              CardService.newAction().setFunctionName("runQuickTestFromCard")
-            )
-        )
-    )
-    .build();
 }
 
 function runQuickTestFromCard() {
@@ -241,6 +228,10 @@ function runQuickTestFromCard() {
       .build();
   }
 }
+
+// ============================================================================
+// AUTHENTICATION & API KEY MANAGEMENT
+// ============================================================================
 
 function ensureUserApiKey() {
   try {
@@ -342,6 +333,35 @@ function generateUserApiKey(userEmail, userName) {
   }
 }
 
+function getUserProfile() {
+  const userApiKey = PropertiesService.getUserProperties().getProperty("USER_API_KEY");
+  if (!userApiKey) {
+    console.error("No API key found");
+    return null;
+  }
+
+  try {
+    const response = UrlFetchApp.fetch(`${BACKEND_API_URL}/auth/profile`, {
+      method: "GET",
+      headers: getEdgeFunctionHeaders(),
+    });
+
+    if (response.getResponseCode() === 200) {
+      return JSON.parse(response.getContentText());
+    } else {
+      console.error("Failed to get user profile:", response.getContentText());
+      return null;
+    }
+  } catch (error) {
+    console.error("Error getting user profile:", error);
+    return null;
+  }
+}
+
+// ============================================================================
+// EMAIL PROCESSING & CLASSIFICATION
+// ============================================================================
+
 function getEmailContent(messageId, accessToken) {
   try {
     console.log("🔍 Getting email content for messageId:", messageId);
@@ -398,7 +418,7 @@ function classifyEmail(emailData, userApiKey) {
 
     const response = UrlFetchApp.fetch(`${BACKEND_API_URL}/classify-email`, {
       method: "POST",
-      headers: getEdgeFunctionHeaders(), // Use the new Edge Function headers
+      headers: getEdgeFunctionHeaders(), // Use the Edge Function headers
       payload: JSON.stringify(payload),
       muteHttpExceptions: true,
     });
@@ -421,73 +441,47 @@ function classifyEmail(emailData, userApiKey) {
   }
 }
 
-function createSmartActionsCard(classification, messageId) {
-  const card = CardService.newCardBuilder()
-    .setHeader(
-      CardService.newCardHeader()
-        .setTitle("Smart Actions")
-        .setSubtitle(`${classification.type} detected`)
-        .setImageUrl(ICON_URL)
-    )
-    .setName("smart_actions_card");
+/**
+ * Check for pre-processed email data from auto-processing
+ */
+function getPreProcessedEmailData(messageId, userApiKey) {
+  try {
+    console.log("🔍 Checking for pre-processed data for email:", messageId);
+    
+    const headers = {
+      "Content-Type": "application/json",
+      "apikey": SUPABASE_ANON_KEY,
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+      "x-user-api-key": userApiKey
+    };
+    
+    // Check if email exists in our database with processed data
+    const response = UrlFetchApp.fetch(`${BACKEND_API_URL}/get-processed-email?messageId=${messageId}`, {
+      method: "GET",
+      headers: headers,
+      muteHttpExceptions: true,
+    });
 
-  const section = CardService.newCardSection();
-
-  classification.actions.forEach((action) => {
-    let button;
-
-    if (action.type === "simple") {
-      button = CardService.newTextButton()
-        .setText(action.label)
-        .setOnClickAction(
-          CardService.newAction()
-            .setFunctionName(action.handler)
-            .setParameters({
-              messageId: messageId,
-              actionData: JSON.stringify(action.data),
-            })
-        );
+    if (response.getResponseCode() === 200) {
+      const result = JSON.parse(response.getContentText());
+      console.log("✅ Pre-processed data found:", JSON.stringify(result, null, 2));
+      return result;
+    } else if (response.getResponseCode() === 404) {
+      console.log("📭 No pre-processed data found");
+      return null;
     } else {
-      const userEmail = Session.getActiveUser().getEmail();
-      let webAppUrl;
-
-      switch (action.type) {
-        case "expense_dashboard":
-          webAppUrl = `${BASE_URL}/expenses?from=gmail&messageId=${messageId}&email=${encodeURIComponent(
-            userEmail
-          )}`;
-          break;
-        case "travel_comparison":
-          webAppUrl = `${BASE_URL}/travel?from=gmail&messageId=${messageId}&email=${encodeURIComponent(
-            userEmail
-          )}`;
-          break;
-        case "job_tracker":
-          webAppUrl = `${BASE_URL}/jobs?from=gmail&messageId=${messageId}&email=${encodeURIComponent(
-            userEmail
-          )}`;
-          break;
-        default:
-          webAppUrl = `${BASE_URL}/dashboard?from=gmail&messageId=${messageId}&email=${encodeURIComponent(
-            userEmail
-          )}`;
-      }
-
-      button = CardService.newTextButton()
-        .setText(action.label)
-        .setOpenLink(
-          CardService.newOpenLink()
-            .setUrl(webAppUrl)
-            .setOpenAs(CardService.OpenAs.OVERLAY)
-        );
+      console.error("Error checking pre-processed data:", response.getContentText());
+      return null;
     }
-
-    section.addWidget(button);
-  });
-
-  card.addSection(section);
-  return card.build();
+  } catch (error) {
+    console.error("Error getting pre-processed data:", error);
+    return null;
+  }
 }
+
+// ============================================================================
+// EXPENSE PROCESSING
+// ============================================================================
 
 function handleTrackExpense(e) {
   const messageId = e.parameters.messageId;
@@ -633,281 +627,6 @@ function processExpense(expenseData, userApiKey) {
   }
 }
 
-function getUserProfile() {
-  const userApiKey = PropertiesService.getUserProperties().getProperty("USER_API_KEY");
-  if (!userApiKey) {
-    console.error("No API key found");
-    return null;
-  }
-
-  try {
-    const response = UrlFetchApp.fetch(`${BACKEND_API_URL}/auth/profile`, {
-      method: "GET",
-      headers: getEdgeFunctionHeaders(),
-    });
-
-    if (response.getResponseCode() === 200) {
-      return JSON.parse(response.getContentText());
-    } else {
-      console.error("Failed to get user profile:", response.getContentText());
-      return null;
-    }
-  } catch (error) {
-    console.error("Error getting user profile:", error);
-    return null;
-  }
-}
-
-/**
- * Auto-process receipt and show results
- */
-function createReceiptProcessedCard(gmailMessage, emailData) {
-  console.log("💰 Auto-processing receipt...");
-  
-  const expenseData = extractExpenseFromEmail(gmailMessage);
-  
-  // Save to backend (optional - you can enable this when ready)
-  // processExpense(expenseData, userApiKey);
-  
-  const recentExpenses = getRecentExpenses();
-  
-  const card = CardService.newCardBuilder()
-    .setHeader(
-      CardService.newCardHeader()
-        .setTitle("💰 Receipt Parsed")
-        .setSubtitle("Expense automatically tracked")
-        .setImageUrl(ICON_URL)
-    )
-    .setName("receipt_processed_card");
-
-  const currentExpenseSection = CardService.newCardSection()
-    .setHeader("📄 New Expense");
-    
-  const amount = expenseData.amount || "Unknown";
-  const merchant = expenseData.merchant || "Unknown Merchant";
-  const currency = expenseData.currency || "$";
-  const date = new Date(expenseData.date).toLocaleDateString();
-  
-  currentExpenseSection.addWidget(
-    CardService.newTextParagraph().setText(
-      `<b>${merchant}</b><br>` +
-      `<font color="#1a73e8"><b>${currency}${amount}</b></font><br>` +
-      `<font color="#5f6368">${date}</font>`
-    )
-  );
-
-  card.addSection(currentExpenseSection);
-
-  if (recentExpenses && recentExpenses.length > 0) {
-    const recentSection = CardService.newCardSection()
-      .setHeader("📊 Your expenses this month so far");
-    
-    const expensesToShow = recentExpenses.slice(0, 5);
-    let totalAmount = 0;
-    
-    expensesToShow.forEach(expense => {
-      totalAmount += expense.amount || 0;
-      const expenseDate = new Date(expense.date).toLocaleDateString();
-      recentSection.addWidget(
-        CardService.newTextParagraph().setText(
-          `<b>${expense.merchant || 'Unknown'}</b> - $${expense.amount || '0'}<br>` +
-          `<font color="#5f6368">${expenseDate}</font>`
-        )
-      );
-    });
-    
-    recentSection.addWidget(
-      CardService.newTextParagraph().setText(
-        `<br><b>Total this month: <font color="#1a73e8">$${totalAmount.toFixed(2)}</font></b>`
-      )
-    );
-    
-    card.addSection(recentSection);
-  }
-
-  const actionSection = CardService.newCardSection();
-  actionSection.addWidget(
-    CardService.newTextButton()
-      .setText("View All Your Expenses")
-      .setOpenLink(
-        CardService.newOpenLink()
-          .setUrl(`${BASE_URL}/expenses?from=gmail&messageId=${emailData.messageId}&email=${encodeURIComponent(Session.getActiveUser().getEmail())}`)
-          .setOpenAs(CardService.OpenAs.OVERLAY)
-      )
-  );
-  
-  card.addSection(actionSection);
-  
-  return card.build();
-}
-
-/**
- * Auto-process travel email with price comparison
- */
-function createTravelProcessedCard(gmailMessage, emailData) {
-  console.log("✈️ Auto-processing travel email...");
-  
-  // Get travel comparison data
-  const travelComparison = getTravelComparison(emailData);
-  
-  const card = CardService.newCardBuilder()
-    .setHeader(
-      CardService.newCardHeader()
-        .setTitle("✈️ Travel Comparison")
-        .setSubtitle("Price comparison ready")
-        .setImageUrl(ICON_URL)
-    )
-    .setName("travel_processed_card");
-
-  if (travelComparison && travelComparison.comparisons && travelComparison.comparisons.length > 0) {
-    // Show travel data extracted
-    const travelInfoSection = CardService.newCardSection()
-      .setHeader("🎯 Travel Details Detected");
-    
-    const travelData = travelComparison.travelData;
-    let travelInfo = "";
-    
-    if (travelData.type) {
-      travelInfo += `<b>Type:</b> ${travelData.type.charAt(0).toUpperCase() + travelData.type.slice(1)}<br>`;
-    }
-    if (travelData.destination) {
-      travelInfo += `<b>Destination:</b> ${travelData.destination}<br>`;
-    }
-    if (travelData.origin && travelData.type === 'flight') {
-      travelInfo += `<b>From:</b> ${travelData.origin}<br>`;
-    }
-    if (travelData.departureDate || travelData.checkInDate) {
-      const date = travelData.departureDate || travelData.checkInDate;
-      travelInfo += `<b>Date:</b> ${new Date(date).toLocaleDateString()}<br>`;
-    }
-    if (travelData.travelers || travelData.guests) {
-      const count = travelData.travelers || travelData.guests;
-      travelInfo += `<b>Travelers:</b> ${count}<br>`;
-    }
-    
-    travelInfoSection.addWidget(
-      CardService.newTextParagraph().setText(travelInfo)
-    );
-    
-    card.addSection(travelInfoSection);
-    
-    // Show price comparisons
-    const comparisonSection = CardService.newCardSection()
-      .setHeader(`💰 ${travelData.type === 'flight' ? 'Flight' : travelData.type === 'hotel' ? 'Hotel' : 'Travel'} Price Comparison`);
-    
-    travelComparison.comparisons.slice(0, 3).forEach((comparison, index) => {
-      let comparisonText = "";
-      
-      if (travelData.type === 'flight') {
-        comparisonText = `<b>${comparison.airline || comparison.provider}</b><br>` +
-                        `<font color="#1a73e8"><b>${comparison.currency} ${comparison.price}</b></font><br>` +
-                        `<font color="#5f6368">${comparison.duration} • ${comparison.stops} stops</font>`;
-      } else if (travelData.type === 'hotel') {
-        comparisonText = `<b>${comparison.hotelName || comparison.name}</b><br>` +
-                        `<font color="#1a73e8"><b>${comparison.currency} ${comparison.price}/night</b></font><br>` +
-                        `<font color="#5f6368">⭐ ${comparison.rating} • ${comparison.location}</font>`;
-      } else {
-        comparisonText = `<b>${comparison.name}</b><br>` +
-                        `<font color="#1a73e8"><b>${comparison.currency || ''} ${comparison.price}</b></font><br>` +
-                        `<font color="#5f6368">${comparison.description || comparison.category}</font>`;
-      }
-      
-      comparisonSection.addWidget(
-        CardService.newTextParagraph().setText(comparisonText)
-      );
-      
-      if (comparison.bookingUrl) {
-        comparisonSection.addWidget(
-          CardService.newTextButton()
-            .setText(`Book with ${comparison.provider || comparison.airline || 'Provider'}`)
-            .setOpenLink(
-              CardService.newOpenLink()
-                .setUrl(comparison.bookingUrl)
-                .setOpenAs(CardService.OpenAs.FULL_SIZE)
-            )
-        );
-      }
-      
-      // Add separator except for last item
-      if (index < Math.min(travelComparison.comparisons.length - 1, 2)) {
-        comparisonSection.addWidget(
-          CardService.newTextParagraph().setText("<hr>")
-        );
-      }
-    });
-    
-    card.addSection(comparisonSection);
-  } else {
-    // Fallback if comparison fails
-    const section = CardService.newCardSection()
-      .addWidget(
-        CardService.newTextParagraph().setText(
-          "🔍 <b>Travel email detected!</b><br><br>" +
-          "We're analyzing your travel details and will show price comparisons shortly.<br><br>" +
-          "In the meantime, you can:"
-        )
-      );
-    
-    card.addSection(section);
-  }
-
-  // Always add travel dashboard button
-  const actionSection = CardService.newCardSection();
-  actionSection.addWidget(
-    CardService.newTextButton()
-      .setText("View Travel Dashboard")
-      .setOpenLink(
-        CardService.newOpenLink()
-          .setUrl(`${BASE_URL}/travel?from=gmail&messageId=${emailData.messageId}&email=${encodeURIComponent(Session.getActiveUser().getEmail())}`)
-          .setOpenAs(CardService.OpenAs.OVERLAY)
-      )
-  );
-  
-  card.addSection(actionSection);
-  return card.build();
-}
-
-/**
- * Auto-process job email
- */
-function createJobProcessedCard(gmailMessage, emailData) {
-  console.log("💼 Auto-processing job email...");
-  
-  const card = CardService.newCardBuilder()
-    .setHeader(
-      CardService.newCardHeader()
-        .setTitle("💼 Job Parsed")
-        .setSubtitle("Opportunity tracked")
-        .setImageUrl(ICON_URL)
-    )
-    .setName("job_processed_card");
-
-  // TODO: Add job processing
-  const section = CardService.newCardSection()
-    .addWidget(
-      CardService.newTextParagraph().setText(
-        "🚧 <b>Job auto-processing coming soon!</b><br><br>" +
-        "We detected this is a job-related email. Soon we'll automatically extract:<br>" +
-        "• Company details<br>" +
-        "• Position information<br>" +
-        "• Application status<br>" +
-        "• Interview schedules"
-      )
-    )
-    .addWidget(
-      CardService.newTextButton()
-        .setText("View Job Tracker")
-        .setOpenLink(
-          CardService.newOpenLink()
-            .setUrl(`${BASE_URL}/jobs?from=gmail&messageId=${emailData.messageId}`)
-            .setOpenAs(CardService.OpenAs.OVERLAY)
-        )
-    );
-
-  card.addSection(section);
-  return card.build();
-}
-
 function getRecentExpenses() {
   try {
     const response = UrlFetchApp.fetch(`${BACKEND_API_URL}/expenses/recent`, {
@@ -928,6 +647,10 @@ function getRecentExpenses() {
     return [];
   }
 }
+
+// ============================================================================
+// TRAVEL PROCESSING
+// ============================================================================
 
 /**
  * Get travel comparison data from backend
@@ -955,9 +678,9 @@ function getTravelComparison(emailData) {
     // Headers required for Supabase Edge Functions
     const headers = {
       "Content-Type": "application/json",
-      "apikey": SUPABASE_ANON_KEY, // Required for Edge Functions
-      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`, // Use anon key for platform auth
-      "x-user-api-key": userApiKey // User API key in custom header
+      "apikey": SUPABASE_ANON_KEY,
+      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
+      "x-user-api-key": userApiKey
     };
     
     console.log("📋 Headers being sent:", JSON.stringify(headers, null, 2));
@@ -982,4 +705,4 @@ function getTravelComparison(emailData) {
     console.error("Error getting travel comparison:", error);
     return null;
   }
-}
+} 
