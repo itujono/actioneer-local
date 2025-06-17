@@ -3,10 +3,14 @@
 // UI components are in CardBuilders.js, test functions are in Tests.gs
 
 const BASE_URL = "https://actioneer.online";
-const BACKEND_API_URL = PropertiesService.getScriptProperties().getProperty("BACKEND_API_URL");
-const SUPABASE_ANON_KEY = PropertiesService.getScriptProperties().getProperty("SUPABASE_ANON_KEY");
-const MASTER_API_KEY = PropertiesService.getScriptProperties().getProperty("MASTER_API_KEY");
-const ICON_URL = "https://raw.githubusercontent.com/itujono/test-widget/refs/heads/main/assets/images/logo.png"
+const BACKEND_API_URL =
+  PropertiesService.getScriptProperties().getProperty("BACKEND_API_URL");
+const SUPABASE_ANON_KEY =
+  PropertiesService.getScriptProperties().getProperty("SUPABASE_ANON_KEY");
+const MASTER_API_KEY =
+  PropertiesService.getScriptProperties().getProperty("MASTER_API_KEY");
+const ICON_URL =
+  "https://raw.githubusercontent.com/itujono/test-widget/refs/heads/main/assets/images/logo.png";
 
 // ============================================================================
 // HEADER UTILITIES
@@ -27,7 +31,8 @@ function getSupabaseHeaders(includeApiKey = false) {
   }
 
   if (includeApiKey) {
-    const userApiKey = PropertiesService.getUserProperties().getProperty("USER_API_KEY");
+    const userApiKey =
+      PropertiesService.getUserProperties().getProperty("USER_API_KEY");
     if (userApiKey) {
       headers["Authorization"] = "Bearer " + userApiKey;
     }
@@ -67,7 +72,8 @@ function getEdgeFunctionHeaders() {
   }
 
   // Include user API key in Authorization header for our custom auth
-  const userApiKey = PropertiesService.getUserProperties().getProperty("USER_API_KEY");
+  const userApiKey =
+    PropertiesService.getUserProperties().getProperty("USER_API_KEY");
   if (userApiKey) {
     headers["Authorization"] = "Bearer " + userApiKey;
   }
@@ -99,7 +105,7 @@ function onGmailMessage(e) {
 
     console.log("📥 Fetching email content...");
     const gmailMessage = GmailApp.getMessageById(messageId);
-    
+
     if (!gmailMessage) {
       console.error("❌ Failed to get Gmail message");
       return [
@@ -109,7 +115,7 @@ function onGmailMessage(e) {
         ),
       ];
     }
-    
+
     const emailData = getEmailContent(messageId, accessToken);
 
     if (!emailData) {
@@ -136,10 +142,12 @@ function onGmailMessage(e) {
 
     // First, check if we have pre-processed data for this email
     const preProcessedData = getPreProcessedEmailData(messageId, userApiKey);
-    
+
     if (preProcessedData) {
       console.log("⚡ Found pre-processed data:", preProcessedData.type);
-      return [createPreProcessedCard(preProcessedData, gmailMessage, emailData)];
+      return [
+        createPreProcessedCard(preProcessedData, gmailMessage, emailData),
+      ];
     }
 
     console.log("🤖 No pre-processed data found, classifying email...");
@@ -172,14 +180,14 @@ function onGmailMessage(e) {
       return [card];
     } else if (classification.type === "job_application") {
       console.log("💼 Job application email detected - auto-processing...");
-      
+
       // Trigger backend job processing
       try {
         processJobApplicationInBackground(emailData, userApiKey);
       } catch (error) {
         console.error("Background job processing failed:", error);
       }
-      
+
       const card = createJobProcessedCard(gmailMessage, emailData);
       return [card];
     } else {
@@ -243,7 +251,8 @@ function runQuickTestFromCard() {
 
 function ensureUserApiKey() {
   try {
-    let userApiKey = PropertiesService.getUserProperties().getProperty("USER_API_KEY");
+    let userApiKey =
+      PropertiesService.getUserProperties().getProperty("USER_API_KEY");
 
     if (userApiKey) {
       console.log("Using existing user API key");
@@ -279,16 +288,21 @@ function ensureUserApiKey() {
 
 function validateUserApiKey(apiKey) {
   try {
-    const response = UrlFetchApp.fetch(
-      `${BACKEND_API_URL}/auth/validate-user-key`,
-      {
-        method: "POST",
-        headers: getSupabaseHeaders(),
-        payload: JSON.stringify({
-          api_key: apiKey,
-        }),
-      }
-    );
+    const headers = {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+    };
+
+    const response = UrlFetchApp.fetch(`${BACKEND_API_URL}/auth`, {
+      method: "POST",
+      headers: headers,
+      payload: JSON.stringify({
+        action: "validate",
+        api_key: apiKey,
+      }),
+      muteHttpExceptions: true,
+    });
 
     if (response.getResponseCode() === 200) {
       const result = JSON.parse(response.getContentText());
@@ -305,23 +319,46 @@ function validateUserApiKey(apiKey) {
 
 function generateUserApiKey(userEmail, userName) {
   try {
-    const response = UrlFetchApp.fetch(
-      `${BACKEND_API_URL}/auth/generate-user-key`,
-      {
-        method: "POST",
-        headers: getMasterKeyHeaders(),
-        payload: JSON.stringify({
-          email: userEmail,
-          name: userName,
-        }),
-      }
-    );
+    console.log("🔑 MASTER_API_KEY available:", !!MASTER_API_KEY);
+    console.log("📧 User email:", userEmail);
+    console.log("👤 User name:", userName);
 
-    if (response.getResponseCode() === 200) {
-      const result = JSON.parse(response.getContentText());
+    if (!MASTER_API_KEY) {
+      console.error("❌ No MASTER_API_KEY available");
+      return null;
+    }
+
+    // Use X-Master-Key header approach that works with --no-verify-jwt
+    const headers = {
+      "Content-Type": "application/json",
+      "X-Master-Key": MASTER_API_KEY,
+    };
+
+    const payload = {
+      email: userEmail,
+      name: userName,
+    };
+
+    console.log("📡 Making request to:", `${BACKEND_API_URL}/auth`);
+
+    const response = UrlFetchApp.fetch(`${BACKEND_API_URL}/auth`, {
+      method: "POST",
+      headers: headers,
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+    });
+
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+
+    console.log("📨 Response code:", responseCode);
+    console.log("📨 Response text:", responseText);
+
+    if (responseCode === 200) {
+      const result = JSON.parse(responseText);
       if (result.success) {
         console.log(
-          `User ${result.created ? "created" : "found"}: ${result.message}`
+          `✅ User ${result.created ? "created" : "found"}: ${result.message}`
         );
         return result.api_key;
       } else {
@@ -329,10 +366,7 @@ function generateUserApiKey(userEmail, userName) {
         return null;
       }
     } else {
-      console.error(
-        "Failed to generate user API key:",
-        response.getContentText()
-      );
+      console.error("Failed to generate user API key:", responseText);
       return null;
     }
   } catch (error) {
@@ -342,7 +376,8 @@ function generateUserApiKey(userEmail, userName) {
 }
 
 function getUserProfile() {
-  const userApiKey = PropertiesService.getUserProperties().getProperty("USER_API_KEY");
+  const userApiKey =
+    PropertiesService.getUserProperties().getProperty("USER_API_KEY");
   if (!userApiKey) {
     console.error("No API key found");
     return null;
@@ -363,6 +398,194 @@ function getUserProfile() {
   } catch (error) {
     console.error("Error getting user profile:", error);
     return null;
+  }
+}
+
+// ============================================================================
+// GMAIL WATCH SETUP
+// ============================================================================
+
+/**
+ * Set up Gmail watch for push notifications
+ * Call this once to enable automatic email processing
+ */
+function setupGmailWatch() {
+  try {
+    console.log("🔔 Setting up Gmail watch for push notifications...");
+
+    const userEmail = Session.getActiveUser().getEmail();
+    console.log("👤 Setting up watch for:", userEmail);
+
+    // Check if watch already exists
+    const existingWatch = checkExistingWatch();
+    if (existingWatch) {
+      console.log("✅ Gmail watch already exists:", existingWatch.historyId);
+      return {
+        success: true,
+        message: "Gmail watch already active",
+        historyId: existingWatch.historyId,
+      };
+    }
+
+    console.log("📡 Creating Gmail watch...");
+
+    // Use UrlFetchApp instead of Gmail Advanced Service to avoid JSON parsing issues
+    const accessToken = ScriptApp.getOAuthToken();
+    const url = "https://gmail.googleapis.com/gmail/v1/users/me/watch";
+
+    const payload = {
+      topicName: "projects/actioneer-462117/topics/gmail-notifications",
+    };
+
+    const options = {
+      method: "POST",
+      headers: {
+        Authorization: "Bearer " + accessToken,
+        "Content-Type": "application/json",
+      },
+      payload: JSON.stringify(payload),
+    };
+
+    console.log("🔗 Making direct API call to:", url);
+    console.log("📋 Payload:", JSON.stringify(payload));
+
+    const response = UrlFetchApp.fetch(url, options);
+    const responseText = response.getContentText();
+
+    console.log("📨 Response status:", response.getResponseCode());
+    console.log("📨 Response:", responseText);
+
+    if (response.getResponseCode() !== 200) {
+      throw new Error(`Gmail API call failed: ${responseText}`);
+    }
+
+    const watchResponse = JSON.parse(responseText);
+
+    console.log("✅ Gmail watch created successfully!");
+    console.log("📊 History ID:", watchResponse.historyId);
+    console.log("⏰ Expires:", new Date(parseInt(watchResponse.expiration)));
+
+    // Store watch info for future reference
+    PropertiesService.getUserProperties().setProperties({
+      GMAIL_WATCH_HISTORY_ID: watchResponse.historyId,
+      GMAIL_WATCH_EXPIRATION: watchResponse.expiration,
+      GMAIL_WATCH_CREATED: new Date().toISOString(),
+    });
+
+    return {
+      success: true,
+      message: "Gmail watch created successfully",
+      historyId: watchResponse.historyId,
+      expiration: new Date(parseInt(watchResponse.expiration)),
+    };
+  } catch (error) {
+    console.error("❌ Error setting up Gmail watch:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to set up Gmail watch",
+    };
+  }
+}
+
+/**
+ * Check if Gmail watch already exists
+ */
+function checkExistingWatch() {
+  try {
+    const historyId = PropertiesService.getUserProperties().getProperty(
+      "GMAIL_WATCH_HISTORY_ID"
+    );
+    const expiration = PropertiesService.getUserProperties().getProperty(
+      "GMAIL_WATCH_EXPIRATION"
+    );
+
+    if (!historyId || !expiration) {
+      return null;
+    }
+
+    // Check if watch has expired
+    const expirationDate = new Date(parseInt(expiration));
+    const now = new Date();
+
+    if (expirationDate <= now) {
+      console.log("⚠️ Gmail watch has expired, needs renewal");
+      return null;
+    }
+
+    return {
+      historyId: historyId,
+      expiration: expirationDate,
+    };
+  } catch (error) {
+    console.error("Error checking existing watch:", error);
+    return null;
+  }
+}
+
+/**
+ * Stop Gmail watch
+ */
+function stopGmailWatch() {
+  try {
+    console.log("🛑 Stopping Gmail watch...");
+
+    Gmail.Users.stop("me");
+
+    // Clear stored watch info
+    PropertiesService.getUserProperties().deleteProperty(
+      "GMAIL_WATCH_HISTORY_ID"
+    );
+    PropertiesService.getUserProperties().deleteProperty(
+      "GMAIL_WATCH_EXPIRATION"
+    );
+    PropertiesService.getUserProperties().deleteProperty("GMAIL_WATCH_CREATED");
+
+    console.log("✅ Gmail watch stopped successfully");
+
+    return {
+      success: true,
+      message: "Gmail watch stopped successfully",
+    };
+  } catch (error) {
+    console.error("❌ Error stopping Gmail watch:", error);
+    return {
+      success: false,
+      error: error.message || "Failed to stop Gmail watch",
+    };
+  }
+}
+
+/**
+ * Get Gmail watch status
+ */
+function getGmailWatchStatus() {
+  try {
+    const existingWatch = checkExistingWatch();
+
+    if (!existingWatch) {
+      return {
+        active: false,
+        message: "No active Gmail watch found",
+      };
+    }
+
+    const created = PropertiesService.getUserProperties().getProperty(
+      "GMAIL_WATCH_CREATED"
+    );
+
+    return {
+      active: true,
+      historyId: existingWatch.historyId,
+      expiration: existingWatch.expiration,
+      created: created ? new Date(created) : null,
+      message: "Gmail watch is active",
+    };
+  } catch (error) {
+    console.error("Error getting watch status:", error);
+    return {
+      active: false,
+      error: error.message || "Failed to get watch status",
+    };
   }
 }
 
@@ -433,14 +656,16 @@ function classifyEmail(emailData, userApiKey) {
 
     if (response.getResponseCode() === 200) {
       const result = JSON.parse(response.getContentText());
-      
+
       // If backend classification succeeded, return it
-      if (result && result.type && result.type !== 'other') {
+      if (result && result.type && result.type !== "other") {
         return result;
       }
-      
+
       // If backend returned 'other' or invalid result, try client-side fallback
-      console.log("🔄 Backend returned 'other', trying client-side fallback...");
+      console.log(
+        "🔄 Backend returned 'other', trying client-side fallback..."
+      );
       const fallbackResult = classifyEmailClientSide(emailData);
       return fallbackResult || result; // Return fallback if better, otherwise original
     } else {
@@ -452,14 +677,18 @@ function classifyEmail(emailData, userApiKey) {
       }
 
       // Try client-side fallback when backend fails
-      console.log("🔄 Backend classification failed, trying client-side fallback...");
+      console.log(
+        "🔄 Backend classification failed, trying client-side fallback..."
+      );
       return classifyEmailClientSide(emailData);
     }
   } catch (error) {
     console.error("Error classifying email:", error);
-    
+
     // Try client-side fallback when there's an error
-    console.log("🔄 Backend classification error, trying client-side fallback...");
+    console.log(
+      "🔄 Backend classification error, trying client-side fallback..."
+    );
     return classifyEmailClientSide(emailData);
   }
 }
@@ -469,13 +698,13 @@ function classifyEmail(emailData, userApiKey) {
  */
 function classifyEmailClientSide(emailData) {
   if (!emailData) return null;
-  
+
   console.log("🔍 Client-side classification for:", emailData.subject);
-  
-  const subject = (emailData.subject || '').toLowerCase();
-  const from = (emailData.from || '').toLowerCase();
-  const body = (emailData.body || '').toLowerCase();
-  
+
+  const subject = (emailData.subject || "").toLowerCase();
+  const from = (emailData.from || "").toLowerCase();
+  const body = (emailData.body || "").toLowerCase();
+
   // Job application patterns
   const jobPatterns = [
     // Subject patterns
@@ -489,7 +718,7 @@ function classifyEmailClientSide(emailData) {
     /job\s+offer/i,
     /recruitment/i,
     /hr\s+team/i,
-    
+
     // Body patterns
     /applied\s+to/i,
     /your\s+application/i,
@@ -504,31 +733,32 @@ function classifyEmailClientSide(emailData) {
     /future\s+openings/i,
     /career\s+site/i,
     /recruitment\s+team/i,
-    /application\s+process/i
+    /application\s+process/i,
   ];
-  
+
   // Check if it matches job patterns
-  const isJobEmail = jobPatterns.some(pattern => 
-    pattern.test(subject) || pattern.test(body) || pattern.test(from)
+  const isJobEmail = jobPatterns.some(
+    (pattern) =>
+      pattern.test(subject) || pattern.test(body) || pattern.test(from)
   );
-  
+
   if (isJobEmail) {
     console.log("✅ Client-side classification: job_application");
     return {
-      type: 'job_application',
+      type: "job_application",
       confidence: 0.8,
       actions: [
-        { 
-          type: 'complex', 
-          label: 'Track Application', 
-          handler: 'openJobTracker',
-          data: {} 
-        }
+        {
+          type: "complex",
+          label: "Track Application",
+          handler: "openJobTracker",
+          data: {},
+        },
       ],
-      method: 'client-side'
+      method: "client-side",
     };
   }
-  
+
   // Travel patterns
   const travelPatterns = [
     /flight/i,
@@ -537,30 +767,30 @@ function classifyEmailClientSide(emailData) {
     /reservation/i,
     /itinerary/i,
     /boarding\s+pass/i,
-    /confirmation/i
+    /confirmation/i,
   ];
-  
-  const isTravelEmail = travelPatterns.some(pattern => 
-    pattern.test(subject) || pattern.test(body)
+
+  const isTravelEmail = travelPatterns.some(
+    (pattern) => pattern.test(subject) || pattern.test(body)
   );
-  
+
   if (isTravelEmail) {
     console.log("✅ Client-side classification: travel");
     return {
-      type: 'travel',
+      type: "travel",
       confidence: 0.7,
       actions: [
-        { 
-          type: 'complex', 
-          label: 'Compare Hotel Prices', 
-          handler: 'openHotelComparison',
-          data: {} 
-        }
+        {
+          type: "complex",
+          label: "Compare Hotel Prices",
+          handler: "openHotelComparison",
+          data: {},
+        },
       ],
-      method: 'client-side'
+      method: "client-side",
     };
   }
-  
+
   // Receipt patterns
   const receiptPatterns = [
     /receipt/i,
@@ -568,36 +798,36 @@ function classifyEmailClientSide(emailData) {
     /payment/i,
     /purchase/i,
     /order/i,
-    /transaction/i
+    /transaction/i,
   ];
-  
-  const isReceiptEmail = receiptPatterns.some(pattern => 
-    pattern.test(subject) || pattern.test(body)
+
+  const isReceiptEmail = receiptPatterns.some(
+    (pattern) => pattern.test(subject) || pattern.test(body)
   );
-  
+
   if (isReceiptEmail) {
     console.log("✅ Client-side classification: receipt");
     return {
-      type: 'receipt',
+      type: "receipt",
       confidence: 0.7,
       actions: [
-        { 
-          type: 'simple', 
-          label: 'Track Expense', 
-          handler: 'handleTrackExpense',
-          data: {} 
-        }
+        {
+          type: "simple",
+          label: "Track Expense",
+          handler: "handleTrackExpense",
+          data: {},
+        },
       ],
-      method: 'client-side'
+      method: "client-side",
     };
   }
-  
+
   console.log("✅ Client-side classification: other");
   return {
-    type: 'other',
+    type: "other",
     confidence: 0.5,
     actions: [],
-    method: 'client-side'
+    method: "client-side",
   };
 }
 
@@ -606,33 +836,44 @@ function classifyEmailClientSide(emailData) {
  */
 function processJobApplicationInBackground(emailData, userApiKey) {
   console.log("🔄 Starting background job processing...");
-  
+
   try {
     const payload = {
       messageId: emailData.messageId,
       subject: emailData.subject,
       from: emailData.from,
-      emailBody: emailData.body
+      emailBody: emailData.body,
     };
 
+    // Headers required for Supabase Edge Functions (similar to travel-v2)
     const headers = {
       "Content-Type": "application/json",
-      "apikey": SUPABASE_ANON_KEY,
-      "x-user-api-key": userApiKey
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      "x-user-api-key": userApiKey,
     };
 
     // Call the job processing Edge Function
-    const response = UrlFetchApp.fetch(`${BACKEND_API_URL}/process-job-application`, {
-      method: "POST",
-      headers: headers,
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true,
-    });
+    const response = UrlFetchApp.fetch(
+      `${BACKEND_API_URL}/process-job-application`,
+      {
+        method: "POST",
+        headers: headers,
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true,
+      }
+    );
 
     if (response.getResponseCode() === 200) {
       const result = JSON.parse(response.getContentText());
-      console.log("✅ Job application processed successfully:", result.jobApplicationId);
-      console.log("📊 Extracted data:", JSON.stringify(result.extractedData, null, 2));
+      console.log(
+        "✅ Job application processed successfully:",
+        result.jobApplicationId
+      );
+      console.log(
+        "📊 Extracted data:",
+        JSON.stringify(result.extractedData, null, 2)
+      );
     } else {
       console.error("❌ Job processing failed:", response.getContentText());
     }
@@ -647,30 +888,39 @@ function processJobApplicationInBackground(emailData, userApiKey) {
 function getPreProcessedEmailData(messageId, userApiKey) {
   try {
     console.log("🔍 Checking for pre-processed data for email:", messageId);
-    
+
     const headers = {
       "Content-Type": "application/json",
-      "apikey": SUPABASE_ANON_KEY,
-      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-      "x-user-api-key": userApiKey
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      "x-user-api-key": userApiKey,
     };
-    
+
     // Check if email exists in our database with processed data
-    const response = UrlFetchApp.fetch(`${BACKEND_API_URL}/get-processed-email?messageId=${messageId}`, {
-      method: "GET",
-      headers: headers,
-      muteHttpExceptions: true,
-    });
+    const response = UrlFetchApp.fetch(
+      `${BACKEND_API_URL}/get-processed-email?messageId=${messageId}`,
+      {
+        method: "GET",
+        headers: headers,
+        muteHttpExceptions: true,
+      }
+    );
 
     if (response.getResponseCode() === 200) {
       const result = JSON.parse(response.getContentText());
-      console.log("✅ Pre-processed data found:", JSON.stringify(result, null, 2));
+      console.log(
+        "✅ Pre-processed data found:",
+        JSON.stringify(result, null, 2)
+      );
       return result;
     } else if (response.getResponseCode() === 404) {
       console.log("📭 No pre-processed data found");
       return null;
     } else {
-      console.error("Error checking pre-processed data:", response.getContentText());
+      console.error(
+        "Error checking pre-processed data:",
+        response.getContentText()
+      );
       return null;
     }
   } catch (error) {
@@ -868,24 +1118,27 @@ function getTravelComparison(emailData) {
       messageId: emailData.messageId,
       emailBody: emailData.body,
       subject: emailData.subject,
-      from: emailData.from
+      from: emailData.from,
     };
 
     console.log("🔍 Requesting travel comparison...");
     console.log("🌐 BACKEND_API_URL:", BACKEND_API_URL);
     console.log("🎯 Full URL:", `${BACKEND_API_URL}/travel-v2`);
-    
+
     // Headers required for Supabase Edge Functions
     const headers = {
       "Content-Type": "application/json",
-      "apikey": SUPABASE_ANON_KEY,
-      "Authorization": `Bearer ${SUPABASE_ANON_KEY}`,
-      "x-user-api-key": userApiKey
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      "x-user-api-key": userApiKey,
     };
-    
+
     console.log("📋 Headers being sent:", JSON.stringify(headers, null, 2));
-    console.log("🔑 User API key:", userApiKey ? userApiKey.substring(0, 10) + "..." : "MISSING");
-    
+    console.log(
+      "🔑 User API key:",
+      userApiKey ? userApiKey.substring(0, 10) + "..." : "MISSING"
+    );
+
     const response = UrlFetchApp.fetch(`${BACKEND_API_URL}/travel-v2`, {
       method: "POST",
       headers: headers,
@@ -895,7 +1148,10 @@ function getTravelComparison(emailData) {
 
     if (response.getResponseCode() === 200) {
       const result = JSON.parse(response.getContentText());
-      console.log("✅ Travel comparison received:", JSON.stringify(result, null, 2));
+      console.log(
+        "✅ Travel comparison received:",
+        JSON.stringify(result, null, 2)
+      );
       return result;
     } else {
       console.error("Travel comparison failed:", response.getContentText());
@@ -905,4 +1161,4 @@ function getTravelComparison(emailData) {
     console.error("Error getting travel comparison:", error);
     return null;
   }
-} 
+}

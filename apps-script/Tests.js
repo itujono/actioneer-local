@@ -64,7 +64,8 @@ function testEmailClassification() {
 
     console.log("Mock email:", mockEmail);
 
-    const userApiKey = PropertiesService.getUserProperties().getProperty("USER_API_KEY");
+    const userApiKey =
+      PropertiesService.getUserProperties().getProperty("USER_API_KEY");
     if (!userApiKey) {
       console.log("No API key found, generating one first...");
       ensureUserApiKey();
@@ -91,7 +92,8 @@ function testEmailClassification() {
 function testApiKeyValidation() {
   console.log("=== Testing API Key Validation ===");
   try {
-    const userApiKey = PropertiesService.getUserProperties().getProperty("USER_API_KEY");
+    const userApiKey =
+      PropertiesService.getUserProperties().getProperty("USER_API_KEY");
     if (!userApiKey) {
       console.log("No API key found to validate");
       return;
@@ -263,7 +265,14 @@ function runAllTests() {
   testEmailClassification();
   console.log("\n");
 
+  testGmailApiConnectivity();
+  console.log("\n");
+
+  testGmailWatchStatus();
+  console.log("\n");
+
   console.log("🏁 All tests completed!");
+  console.log("💡 To enable auto-processing, run: testSetupGmailWatch()");
 }
 
 /**
@@ -285,7 +294,8 @@ function quickTest() {
     }
 
     // Test 2: Check user API key
-    let userApiKey = PropertiesService.getUserProperties().getProperty("USER_API_KEY");
+    let userApiKey =
+      PropertiesService.getUserProperties().getProperty("USER_API_KEY");
     if (!userApiKey) {
       console.log("Generating user API key...");
       userApiKey = ensureUserApiKey();
@@ -433,7 +443,8 @@ function checkAddOnConfiguration() {
 function debugClassificationEndpoint() {
   console.log("🔍 Debugging Classification Endpoint...");
 
-  const userApiKey = PropertiesService.getUserProperties().getProperty("USER_API_KEY");
+  const userApiKey =
+    PropertiesService.getUserProperties().getProperty("USER_API_KEY");
   if (!userApiKey) {
     console.log("❌ No user API key found");
     return;
@@ -531,7 +542,8 @@ function testProactiveReceiptProcessing() {
     );
 
     // Test the new proactive card creation
-    const userApiKey = PropertiesService.getUserProperties().getProperty("USER_API_KEY");
+    const userApiKey =
+      PropertiesService.getUserProperties().getProperty("USER_API_KEY");
     if (!userApiKey) {
       console.log("❌ No user API key found - run ensureUserApiKey() first");
       return;
@@ -588,5 +600,161 @@ function testCompleteProactiveFlow() {
     );
   } catch (error) {
     console.error("❌ Flow test error:", error);
+  }
+}
+
+// ============================================================================
+// GMAIL WATCH TESTS
+// ============================================================================
+
+/**
+ * Test function to set up Gmail watch - run this manually
+ */
+function testSetupGmailWatch() {
+  console.log("🧪 Testing Gmail watch setup...");
+
+  // First, ensure user has API key
+  ensureUserApiKey();
+
+  // Then set up Gmail watch
+  const result = setupGmailWatch();
+
+  console.log("📊 Setup result:", JSON.stringify(result, null, 2));
+
+  if (result.success) {
+    console.log("🎉 SUCCESS! Gmail watch is now active");
+    console.log("📧 New emails will now trigger automatic processing");
+    console.log("⏰ Watch expires:", result.expiration);
+  } else {
+    console.log("❌ FAILED to set up Gmail watch");
+    console.log("🔍 Error:", result.error);
+  }
+
+  return result;
+}
+
+/**
+ * Test Gmail watch status check
+ */
+function testGmailWatchStatus() {
+  console.log("🔍 Testing Gmail watch status...");
+
+  const status = getGmailWatchStatus();
+
+  console.log("📊 Watch status:", JSON.stringify(status, null, 2));
+
+  if (status.active) {
+    console.log("✅ Gmail watch is ACTIVE");
+    console.log("📊 History ID:", status.historyId);
+    console.log("⏰ Expires:", status.expiration);
+    console.log("📅 Created:", status.created);
+  } else {
+    console.log("❌ Gmail watch is NOT active");
+    console.log("💡 Run testSetupGmailWatch() to activate it");
+  }
+
+  return status;
+}
+
+/**
+ * Test stopping Gmail watch
+ */
+function testStopGmailWatch() {
+  console.log("🛑 Testing Gmail watch stop...");
+
+  const result = stopGmailWatch();
+
+  console.log("📊 Stop result:", JSON.stringify(result, null, 2));
+
+  if (result.success) {
+    console.log("✅ Gmail watch stopped successfully");
+    console.log("📧 Auto-processing is now disabled");
+  } else {
+    console.log("❌ Failed to stop Gmail watch");
+    console.log("🔍 Error:", result.error);
+  }
+
+  return result;
+}
+
+/**
+ * Test Gmail API connectivity and permissions
+ */
+function testGmailApiConnectivity() {
+  console.log("🔗 Testing Gmail API connectivity...");
+
+  try {
+    const userEmail = Session.getActiveUser().getEmail();
+    console.log("👤 Current user:", userEmail);
+
+    // Test basic Gmail API access
+    const profile = Gmail.Users.getProfile("me");
+    console.log("📧 Gmail profile:");
+    console.log("  Email:", profile.emailAddress);
+    console.log("  Messages total:", profile.messagesTotal);
+    console.log("  Threads total:", profile.threadsTotal);
+
+    // Test if we can list labels (basic permission check)
+    const labels = Gmail.Users.Labels.list("me");
+    console.log("🏷️  Available labels:", labels.labels.length);
+
+    console.log("✅ Gmail API connectivity successful");
+    console.log("🔐 Permissions appear to be working");
+
+    return {
+      success: true,
+      profile: profile,
+      labelsCount: labels.labels.length,
+    };
+  } catch (error) {
+    console.error("❌ Gmail API connectivity failed:", error);
+    console.log("💡 Possible issues:");
+    console.log("  1. Gmail API not enabled in Advanced Google Services");
+    console.log("  2. Missing OAuth scopes");
+    console.log("  3. User hasn't granted permissions");
+
+    return {
+      success: false,
+      error: error.message,
+    };
+  }
+}
+
+/**
+ * Comprehensive Gmail watch system test
+ */
+function testGmailWatchSystem() {
+  console.log("🧪 Running comprehensive Gmail watch system test...");
+
+  console.log("1️⃣ Testing Gmail API connectivity...");
+  const connectivityResult = testGmailApiConnectivity();
+
+  if (!connectivityResult.success) {
+    console.log("❌ Gmail API connectivity failed - cannot proceed");
+    return;
+  }
+
+  console.log("2️⃣ Checking current watch status...");
+  const currentStatus = testGmailWatchStatus();
+
+  console.log("3️⃣ Testing watch setup (or renewal)...");
+  const setupResult = testSetupGmailWatch();
+
+  if (setupResult.success) {
+    console.log("4️⃣ Verifying watch is active...");
+    const finalStatus = testGmailWatchStatus();
+
+    if (finalStatus.active) {
+      console.log("🎉 COMPLETE SUCCESS!");
+      console.log("📧 Gmail auto-processing is now fully enabled");
+      console.log(
+        "⚡ New emails will automatically trigger webhook processing"
+      );
+    } else {
+      console.log("⚠️ Watch setup reported success but status check failed");
+    }
+  } else {
+    console.log("❌ Gmail watch setup failed");
+    console.log("💡 Check the error details above");
   }
 }

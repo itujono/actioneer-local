@@ -1,114 +1,235 @@
-import { createRoute } from '@tanstack/react-router';
-import { rootRoute } from './root';
-import { useQuery } from '@tanstack/react-query';
-import { useState } from 'react';
-import { ReceiptIcon, PlaneIcon, BriefcaseIcon, ChevronRight, Calendar, DollarSign } from 'lucide-react';
-import { supabase } from '../supabase/client';
-import DashboardCard from '../components/dashboard/DashboardCard';
-import RecentActivityCard from '../components/dashboard/RecentActivityCard';
-import { formatDistanceToNow } from 'date-fns';
+import { createRoute, useNavigate } from "@tanstack/react-router";
+import { rootRoute } from "./root";
+import { useQuery } from "@tanstack/react-query";
+import { useState, useEffect } from "react";
+import {
+  ReceiptIcon,
+  PlaneIcon,
+  BriefcaseIcon,
+  ChevronRight,
+  Calendar,
+  DollarSign,
+  Receipt,
+  Plane,
+  TrendingUp,
+  Clock,
+  CheckCircle,
+  XCircle,
+  AlertCircle,
+} from "lucide-react";
+import { supabase } from "../supabase/client";
+import DashboardCard from "../components/dashboard/DashboardCard";
+import RecentActivityCard from "../components/dashboard/RecentActivityCard";
+import { formatDistanceToNow, format } from "date-fns";
 
 export const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
-  path: '/dashboard',
+  path: "/dashboard",
   component: Dashboard,
 });
 
 function Dashboard() {
-  // Fetch user data
-  const { data: user } = useQuery({
-    queryKey: ['user'],
-    queryFn: async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      return user;
-    },
-  });
+  const navigate = useNavigate();
+  const [user, setUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
-  // Fetch recent emails
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        // Force refresh session to handle potential stale sessions
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error("Session error:", error);
+          // If there's a session error, try to refresh
+          const { data: refreshData } = await supabase.auth.refreshSession();
+          setUser(refreshData?.session?.user || null);
+        } else {
+          setUser(session?.user || null);
+        }
+
+        console.log("🔍 Dashboard auth status:", {
+          authenticated: !!session?.user,
+          userId: session?.user?.id,
+          email: session?.user?.email,
+        });
+      } catch (error) {
+        console.error("Error checking auth:", error);
+        setUser(null);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    checkAuth();
+
+    // Listen for auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+      console.log("🔄 Dashboard auth state changed:", {
+        authenticated: !!session?.user,
+        userId: session?.user?.id,
+        email: session?.user?.email,
+      });
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Redirect to login if not authenticated (after loading completes)
+  useEffect(() => {
+    if (!authLoading && !user) {
+      console.log("🔒 User not authenticated, redirecting to login...");
+      navigate({ to: "/auth" });
+    }
+  }, [authLoading, user, navigate]);
+
+  // Fetch recent emails only when authenticated
   const { data: recentEmails, isLoading: emailsLoading } = useQuery({
-    queryKey: ['recent-emails'],
+    queryKey: ["recent-emails", user?.id],
     queryFn: async () => {
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
       const { data, error } = await supabase
-        .from('emails')
-        .select('*')
-        .order('created_at', { ascending: false })
+        .from("emails")
+        .select("*")
+        .order("created_at", { ascending: false })
         .limit(5);
-      
+
       if (error) throw error;
       return data;
     },
+    enabled: !!user && !authLoading, // Only run when user is authenticated
   });
 
-  // Fetch receipt summary
+  // Fetch receipt summary only when authenticated
   const { data: receiptsSummary, isLoading: receiptsLoading } = useQuery({
-    queryKey: ['receipts-summary'],
+    queryKey: ["receipts-summary", user?.id],
     queryFn: async () => {
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
       const { data, error } = await supabase
-        .from('receipts')
-        .select('*')
-        .order('date', { ascending: false })
+        .from("receipts")
+        .select("*")
+        .order("date", { ascending: false })
         .limit(5);
-      
+
       if (error) throw error;
-      
+
       // Calculate total spending
       const total = data.reduce((sum, receipt) => sum + receipt.amount, 0);
-      
+
       return {
         total,
         recentReceipts: data,
       };
     },
+    enabled: !!user && !authLoading, // Only run when user is authenticated
   });
 
-  // Fetch travel data
+  // Fetch travel data only when authenticated
   const { data: travelData, isLoading: travelLoading } = useQuery({
-    queryKey: ['travel-summary'],
+    queryKey: ["travel-summary", user?.id],
     queryFn: async () => {
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
       const { data, error } = await supabase
-        .from('travel')
-        .select('*')
-        .order('start_date', { ascending: true })
+        .from("travel")
+        .select("*")
+        .order("start_date", { ascending: true })
         .limit(5);
-      
+
       if (error) throw error;
-      
+
       // Find upcoming trips
       const now = new Date();
-      const upcomingTrips = data.filter(trip => new Date(trip.start_date) > now);
-      
+      const upcomingTrips = data.filter(
+        (trip) => new Date(trip.start_date) > now
+      );
+
       return {
         upcomingTrips,
         recentTrips: data,
       };
     },
+    enabled: !!user && !authLoading, // Only run when user is authenticated
   });
 
   // Fetch job applications
   const { data: jobsData, isLoading: jobsLoading } = useQuery({
-    queryKey: ['jobs-summary'],
+    queryKey: ["jobs-summary", user?.id],
     queryFn: async () => {
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
       const { data, error } = await supabase
-        .from('job_applications')
-        .select('*')
-        .order('applied_date', { ascending: false })
+        .from("job_applications")
+        .select("*")
+        .order("applied_date", { ascending: false })
         .limit(5);
-      
+
       if (error) throw error;
-      
+
       return {
         totalApplications: data.length,
         recentApplications: data,
       };
     },
+    enabled: !!user && !authLoading, // Only run when user is authenticated
   });
+
+  // Show auth loading state
+  if (authLoading) {
+    return (
+      <div className="py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+          <div className="py-12 text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="mt-2 text-sm text-gray-500">Loading dashboard...</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If not authenticated, the useEffect above will redirect to /auth
+  // Show loading while redirect happens
+  if (!user) {
+    return (
+      <div className="py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+          <div className="py-12 text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="mt-2 text-sm text-gray-500">
+              Redirecting to login...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
         <h1 className="text-2xl font-semibold text-gray-900">Dashboard</h1>
       </div>
-      
+
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
         {/* Welcome Banner */}
         <div className="bg-blue-600 rounded-lg shadow-md overflow-hidden mt-6">
@@ -116,57 +237,75 @@ function Dashboard() {
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold text-white">
-                  Welcome back, {user?.email?.split('@')[0] || 'User'}!
+                  Welcome back, {user?.email?.split("@")[0] || "User"}!
                 </h2>
                 <p className="mt-1 text-sm text-blue-100">
-                  Your inbox is being monitored for actionable emails. Here's a summary of your recent activity.
+                  Your inbox is being monitored for actionable emails. Here's a
+                  summary of your recent activity.
                 </p>
               </div>
             </div>
           </div>
           <div className="border-t border-blue-500 bg-blue-500 px-6 py-2">
             <div className="text-sm text-blue-100">
-              Pro tip: Use the Gmail add-on to see smart actions right in your inbox.
+              Pro tip: Use the Gmail add-on to see smart actions right in your
+              inbox.
             </div>
           </div>
         </div>
-        
+
         {/* Stats Grid */}
         <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
-          <DashboardCard 
+          <DashboardCard
             title="Receipts & Expenses"
-            value={receiptsLoading ? '...' : `$${receiptsSummary?.total.toFixed(2) || '0.00'}`}
+            value={
+              receiptsLoading
+                ? "..."
+                : `$${receiptsSummary?.total.toFixed(2) || "0.00"}`
+            }
             description="Total spending tracked"
             icon={<ReceiptIcon className="h-6 w-6" />}
             iconBackground="bg-indigo-500"
             link="/receipts"
           />
-          
-          <DashboardCard 
+
+          <DashboardCard
             title="Travel Plans"
-            value={travelLoading ? '...' : travelData?.upcomingTrips.length.toString() || '0'}
+            value={
+              travelLoading
+                ? "..."
+                : travelData?.upcomingTrips.length.toString() || "0"
+            }
             description="Upcoming trips"
             icon={<PlaneIcon className="h-6 w-6" />}
             iconBackground="bg-teal-500"
             link="/travel"
           />
-          
-          <DashboardCard 
+
+          <DashboardCard
             title="Job Applications"
-            value={jobsLoading ? '...' : jobsData?.totalApplications.toString() || '0'}
+            value={
+              jobsLoading
+                ? "..."
+                : jobsData?.totalApplications.toString() || "0"
+            }
             description="Active applications"
             icon={<BriefcaseIcon className="h-6 w-6" />}
             iconBackground="bg-amber-500"
             link="/jobs"
           />
         </div>
-        
+
         {/* Recent Activity */}
-        <h2 className="text-lg font-medium text-gray-900 mt-8">Recent Activity</h2>
+        <h2 className="text-lg font-medium text-gray-900 mt-8">
+          Recent Activity
+        </h2>
         <div className="mt-2 overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
           <div className="bg-white">
             {emailsLoading ? (
-              <div className="py-12 text-center text-gray-500">Loading recent activity...</div>
+              <div className="py-12 text-center text-gray-500">
+                Loading recent activity...
+              </div>
             ) : recentEmails?.length ? (
               <ul className="divide-y divide-gray-200">
                 {recentEmails.map((email) => (
@@ -175,27 +314,35 @@ function Dashboard() {
                     title={email.subject}
                     description={`From: ${email.from}`}
                     type={email.classification}
-                    date={formatDistanceToNow(new Date(email.created_at), { addSuffix: true })}
+                    date={formatDistanceToNow(new Date(email.created_at), {
+                      addSuffix: true,
+                    })}
                   />
                 ))}
               </ul>
             ) : (
-              <div className="py-12 text-center text-gray-500">No recent activity to show</div>
+              <div className="py-12 text-center text-gray-500">
+                No recent activity to show
+              </div>
             )}
           </div>
         </div>
-        
+
         {/* Upcoming Events and Pending Actions */}
         <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
           {/* Upcoming Events */}
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
-              <h3 className="text-lg font-medium text-gray-900">Upcoming Events</h3>
+              <h3 className="text-lg font-medium text-gray-900">
+                Upcoming Events
+              </h3>
               <Calendar className="h-5 w-5 text-gray-400" />
             </div>
             <div className="border-t border-gray-200 px-4 py-5 sm:p-6">
               {travelLoading ? (
-                <div className="py-8 text-center text-gray-500">Loading events...</div>
+                <div className="py-8 text-center text-gray-500">
+                  Loading events...
+                </div>
               ) : travelData?.upcomingTrips.length ? (
                 <ul className="divide-y divide-gray-200">
                   {travelData.upcomingTrips.map((trip) => (
@@ -211,7 +358,8 @@ function Dashboard() {
                             {trip.type} to {trip.destination}
                           </p>
                           <p className="text-sm text-gray-500 truncate">
-                            {new Date(trip.start_date).toLocaleDateString()} - {new Date(trip.end_date).toLocaleDateString()}
+                            {new Date(trip.start_date).toLocaleDateString()} -{" "}
+                            {new Date(trip.end_date).toLocaleDateString()}
                           </p>
                         </div>
                         <div>
@@ -227,20 +375,26 @@ function Dashboard() {
                   ))}
                 </ul>
               ) : (
-                <div className="py-8 text-center text-gray-500">No upcoming events</div>
+                <div className="py-8 text-center text-gray-500">
+                  No upcoming events
+                </div>
               )}
             </div>
           </div>
-          
+
           {/* Recent Expenses */}
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
-              <h3 className="text-lg font-medium text-gray-900">Recent Expenses</h3>
+              <h3 className="text-lg font-medium text-gray-900">
+                Recent Expenses
+              </h3>
               <DollarSign className="h-5 w-5 text-gray-400" />
             </div>
             <div className="border-t border-gray-200 px-4 py-5 sm:p-6">
               {receiptsLoading ? (
-                <div className="py-8 text-center text-gray-500">Loading expenses...</div>
+                <div className="py-8 text-center text-gray-500">
+                  Loading expenses...
+                </div>
               ) : receiptsSummary?.recentReceipts.length ? (
                 <ul className="divide-y divide-gray-200">
                   {receiptsSummary.recentReceipts.map((receipt) => (
@@ -256,7 +410,8 @@ function Dashboard() {
                             {receipt.merchant}
                           </p>
                           <p className="text-sm text-gray-500 truncate">
-                            {receipt.category} • {new Date(receipt.date).toLocaleDateString()}
+                            {receipt.category} •{" "}
+                            {new Date(receipt.date).toLocaleDateString()}
                           </p>
                         </div>
                         <div className="text-sm font-medium text-indigo-600">
@@ -267,7 +422,9 @@ function Dashboard() {
                   ))}
                 </ul>
               ) : (
-                <div className="py-8 text-center text-gray-500">No recent expenses</div>
+                <div className="py-8 text-center text-gray-500">
+                  No recent expenses
+                </div>
               )}
             </div>
           </div>

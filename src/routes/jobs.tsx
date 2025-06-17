@@ -1,7 +1,7 @@
-import { createRoute } from "@tanstack/react-router";
+import { createRoute, useNavigate } from "@tanstack/react-router";
 import { rootRoute } from "./root";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo } from "react";
+import { useState, useMemo, useEffect } from "react";
 import {
   BriefcaseIcon,
   Search,
@@ -43,30 +43,104 @@ type SortConfig = {
 };
 
 function JobsDashboard() {
+  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: "applied_date",
     direction: "desc",
   });
+  const [user, setUser] = useState<any>(null);
+  const [authLoading, setAuthLoading] = useState(true);
 
-  // Fetch job applications
+  // Check authentication status
+  useEffect(() => {
+    const checkAuth = async () => {
+      try {
+        // Force refresh session to handle potential stale sessions
+        const {
+          data: { session },
+          error,
+        } = await supabase.auth.getSession();
+
+        if (error) {
+          console.error("Session error:", error);
+          // If there's a session error, try to refresh
+          const { data: refreshData } = await supabase.auth.refreshSession();
+          setUser(refreshData?.session?.user || null);
+        } else {
+          setUser(session?.user || null);
+        }
+
+        console.log("🔍 Auth status:", {
+          authenticated: !!session?.user,
+          userId: session?.user?.id,
+          email: session?.user?.email,
+        });
+      } catch (error) {
+        console.error("Error checking auth:", error);
+        setUser(null);
+      } finally {
+        setAuthLoading(false);
+      }
+    };
+
+    checkAuth();
+
+    // Listen for auth state changes
+    const {
+      data: { subscription },
+    } = supabase.auth.onAuthStateChange((_event, session) => {
+      setUser(session?.user || null);
+      console.log("🔄 Auth state changed:", {
+        authenticated: !!session?.user,
+        userId: session?.user?.id,
+        email: session?.user?.email,
+      });
+    });
+
+    return () => {
+      subscription.unsubscribe();
+    };
+  }, []);
+
+  // Redirect to login if not authenticated (after loading completes)
+  useEffect(() => {
+    if (!authLoading && !user) {
+      console.log("🔒 User not authenticated, redirecting to login...");
+      navigate({ to: "/auth" });
+    }
+  }, [authLoading, user, navigate]);
+
+  // Fetch job applications only when authenticated
   const {
     data: jobApplications,
     isLoading,
     error,
     refetch,
   } = useQuery({
-    queryKey: ["job-applications"],
+    queryKey: ["job-applications", user?.id],
     queryFn: async () => {
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
+      console.log("📊 Fetching job applications for user:", user.id);
+
       const { data, error } = await supabase
         .from("job_applications")
         .select("*")
         .order("applied_date", { ascending: false });
 
-      if (error) throw error;
+      if (error) {
+        console.error("❌ Query error:", error);
+        throw error;
+      }
+
+      console.log("✅ Job applications fetched:", data?.length || 0);
       return data as JobApplication[];
     },
+    enabled: !!user && !authLoading, // Only run when user is authenticated
   });
 
   // Filter and sort applications
@@ -160,6 +234,39 @@ function JobsDashboard() {
     return Array.from(new Set(statuses));
   }, [jobApplications]);
 
+  // Show auth loading state
+  if (authLoading) {
+    return (
+      <div className="py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+          <div className="py-12 text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="mt-2 text-sm text-gray-500">
+              Checking authentication...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // If not authenticated, the useEffect above will redirect to /auth
+  // Show loading while redirect happens
+  if (!user) {
+    return (
+      <div className="py-6">
+        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+          <div className="py-12 text-center">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <p className="mt-2 text-sm text-gray-500">
+              Redirecting to login...
+            </p>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
   if (error) {
     return (
       <div className="py-6">
@@ -176,6 +283,11 @@ function JobsDashboard() {
                     ? error.message
                     : "An unexpected error occurred"}
                 </p>
+                <div className="mt-2 text-xs text-red-600">
+                  User ID: {user?.id || "Not authenticated"}
+                  <br />
+                  Email: {user?.email || "Not authenticated"}
+                </div>
                 <button
                   onClick={() => refetch()}
                   className="mt-2 text-sm text-red-600 hover:text-red-800 underline"

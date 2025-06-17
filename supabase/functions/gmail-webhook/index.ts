@@ -28,13 +28,16 @@ const supabase = createClient(
   }
 );
 
+// Gmail API configuration
+const GMAIL_API_BASE_URL = "https://gmail.googleapis.com/gmail/v1";
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    console.log("🔔 Gmail Push notification received (simplified)");
+    console.log("🔔 Gmail Push notification received");
     console.log("📋 Method:", req.method);
 
     // Handle Gmail Push notification
@@ -120,14 +123,17 @@ async function handleGmailPushNotification(req: Request) {
       return new Response("OK", { headers: corsHeaders });
     }
 
-    // Extract email address from the notification
+    // Extract email address and history ID from the notification
     const emailAddress = gmailNotification.emailAddress;
+    const historyId = gmailNotification.historyId;
+
     if (!emailAddress) {
       console.log("⚠️ No email address in notification");
       return new Response("OK", { headers: corsHeaders });
     }
 
     console.log("👤 Processing emails for:", emailAddress);
+    console.log("📊 History ID:", historyId);
 
     // Find user by email address using your existing auth system
     const { data: user, error: userError } = await supabase
@@ -144,11 +150,11 @@ async function handleGmailPushNotification(req: Request) {
 
     console.log("✅ User found:", user.email);
 
-    // For now, just log that we received a notification for this user
-    // The actual email processing will happen when they open the email in the add-on
-    // This creates a foundation for future auto-processing features
+    // Process new emails for this user
+    console.log("🔄 Processing new emails automatically...");
+    await processNewEmailsForUser(user, emailAddress, historyId);
 
-    console.log("📝 Logging email notification for future processing...");
+    console.log("📝 Logging email notification...");
     await logEmailNotification(user.id, emailAddress, gmailNotification);
 
     return new Response("OK", { headers: corsHeaders });
@@ -165,8 +171,6 @@ async function logEmailNotification(
 ) {
   try {
     // Store notification for potential future processing
-    // This could be used for analytics, user engagement tracking, etc.
-
     const { error } = await supabase.from("email_notifications").insert({
       user_id: userId,
       email_address: emailAddress,
@@ -182,6 +186,339 @@ async function logEmailNotification(
     }
   } catch (error) {
     console.error("Failed to log email notification:", error);
+  }
+}
+
+async function processNewEmailsForUser(
+  user: any,
+  emailAddress: string,
+  historyId?: string
+) {
+  try {
+    console.log("📨 Starting automatic email processing for:", emailAddress);
+
+    // Get user's Gmail access token from the database
+    const { data: authData, error: authError } = await supabase
+      .from("user_auth_tokens")
+      .select("gmail_access_token, gmail_refresh_token")
+      .eq("user_id", user.id)
+      .single();
+
+    if (authError || !authData?.gmail_access_token) {
+      console.log(
+        "⚠️ No Gmail access token found for user, skipping auto-processing"
+      );
+      console.log("📋 This is expected for users who haven't set up OAuth yet");
+      console.log(
+        "📋 User can manually process emails through the Gmail add-on"
+      );
+      console.log(
+        "🔧 To enable auto-processing, user needs to complete Gmail OAuth flow"
+      );
+      return;
+    }
+
+    console.log("🔑 Gmail access token found, fetching recent emails...");
+
+    // Fetch recent emails using Gmail API
+    const recentEmails = await fetchRecentEmails(
+      authData.gmail_access_token,
+      historyId
+    );
+
+    if (!recentEmails || recentEmails.length === 0) {
+      console.log("📭 No new emails to process");
+      return;
+    }
+
+    console.log(`📧 Found ${recentEmails.length} new emails to process`);
+
+    // Process each email
+    for (const email of recentEmails) {
+      try {
+        await processEmailForUser(user, email, authData.gmail_access_token);
+      } catch (emailError) {
+        console.error(`Error processing email ${email.id}:`, emailError);
+        // Continue processing other emails even if one fails
+      }
+    }
+
+    console.log("✅ Completed automatic email processing");
+  } catch (error) {
+    console.error("Error in automatic email processing:", error);
+  }
+}
+
+async function fetchRecentEmails(accessToken: string, historyId?: string) {
+  try {
+    let url = `${GMAIL_API_BASE_URL}/users/me/messages?maxResults=10&q=is:unread newer_than:1h`;
+
+    // If we have a history ID, we can fetch only emails since that point
+    if (historyId) {
+      url = `${GMAIL_API_BASE_URL}/users/me/history?startHistoryId=${historyId}&maxResults=10`;
+    }
+
+    const response = await fetch(url, {
+      headers: {
+        Authorization: `Bearer ${accessToken}`,
+        "Content-Type": "application/json",
+      },
+    });
+
+    if (!response.ok) {
+      if (response.status === 401) {
+        console.log("🔄 Access token expired, need to refresh");
+        // TODO: Implement token refresh logic
+        return [];
+      }
+      throw new Error(
+        `Gmail API error: ${response.status} ${response.statusText}`
+      );
+    }
+
+    const data = await response.json();
+
+    if (historyId && data.history) {
+      // Extract message IDs from history
+      const messageIds: { id: string }[] = [];
+      for (const historyItem of data.history) {
+        if (historyItem.messagesAdded) {
+          for (const messageAdded of historyItem.messagesAdded) {
+            messageIds.push({ id: messageAdded.message.id });
+          }
+        }
+      }
+      return messageIds;
+    }
+
+    return data.messages || [];
+  } catch (error) {
+    console.error("Error fetching recent emails:", error);
+    return [];
+  }
+}
+
+async function processEmailForUser(
+  user: any,
+  emailRef: any,
+  accessToken: string
+) {
+  try {
+    console.log(`📧 Processing email ${emailRef.id} for user ${user.email}`);
+
+    // Check if we've already processed this email
+    const { data: existingEmail, error: existingError } = await supabase
+      .from("emails")
+      .select("id")
+      .eq("message_id", emailRef.id)
+      .eq("user_id", user.id)
+      .single();
+
+    if (existingEmail && !existingError) {
+      console.log(`⏭️ Email ${emailRef.id} already processed, skipping`);
+      return;
+    }
+
+    // Fetch full email content
+    const emailContent = await fetchEmailContent(emailRef.id, accessToken);
+
+    if (!emailContent) {
+      console.log(`⚠️ Could not fetch content for email ${emailRef.id}`);
+      return;
+    }
+
+    console.log(`📄 Fetched email: ${emailContent.subject}`);
+
+    // Classify the email
+    const classification = await classifyEmailWithOpenAI(
+      emailContent.subject,
+      emailContent.from,
+      emailContent.body
+    );
+
+    console.log(`🎯 Email classified as: ${classification.type}`);
+
+    // Store email in database
+    const { data: storedEmail, error: storeError } = await supabase
+      .from("emails")
+      .insert({
+        user_id: user.id,
+        message_id: emailRef.id,
+        subject: emailContent.subject,
+        from_email: emailContent.from,
+        date: emailContent.date,
+        classification: classification.type,
+      })
+      .select()
+      .single();
+
+    if (storeError) {
+      console.error("Error storing email:", storeError);
+      return;
+    }
+
+    console.log(`✅ Email stored with ID: ${storedEmail.id}`);
+
+    // Process based on classification
+    if (classification.type === "job_application") {
+      await processJobApplicationEmail(user, emailContent, storedEmail.id);
+    } else if (classification.type === "travel") {
+      await processTravelEmail(user, emailContent, storedEmail.id);
+    } else if (classification.type === "receipt") {
+      await processReceiptEmail(user, emailContent, storedEmail.id);
+    }
+  } catch (error) {
+    console.error(`Error processing email ${emailRef.id}:`, error);
+  }
+}
+
+async function fetchEmailContent(messageId: string, accessToken: string) {
+  try {
+    const response = await fetch(
+      `${GMAIL_API_BASE_URL}/users/me/messages/${messageId}?format=full`,
+      {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      }
+    );
+
+    if (!response.ok) {
+      throw new Error(
+        `Gmail API error: ${response.status} ${response.statusText}`
+      );
+    }
+
+    const message = await response.json();
+
+    // Extract email data from Gmail API response
+    const headers = message.payload.headers;
+    const subject = headers.find((h: any) => h.name === "Subject")?.value || "";
+    const from = headers.find((h: any) => h.name === "From")?.value || "";
+    const date = headers.find((h: any) => h.name === "Date")?.value || "";
+
+    // Extract body content
+    let body = "";
+    if (message.payload.body?.data) {
+      body = atob(
+        message.payload.body.data.replace(/-/g, "+").replace(/_/g, "/")
+      );
+    } else if (message.payload.parts) {
+      // Handle multipart messages
+      for (const part of message.payload.parts) {
+        if (part.mimeType === "text/plain" && part.body?.data) {
+          body = atob(part.body.data.replace(/-/g, "+").replace(/_/g, "/"));
+          break;
+        }
+      }
+    }
+
+    return {
+      messageId,
+      subject,
+      from,
+      date: new Date(date).toISOString(),
+      body,
+    };
+  } catch (error) {
+    console.error("Error fetching email content:", error);
+    return null;
+  }
+}
+
+async function processJobApplicationEmail(
+  user: any,
+  emailContent: any,
+  emailId: string
+) {
+  try {
+    console.log("💼 Processing job application email");
+
+    // Check if job application already exists for this email
+    const { data: existingJob, error: existingError } = await supabase
+      .from("job_applications")
+      .select("*")
+      .eq("email_id", emailContent.messageId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (existingJob && !existingError) {
+      console.log("✅ Job application already exists for this email");
+      return;
+    }
+
+    // Extract job application data using OpenAI
+    const jobData = await extractJobDataWithAI(
+      emailContent.subject,
+      emailContent.from,
+      emailContent.body
+    );
+
+    console.log("🤖 Extracted job data:", JSON.stringify(jobData, null, 2));
+
+    // Store job application in database
+    const { data: storedJob, error: storeError } = await supabase
+      .from("job_applications")
+      .insert({
+        user_id: user.id,
+        email_id: emailContent.messageId,
+        company: jobData.company || "Unknown Company",
+        position: jobData.position || "Unknown Position",
+        status: jobData.status || "applied",
+        applied_date:
+          jobData.appliedDate || new Date().toISOString().split("T")[0],
+        details: {
+          ...jobData,
+          originalEmail: {
+            subject: emailContent.subject,
+            from: emailContent.from,
+            processedAt: new Date().toISOString(),
+          },
+        },
+      })
+      .select()
+      .single();
+
+    if (storeError) {
+      console.error("Error storing job application:", storeError);
+      return;
+    }
+
+    console.log(`✅ Job application stored with ID: ${storedJob.id}`);
+    console.log(
+      `📊 Company: ${storedJob.company}, Position: ${storedJob.position}`
+    );
+  } catch (error) {
+    console.error("Error processing job application email:", error);
+  }
+}
+
+async function processTravelEmail(
+  user: any,
+  emailContent: any,
+  emailId: string
+) {
+  try {
+    console.log("✈️ Processing travel email");
+    // TODO: Implement travel email processing
+    console.log("🚧 Travel processing not yet implemented");
+  } catch (error) {
+    console.error("Error processing travel email:", error);
+  }
+}
+
+async function processReceiptEmail(
+  user: any,
+  emailContent: any,
+  emailId: string
+) {
+  try {
+    console.log("💰 Processing receipt email");
+    // TODO: Implement receipt email processing
+    console.log("🚧 Receipt processing not yet implemented");
+  } catch (error) {
+    console.error("Error processing receipt email:", error);
   }
 }
 
@@ -248,4 +585,292 @@ async function classifyEmailWithOpenAI(
       error: "AI classification failed",
     };
   }
+}
+
+async function extractJobDataWithAI(
+  subject: string,
+  from: string,
+  emailBody: string
+) {
+  const prompt = `
+    Analyze this job-related email and extract the following information:
+    
+    Email Subject: ${subject}
+    From: ${from}
+    Email Body: ${emailBody.substring(0, 2000)}
+    
+    Please extract and return a JSON object with:
+    {
+      "company": "Company name (extracted from email domain, subject, or body)",
+      "position": "Job position/title mentioned in the email",
+      "status": "One of: applied, interview, offer, rejected, accepted",
+      "appliedDate": "Date in YYYY-MM-DD format (use today's date if not found)",
+      "confidence": "Your confidence level (0-1) in the extraction",
+      "details": {
+        "workLocation": "Remote/On-site/Hybrid if mentioned",
+        "salary": "Salary range if mentioned",
+        "department": "Department if mentioned",
+        "applicationDeadline": "Deadline if mentioned",
+        "nextSteps": "Next steps mentioned in the email"
+      }
+    }
+    
+    Status determination rules:
+    - "applied": Initial application confirmation, acknowledgment
+    - "interview": Interview invitation, scheduling, or confirmation
+    - "offer": Job offer, contract, or acceptance letter
+    - "rejected": Rejection, regret letter, or "not moving forward"
+    - "accepted": Welcome messages, onboarding, or acceptance confirmation
+    
+    IMPORTANT: Respond with ONLY valid JSON, no markdown formatting or code blocks.
+  `;
+
+  try {
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.1,
+    });
+
+    let response = completion.choices[0].message.content;
+
+    if (!response) {
+      throw new Error("Empty response from OpenAI");
+    }
+
+    // Clean up the response
+    response = response.trim();
+    if (response.startsWith("```json")) {
+      response = response.replace(/^```json\s*/, "").replace(/\s*```$/, "");
+    } else if (response.startsWith("```")) {
+      response = response.replace(/^```\s*/, "").replace(/\s*```$/, "");
+    }
+
+    console.log("🤖 OpenAI raw response:", response);
+
+    let jobData;
+    try {
+      jobData = JSON.parse(response);
+    } catch (parseError) {
+      console.error("JSON parse error:", parseError);
+      console.error("Raw response:", response);
+
+      // Fallback extraction
+      jobData = fallbackJobExtraction(subject, from, emailBody);
+    }
+
+    // Validate and clean the data
+    return {
+      company: jobData.company || extractCompanyFromEmail(from),
+      position: jobData.position || "Unknown Position",
+      status: validateStatus(jobData.status) || "applied",
+      appliedDate:
+        validateDate(jobData.appliedDate) ||
+        new Date().toISOString().split("T")[0],
+      confidence: jobData.confidence || 0.5,
+      details: jobData.details || {},
+    };
+  } catch (error) {
+    console.error("Error with OpenAI extraction:", error);
+    return fallbackJobExtraction(subject, from, emailBody);
+  }
+}
+
+function fallbackJobExtraction(
+  subject: string,
+  from: string,
+  emailBody: string
+) {
+  console.log("🔄 Using fallback job extraction");
+
+  const company =
+    extractCompanyFromEmail(from) ||
+    extractCompanyFromText(subject + " " + emailBody);
+  const position = extractPositionFromText(subject + " " + emailBody);
+  const status = extractStatusFromText(subject + " " + emailBody);
+
+  return {
+    company: company || "Unknown Company",
+    position: position || "Unknown Position",
+    status: status || "applied",
+    appliedDate: new Date().toISOString().split("T")[0],
+    confidence: 0.3,
+    details: {
+      extractionMethod: "fallback",
+      emailFrom: from,
+      emailSubject: subject,
+    },
+  };
+}
+
+function extractCompanyFromEmail(from: string): string | null {
+  // Extract company from email domain
+  const emailMatch = from.match(/@([^.]+)/);
+  if (emailMatch && emailMatch[1]) {
+    const domain = emailMatch[1];
+    // Skip common email providers
+    const commonProviders = [
+      "gmail",
+      "yahoo",
+      "outlook",
+      "hotmail",
+      "aol",
+      "icloud",
+    ];
+    if (!commonProviders.includes(domain.toLowerCase())) {
+      return domain.charAt(0).toUpperCase() + domain.slice(1);
+    }
+  }
+  return null;
+}
+
+function extractCompanyFromText(text: string): string | null {
+  const companyPatterns = [
+    // Match "Company Name" at end of subject after dash
+    /-\s*([A-Za-z\s&]+)\s*$/i,
+    // Match "from Company Name team"
+    /from\s+([A-Za-z\s&]+)(?:\s+team|\s+careers|\s+hr)/i,
+    // Match "at Company Name"
+    /at\s+([A-Za-z\s&]+)(?:\s+team|\s+careers|\s+hr)/i,
+    // Match "Company Name team"
+    /([A-Za-z\s&]+)\s+team/i,
+    // Match "Company Name careers"
+    /([A-Za-z\s&]+)\s+careers/i,
+    // Match "Company Name hiring"
+    /([A-Za-z\s&]+)\s+hiring/i,
+    // Match company name before "and your interest"
+    /to\s+the\s+([^,\n\.]+)\s+and\s+your\s+interest/i,
+    // Match "Best Regards, Company Name"
+    /best\s+regards,\s*([A-Za-z\s&]+)/i,
+  ];
+
+  for (const pattern of companyPatterns) {
+    const match = text.match(pattern);
+    if (match && match[1] && match[1].trim().length > 2) {
+      const company = match[1].trim();
+      // Filter out common non-company words
+      const skipWords = [
+        "team",
+        "careers",
+        "hr",
+        "hiring",
+        "department",
+        "position",
+        "role",
+        "application",
+        "job",
+      ];
+      if (!skipWords.some((word) => company.toLowerCase().includes(word))) {
+        return company;
+      }
+    }
+  }
+  return null;
+}
+
+function extractPositionFromText(text: string): string | null {
+  const positionPatterns = [
+    // Match "Position (Details) - Company" format
+    /to\s+the\s+([^,\n\-]+?)(?:\s*\([^)]*\))?\s*-\s*[A-Za-z\s&]+\s+and/i,
+    // Match "for the Position position"
+    /for\s+the\s+([^,\n\.]+)\s+(?:position|role)/i,
+    // Match "as a/an Position"
+    /as\s+(?:a|an)\s+([^,\n\.]+)/i,
+    // Match "Position:" format
+    /(?:position|role):\s*([^,\n\.]+)/i,
+    // Match "applying for Position"
+    /applying\s+for\s+([^,\n\.]+)/i,
+    // Match "application to the Position"
+    /application\s+to\s+the\s+([^,\n\.]+)/i,
+  ];
+
+  for (const pattern of positionPatterns) {
+    const match = text.match(pattern);
+    if (match && match[1] && match[1].trim().length > 2) {
+      const position = match[1].trim();
+      // Clean up the position text
+      const cleanPosition = position
+        .replace(/\s*\([^)]*\)\s*/g, "") // Remove parenthetical content
+        .replace(/\s*-\s*.*$/, "") // Remove everything after dash
+        .trim();
+
+      if (cleanPosition.length > 2) {
+        return cleanPosition;
+      }
+    }
+  }
+  return null;
+}
+
+function extractStatusFromText(text: string): string {
+  const lowerText = text.toLowerCase();
+
+  const statusKeywords = {
+    rejected: [
+      "unfortunately",
+      "regret",
+      "not selected",
+      "not moving forward",
+      "decided not to",
+      "proceed with another candidate",
+      "decided to proceed with",
+      "not be moving forward",
+      "will not be proceeding",
+    ],
+    interview: [
+      "interview",
+      "scheduled",
+      "meeting",
+      "call",
+      "zoom",
+      "video call",
+      "phone screen",
+      "next round",
+    ],
+    offer: [
+      "offer",
+      "pleased to extend",
+      "job offer",
+      "congratulations",
+      "excited to offer",
+      "happy to offer",
+    ],
+    accepted: [
+      "welcome to",
+      "excited to have you",
+      "looking forward to working",
+      "onboarding",
+      "start date",
+    ],
+  };
+
+  for (const [status, keywords] of Object.entries(statusKeywords)) {
+    if (keywords.some((keyword) => lowerText.includes(keyword))) {
+      return status;
+    }
+  }
+
+  return "applied";
+}
+
+function validateStatus(status: string): string | null {
+  const validStatuses = [
+    "applied",
+    "interview",
+    "offer",
+    "rejected",
+    "accepted",
+  ];
+  return validStatuses.includes(status?.toLowerCase())
+    ? status.toLowerCase()
+    : null;
+}
+
+function validateDate(dateStr: string): string | null {
+  if (!dateStr) return null;
+
+  const date = new Date(dateStr);
+  if (isNaN(date.getTime())) return null;
+
+  return date.toISOString().split("T")[0];
 }

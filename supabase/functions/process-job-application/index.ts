@@ -1,5 +1,5 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
-import { OpenAI } from "npm:openai@4";
+import OpenAI from "npm:openai@4";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -8,25 +8,25 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
-// Initialize OpenAI
-const openai = new OpenAI({
-  apiKey: Deno.env.get("OPENAI_API_KEY") || "",
+// Create Supabase client with service role for admin operations
+const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+
+// Regular client for normal operations
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Admin client for auth operations
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
 });
 
-// Initialize Supabase with service role key
-const supabase = createClient(
-  Deno.env.get("SUPABASE_URL") ?? "",
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-    db: {
-      schema: "public",
-    },
-  }
-);
+const openai = new OpenAI({
+  apiKey: Deno.env.get("OPENAI_API_KEY"),
+});
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -46,9 +46,18 @@ Deno.serve(async (req) => {
       );
     }
 
+    console.log("🔑 Received API key:", userApiKey.substring(0, 15) + "...");
+    console.log("🔑 Full API key length:", userApiKey.length);
+    console.log("🔑 First 30 chars:", userApiKey.substring(0, 30) + "...");
+    console.log(
+      "🔑 Last 10 chars:",
+      "..." + userApiKey.substring(userApiKey.length - 10)
+    );
+
     // Validate user API key
     const user = await getUserByApiKey(userApiKey);
     if (!user) {
+      console.log("❌ API key validation failed - no user found");
       return new Response(JSON.stringify({ error: "Invalid API key" }), {
         status: 401,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
@@ -76,14 +85,61 @@ Deno.serve(async (req) => {
       userId: user.id,
     });
 
+    // Check if this email has already been processed
+    console.log(
+      "🔍 Checking for existing job application with email_id:",
+      messageId
+    );
+    const { data: existingJob, error: existingError } = await supabase
+      .from("job_applications")
+      .select("*")
+      .eq("email_id", messageId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (existingJob && !existingError) {
+      console.log(
+        "✅ Job application already exists for this email:",
+        existingJob.id
+      );
+      return new Response(
+        JSON.stringify({
+          success: true,
+          jobApplicationId: existingJob.id,
+          extractedData: {
+            company: existingJob.company,
+            position: existingJob.position,
+            status: existingJob.status,
+            appliedDate: existingJob.applied_date,
+          },
+          message: "Job application already processed for this email",
+          duplicate: true,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    console.log(
+      "🆕 No existing job application found, processing new email..."
+    );
+
     // Extract job application data using OpenAI
     const jobData = await extractJobDataWithAI(subject, from, emailBody);
 
-    // Store in database
-    const { data: storedData, error: storeError } = await supabase
+    // Store in database using the Supabase Auth user ID (mapped from custom user)
+    console.log("🔄 Inserting job application for user:", user.email);
+    console.log("🔍 User ID being used:", user.id);
+    console.log("🔍 Auth user ID:", user.auth_user_id);
+    console.log("🔍 Custom user ID:", user.custom_user_id);
+
+    // Store in database using the user ID (should be Supabase Auth ID after mapping)
+    // Use supabaseAdmin to bypass RLS policies
+    const { data: storedData, error: storeError } = await supabaseAdmin
       .from("job_applications")
       .insert({
-        user_id: user.id,
+        user_id: user.id, // This should now be the Supabase Auth user ID
         email_id: messageId,
         company: jobData.company || "Unknown Company",
         position: jobData.position || "Unknown Position",
@@ -114,6 +170,7 @@ Deno.serve(async (req) => {
     }
 
     console.log("✅ Job application stored successfully:", storedData.id);
+    console.log("✅ Stored with user_id:", storedData.user_id);
 
     return new Response(
       JSON.stringify({
@@ -136,7 +193,13 @@ Deno.serve(async (req) => {
 
 async function getUserByApiKey(apiKey: string) {
   try {
-    const { data, error } = await supabase
+    console.log(
+      "🔍 Starting user lookup with API key:",
+      apiKey.substring(0, 10) + "..."
+    );
+
+    // Use admin client for users table access (has service role permissions)
+    const { data, error } = await supabaseAdmin
       .from("users")
       .select("*")
       .eq("api_key", apiKey)
@@ -144,13 +207,54 @@ async function getUserByApiKey(apiKey: string) {
       .single();
 
     if (error) {
-      console.log("User lookup error:", error.message);
+      console.log("❌ User lookup error:", error.message);
+      console.log("❌ Error details:", JSON.stringify(error, null, 2));
       return null;
     }
 
-    return data;
+    if (!data) {
+      console.log("❌ No user data returned");
+      return null;
+    }
+
+    console.log("✅ Found custom user:", data.email, "with ID:", data.id);
+
+    // If we found a custom user, try to find the corresponding Supabase Auth user by email
+    console.log("🔍 Looking up Supabase Auth user for email:", data.email);
+
+    try {
+      const { data: authUser, error: authError } =
+        await supabaseAdmin.auth.admin.getUserByEmail(data.email);
+
+      if (authError) {
+        console.log("⚠️ Auth user lookup error:", authError.message);
+        console.log("⚠️ Falling back to custom user ID:", data.id);
+        return data;
+      }
+
+      if (authUser?.user?.id) {
+        console.log("✅ Found Supabase Auth user:", authUser.user.id);
+        // Return a modified user object with the Supabase Auth ID
+        const modifiedUser = {
+          ...data,
+          id: authUser.user.id, // Use Supabase Auth ID instead of custom user ID
+          auth_user_id: authUser.user.id,
+          custom_user_id: data.id,
+        };
+        console.log("✅ Using Supabase Auth user ID:", modifiedUser.id);
+        return modifiedUser;
+      } else {
+        console.log("⚠️ No Supabase Auth user found for email:", data.email);
+        console.log("⚠️ Falling back to custom user ID:", data.id);
+        return data;
+      }
+    } catch (authLookupError) {
+      console.error("❌ Error during auth user lookup:", authLookupError);
+      console.log("⚠️ Falling back to custom user ID:", data.id);
+      return data;
+    }
   } catch (error) {
-    console.error("Error validating API key:", error);
+    console.error("❌ Error validating API key:", error);
     return null;
   }
 }
@@ -441,4 +545,42 @@ function validateDate(dateStr: string): string | null {
   if (isNaN(date.getTime())) return null;
 
   return date.toISOString().split("T")[0];
+}
+
+async function getOrCreateAuthUser(email: string): Promise<string | null> {
+  try {
+    // First, check if user exists in auth.users
+    const { data: existingUser } =
+      await supabaseAdmin.auth.admin.getUserByEmail(email);
+
+    if (existingUser?.user?.id) {
+      console.log("Found existing auth user:", existingUser.user.id);
+      return existingUser.user.id;
+    }
+
+    // Create a new auth user with a random password (they'll sign in via Google OAuth)
+    const { data: newUser, error } = await supabaseAdmin.auth.admin.createUser({
+      email,
+      email_confirm: true, // Auto-confirm since we trust Gmail addon
+      user_metadata: {
+        created_via: "gmail_addon",
+        created_at: new Date().toISOString(),
+      },
+    });
+
+    if (error) {
+      console.error("Error creating auth user:", error);
+      return null;
+    }
+
+    if (newUser?.user?.id) {
+      console.log("Created new auth user:", newUser.user.id);
+      return newUser.user.id;
+    }
+
+    return null;
+  } catch (error) {
+    console.error("Error in getOrCreateAuthUser:", error);
+    return null;
+  }
 }

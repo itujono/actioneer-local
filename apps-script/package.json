@@ -1,0 +1,11 @@
+{
+  "name": "actioneer-apps-script",
+  "version": "1.0.0",
+  "description": "Apps Script development with automated deployment",
+  "scripts": {
+    "deploy": "./deploy.sh"
+  },
+  "keywords": ["apps-script", "gmail", "automation"],
+  "author": "Actioneer",
+  "license": "MIT"
+} 
