@@ -758,3 +758,32 @@ function testGmailWatchSystem() {
     console.log("💡 Check the error details above");
   }
 }
+
+// ============================================================================
+// WEBHOOK INTEGRATION TESTS
+// ============================================================================
+
+/**
+ * Manual trigger function for testing webhook-style email processing
+ * Run this from Apps Script console to test the recent email processing
+ * This simulates what would happen when the Supabase webhook triggers Apps Script
+ */
+function testProcessRecentEmails() {
+  console.log("🧪 Testing recent email processing (webhook simulation)...");
+  
+  const userEmail = Session.getActiveUser().getEmail();
+  console.log("📧 Processing emails for:", userEmail);
+  
+  const result = processRecentEmails(userEmail);
+  console.log("🎉 Test result:", JSON.stringify(result, null, 2));
+  
+  if (result.success) {
+    console.log(`✅ Successfully processed ${result.processedCount} emails`);
+    console.log(`💼 Found ${result.jobApplicationsFound} job applications`);
+    console.log("🎯 Check your dashboard to see if job applications appeared!");
+  } else {
+    console.log("❌ Processing failed:", result.error);
+  }
+  
+  return result;
+}

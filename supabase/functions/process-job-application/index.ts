@@ -46,14 +46,6 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log("🔑 Received API key:", userApiKey.substring(0, 15) + "...");
-    console.log("🔑 Full API key length:", userApiKey.length);
-    console.log("🔑 First 30 chars:", userApiKey.substring(0, 30) + "...");
-    console.log(
-      "🔑 Last 10 chars:",
-      "..." + userApiKey.substring(userApiKey.length - 10)
-    );
-
     // Validate user API key
     const user = await getUserByApiKey(userApiKey);
     if (!user) {
@@ -223,22 +215,28 @@ async function getUserByApiKey(apiKey: string) {
     console.log("🔍 Looking up Supabase Auth user for email:", data.email);
 
     try {
-      const { data: authUser, error: authError } =
-        await supabaseAdmin.auth.admin.getUserByEmail(data.email);
+      // Use the correct method to get user by email
+      const { data: authUsers, error: authError } =
+        await supabaseAdmin.auth.admin.listUsers();
 
       if (authError) {
-        console.log("⚠️ Auth user lookup error:", authError.message);
+        console.log("⚠️ Auth users list error:", authError.message);
         console.log("⚠️ Falling back to custom user ID:", data.id);
         return data;
       }
 
-      if (authUser?.user?.id) {
-        console.log("✅ Found Supabase Auth user:", authUser.user.id);
+      // Find user by email in the list
+      const authUser = authUsers.users?.find(
+        (user) => user.email === data.email
+      );
+
+      if (authUser?.id) {
+        console.log("✅ Found Supabase Auth user:", authUser.id);
         // Return a modified user object with the Supabase Auth ID
         const modifiedUser = {
           ...data,
-          id: authUser.user.id, // Use Supabase Auth ID instead of custom user ID
-          auth_user_id: authUser.user.id,
+          id: authUser.id, // Use Supabase Auth ID instead of custom user ID
+          auth_user_id: authUser.id,
           custom_user_id: data.id,
         };
         console.log("✅ Using Supabase Auth user ID:", modifiedUser.id);

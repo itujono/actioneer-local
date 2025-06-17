@@ -292,8 +292,8 @@ inspector_port = 8083
 # The Deno major version to use.
 deno_version = 1
 
-# [edge_runtime.secrets]
-# secret_key = "env(SECRET_VALUE)"
+[edge_runtime.secrets]
+APPS_SCRIPT_WEBHOOK_URL = "env(APPS_SCRIPT_WEBHOOK_URL)"
 
 [analytics]
 enabled = true

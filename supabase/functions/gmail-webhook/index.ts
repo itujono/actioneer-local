@@ -195,58 +195,136 @@ async function processNewEmailsForUser(
   historyId?: string
 ) {
   try {
-    console.log("📨 Starting automatic email processing for:", emailAddress);
+    console.log(
+      "📨 Starting webhook-based email processing for:",
+      emailAddress
+    );
+    console.log("🚀 Triggering Apps Script processing...");
 
-    // Get user's Gmail access token from the database
-    const { data: authData, error: authError } = await supabase
-      .from("user_auth_tokens")
-      .select("gmail_access_token, gmail_refresh_token")
-      .eq("user_id", user.id)
-      .single();
+    // Get Apps Script webhook URL from environment
+    const appsScriptWebhookUrl = Deno.env.get("APPS_SCRIPT_WEBHOOK_URL");
 
-    if (authError || !authData?.gmail_access_token) {
+    if (
+      !appsScriptWebhookUrl ||
+      appsScriptWebhookUrl === "placeholder_for_now"
+    ) {
       console.log(
-        "⚠️ No Gmail access token found for user, skipping auto-processing"
-      );
-      console.log("📋 This is expected for users who haven't set up OAuth yet");
-      console.log(
-        "📋 User can manually process emails through the Gmail add-on"
+        "⚠️ Apps Script webhook URL not configured yet, logging notification for manual processing"
       );
       console.log(
-        "🔧 To enable auto-processing, user needs to complete Gmail OAuth flow"
+        "💡 You can manually run 'testProcessRecentEmails()' in Apps Script to process emails"
       );
+      await logNotificationOnly(user, emailAddress);
       return;
     }
 
-    console.log("🔑 Gmail access token found, fetching recent emails...");
+    // Trigger Apps Script to process recent emails
+    const webhookPayload = {
+      userEmail: emailAddress,
+      historyId: historyId,
+      action: "process_recent_emails",
+      triggeredAt: new Date().toISOString(),
+      userId: user.id,
+    };
 
-    // Fetch recent emails using Gmail API
-    const recentEmails = await fetchRecentEmails(
-      authData.gmail_access_token,
-      historyId
+    console.log(
+      "📤 Sending webhook to Apps Script:",
+      JSON.stringify(webhookPayload, null, 2)
     );
 
-    if (!recentEmails || recentEmails.length === 0) {
-      console.log("📭 No new emails to process");
-      return;
-    }
+    try {
+      const response = await fetch(appsScriptWebhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+        },
+        body: JSON.stringify(webhookPayload),
+      });
 
-    console.log(`📧 Found ${recentEmails.length} new emails to process`);
-
-    // Process each email
-    for (const email of recentEmails) {
-      try {
-        await processEmailForUser(user, email, authData.gmail_access_token);
-      } catch (emailError) {
-        console.error(`Error processing email ${email.id}:`, emailError);
-        // Continue processing other emails even if one fails
+      if (!response.ok) {
+        throw new Error(
+          `Apps Script webhook failed: ${response.status} ${response.statusText}`
+        );
       }
+
+      const result = await response.json();
+      console.log("✅ Apps Script response:", JSON.stringify(result, null, 2));
+
+      if (result.success && result.result) {
+        const { processedCount, jobApplicationsFound } = result.result;
+        console.log(
+          `🎉 Apps Script processed ${processedCount} emails, found ${jobApplicationsFound} job applications`
+        );
+
+        // Update notification with processing results
+        await supabase
+          .from("email_notifications")
+          .update({
+            processed: true,
+            processed_at: new Date().toISOString(),
+            processing_result: {
+              success: true,
+              processedCount: processedCount,
+              jobApplicationsFound: jobApplicationsFound,
+              triggeredByWebhook: true,
+            },
+          })
+          .eq("user_id", user.id)
+          .eq("email_address", emailAddress)
+          .order("created_at", { ascending: false })
+          .limit(1);
+      } else {
+        console.error("❌ Apps Script processing failed:", result);
+        await supabase
+          .from("email_notifications")
+          .update({
+            processed: true,
+            processed_at: new Date().toISOString(),
+            processing_result: {
+              success: false,
+              error: result.error || "Unknown error",
+              triggeredByWebhook: true,
+            },
+          })
+          .eq("user_id", user.id)
+          .eq("email_address", emailAddress)
+          .order("created_at", { ascending: false })
+          .limit(1);
+      }
+    } catch (fetchError) {
+      console.error("💥 Error calling Apps Script webhook:", fetchError);
+
+      // Fall back to notification logging
+      await logNotificationOnly(user, emailAddress);
     }
 
-    console.log("✅ Completed automatic email processing");
+    console.log("✅ Webhook processing completed");
   } catch (error) {
-    console.error("Error in automatic email processing:", error);
+    console.error("Error in webhook email processing:", error);
   }
+}
+
+async function logNotificationOnly(user: any, emailAddress: string) {
+  console.log("📝 Logging notification without processing");
+
+  // Update the notification as processed (but without automatic processing)
+  await supabase
+    .from("email_notifications")
+    .update({
+      processed: true,
+      processed_at: new Date().toISOString(),
+      processing_result: {
+        success: false,
+        error: "Apps Script webhook not configured",
+        manualProcessingRequired: true,
+      },
+    })
+    .eq("user_id", user.id)
+    .eq("email_address", emailAddress)
+    .order("created_at", { ascending: false })
+    .limit(1);
+
+  console.log("👍 User can manually process new emails via Gmail add-on");
 }
 
 async function fetchRecentEmails(accessToken: string, historyId?: string) {

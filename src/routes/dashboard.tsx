@@ -6,21 +6,13 @@ import {
   ReceiptIcon,
   PlaneIcon,
   BriefcaseIcon,
-  ChevronRight,
   Calendar,
   DollarSign,
-  Receipt,
-  Plane,
-  TrendingUp,
-  Clock,
-  CheckCircle,
-  XCircle,
-  AlertCircle,
 } from "lucide-react";
 import { supabase } from "../supabase/client";
 import DashboardCard from "../components/dashboard/DashboardCard";
 import RecentActivityCard from "../components/dashboard/RecentActivityCard";
-import { formatDistanceToNow, format } from "date-fns";
+import { formatDistanceToNow } from "date-fns";
 
 export const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,

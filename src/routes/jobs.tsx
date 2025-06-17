@@ -126,11 +126,75 @@ function JobsDashboard() {
       }
 
       console.log("📊 Fetching job applications for user:", user.id);
+      console.log("📧 User email:", user.email);
 
-      const { data, error } = await supabase
+      // Let's also check what users exist in the custom users table with this email
+      const { data: customUsers, error: customUsersError } = await supabase
+        .from("users")
+        .select("id, email, source, created_at")
+        .eq("email", user.email);
+
+      console.log("🔍 Custom users with this email:", customUsers);
+
+      // Let's also check if there are ANY job applications in the database
+      const { data: allJobApps, error: allJobAppsError } = await supabase
+        .from("job_applications")
+        .select("id, user_id, company, position, created_at");
+
+      console.log(
+        "🔍 All job applications in database (first 10):",
+        allJobApps?.slice(0, 10)
+      );
+
+      // Let's specifically look for job applications with the custom user ID we saw in logs
+      const { data: customUserJobApps, error: customUserJobAppsError } =
+        await supabase
+          .from("job_applications")
+          .select("*")
+          .eq("user_id", "5591725b-bd0e-4651-abf2-5fdb00b1a7fb");
+
+      console.log(
+        "🔍 Job applications with custom user ID 5591725b-bd0e-4651-abf2-5fdb00b1a7fb:",
+        customUserJobApps
+      );
+
+      // First try direct query with Supabase auth user ID
+      const { data: directData, error: directError } = await supabase
         .from("job_applications")
         .select("*")
+        .eq("user_id", user.id)
         .order("applied_date", { ascending: false });
+
+      if (directError) {
+        console.error("❌ Direct query error:", directError);
+        throw directError;
+      }
+
+      console.log("🔍 Direct query results:", directData?.length || 0);
+
+      // Also try querying with custom user ID as fallback for old data
+      let customUserData = [];
+      if (customUsers && customUsers.length > 0) {
+        const { data: customData, error: customError } = await supabase
+          .from("job_applications")
+          .select("*")
+          .eq("user_id", customUsers[0].id)
+          .order("applied_date", { ascending: false });
+
+        if (!customError && customData) {
+          customUserData = customData;
+          console.log("🔍 Custom user query results:", customData?.length || 0);
+        }
+      }
+
+      // Combine both results and remove duplicates
+      const allData = [...(directData || []), ...customUserData];
+      const uniqueData = allData.filter(
+        (item, index, self) => index === self.findIndex((t) => t.id === item.id)
+      );
+
+      const data = uniqueData;
+      const error = directError;
 
       if (error) {
         console.error("❌ Query error:", error);

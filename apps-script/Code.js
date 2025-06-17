@@ -82,6 +82,231 @@ function getEdgeFunctionHeaders() {
 }
 
 // ============================================================================
+// WEBHOOK ENDPOINT FOR SUPABASE INTEGRATION
+// ============================================================================
+
+/**
+ * Webhook endpoint for Supabase to trigger email processing
+ * This allows real-time processing when Gmail notifications are received
+ */
+function doPost(e) {
+  console.log("=== WEBHOOK TRIGGERED ===");
+  console.log("🔍 DEBUG: doPost function called at:", new Date().toISOString());
+  
+  try {
+    const requestBody = JSON.parse(e.postData.contents);
+    console.log("📦 Webhook payload:", JSON.stringify(requestBody, null, 2));
+    
+    const { userEmail, historyId, action } = requestBody;
+    
+    if (!userEmail) {
+      console.error("❌ No userEmail provided in webhook");
+      return ContentService.createTextOutput(JSON.stringify({
+        success: false,
+        error: "userEmail is required"
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    if (action === "process_recent_emails") {
+      console.log("🔄 Processing recent emails for:", userEmail);
+      const result = processRecentEmails(userEmail, historyId);
+      
+      return ContentService.createTextOutput(JSON.stringify({
+        success: true,
+        result: result,
+        processedAt: new Date().toISOString()
+      })).setMimeType(ContentService.MimeType.JSON);
+    }
+    
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: "Unknown action: " + action
+    })).setMimeType(ContentService.MimeType.JSON);
+    
+  } catch (error) {
+    console.error("💥 Webhook error:", error);
+    return ContentService.createTextOutput(JSON.stringify({
+      success: false,
+      error: error.toString()
+    })).setMimeType(ContentService.MimeType.JSON);
+  }
+}
+
+/**
+ * Process recent emails for a specific user
+ * This function polls Gmail for recent unread emails and processes them
+ */
+function processRecentEmails(userEmail, historyId = null) {
+  console.log("📨 Starting email processing for:", userEmail);
+  
+  try {
+    // Get user API key for this email
+    const userApiKey = getUserApiKeyByEmail(userEmail);
+    if (!userApiKey) {
+      console.error("❌ No API key found for user:", userEmail);
+      return { error: "User API key not found", userEmail: userEmail };
+    }
+    
+    console.log("✅ User API key found for:", userEmail);
+    
+    // Search for recent unread emails (last 2 hours to catch any missed)
+    const searchQuery = 'is:unread newer_than:2h';
+    const threads = GmailApp.search(searchQuery, 0, 20); // Limit to 20 most recent
+    
+    console.log(`📬 Found ${threads.length} recent email threads`);
+    
+    let processedCount = 0;
+    let jobApplicationsFound = 0;
+    
+    for (let i = 0; i < threads.length; i++) {
+      const thread = threads[i];
+      const messages = thread.getMessages();
+      
+      // Process only the latest message in each thread
+      const latestMessage = messages[messages.length - 1];
+      const messageId = latestMessage.getId();
+      
+      console.log(`📧 Processing message ${i + 1}/${threads.length}: ${messageId}`);
+      
+      // Check if we've already processed this email
+      const preProcessedData = getPreProcessedEmailData(messageId, userApiKey);
+      if (preProcessedData) {
+        console.log(`⏭️ Email ${messageId} already processed, skipping`);
+        continue;
+      }
+      
+      // Get email content
+      const emailData = getEmailContentFromMessage(latestMessage);
+      if (!emailData) {
+        console.log(`⚠️ Could not extract content from message ${messageId}`);
+        continue;
+      }
+      
+      // Classify the email
+      const classification = classifyEmail(emailData, userApiKey);
+      if (!classification) {
+        console.log(`⚠️ Could not classify message ${messageId}`);
+        continue;
+      }
+      
+      console.log(`🎯 Email ${messageId} classified as: ${classification.type}`);
+      
+      // Process based on classification
+      if (classification.type === "job_application") {
+        console.log("💼 Processing job application email...");
+        try {
+          processJobApplicationInBackground(emailData, userApiKey);
+          jobApplicationsFound++;
+          console.log(`✅ Job application processed for email ${messageId}`);
+        } catch (error) {
+          console.error(`❌ Error processing job application ${messageId}:`, error);
+        }
+      } else if (classification.type === "travel") {
+        console.log("✈️ Travel email found - could be processed in future");
+        // TODO: Add travel processing when ready
+      } else if (classification.type === "receipt") {
+        console.log("💰 Receipt email found - could be processed in future");
+        // TODO: Add receipt processing when ready
+      }
+      
+      processedCount++;
+    }
+    
+    console.log(`🎉 Processing complete! Processed ${processedCount} emails, found ${jobApplicationsFound} job applications`);
+    
+    return {
+      success: true,
+      processedCount: processedCount,
+      jobApplicationsFound: jobApplicationsFound,
+      userEmail: userEmail,
+      searchQuery: searchQuery
+    };
+    
+  } catch (error) {
+    console.error("💥 Error in processRecentEmails:", error);
+    return {
+      success: false,
+      error: error.toString(),
+      userEmail: userEmail
+    };
+  }
+}
+
+
+
+/**
+ * Helper function to get user API key by email
+ * Works for both interactive and webhook modes
+ */
+function getUserApiKeyByEmail(userEmail) {
+  console.log("🔍 DEBUG: getUserApiKeyByEmail called for:", userEmail);
+  
+  try {
+    // First, try to get the current user's API key (for interactive mode)
+    const currentUserEmail = Session.getActiveUser().getEmail();
+    
+    if (userEmail.toLowerCase() === currentUserEmail.toLowerCase()) {
+      const userApiKey = PropertiesService.getUserProperties().getProperty("USER_API_KEY");
+      if (userApiKey) {
+        console.log("✅ Found API key for current user:", userEmail);
+        return userApiKey;
+      }
+    }
+  } catch (error) {
+    // Session.getActiveUser() fails in webhook mode - this is expected
+    console.log("📝 No active user session (webhook mode) - looking up API key for:", userEmail);
+  }
+  
+  // For webhook mode, we need to get the API key for the specific user
+  // Since we can't access other users' properties, we'll use the deployment user's API key
+  // This assumes the Apps Script is deployed by the same user receiving emails
+  try {
+    const userApiKey = PropertiesService.getUserProperties().getProperty("USER_API_KEY");
+    if (userApiKey) {
+      console.log("✅ Using deployment user's API key for webhook processing:", userEmail);
+      return userApiKey;
+    } else {
+      console.log("❌ No API key found in user properties - generating one...");
+      // Try to generate an API key
+      const newApiKey = ensureUserApiKey();
+      if (newApiKey) {
+        console.log("✅ Generated new API key for webhook processing");
+        return newApiKey;
+      }
+    }
+  } catch (error) {
+    console.error("❌ Error accessing user properties:", error);
+  }
+  
+  console.log("❌ Cannot find or generate API key for user:", userEmail);
+  return null;
+}
+
+/**
+ * Extract email content from a Gmail message object
+ * This is similar to getEmailContent but works with message objects directly
+ */
+function getEmailContentFromMessage(message) {
+  try {
+    const subject = message.getSubject();
+    const date = message.getDate();
+    const sender = message.getFrom();
+    const body = message.getPlainBody();
+    
+    return {
+      messageId: message.getId(),
+      subject: subject,
+      from: sender,
+      date: date.toISOString(),
+      body: body
+    };
+  } catch (error) {
+    console.error("Error extracting email content:", error);
+    return null;
+  }
+}
+
+// ============================================================================
 // MAIN GMAIL ADD-ON ENTRY POINT
 // ============================================================================
 
