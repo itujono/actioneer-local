@@ -192,7 +192,11 @@ function processRecentEmails(userEmail, historyId = null) {
       console.log(`🎯 Email ${messageId} classified as: ${classification.type}`);
       
       // Process based on classification
-      if (classification.type === "job_application") {
+      if (classification.type === "other") {
+        console.log("🚫 Email classified as 'other' - skipping processing (not worth our time)");
+        // Early exit - we don't care about "other" emails
+        continue;
+      } else if (classification.type === "job_application") {
         console.log("💼 Processing job application email...");
         try {
           processJobApplicationInBackground(emailData, userApiKey);
@@ -231,8 +235,6 @@ function processRecentEmails(userEmail, historyId = null) {
     };
   }
 }
-
-
 
 /**
  * Helper function to get user API key by email
@@ -930,48 +932,110 @@ function classifyEmailClientSide(emailData) {
   const from = (emailData.from || "").toLowerCase();
   const body = (emailData.body || "").toLowerCase();
 
-  // Job application patterns
-  const jobPatterns = [
-    // Subject patterns
-    /job\s+application/i,
-    /application\s+update/i,
-    /interview/i,
-    /position/i,
-    /career/i,
-    /thank\s+you\s+for\s+your\s+application/i,
-    /application\s+status/i,
-    /job\s+offer/i,
-    /recruitment/i,
-    /hr\s+team/i,
-
-    // Body patterns
-    /applied\s+to/i,
-    /your\s+application/i,
-    /interview\s+invitation/i,
-    /application\s+received/i,
-    /thank\s+you\s+for\s+applying/i,
-    /we\s+have\s+received\s+your\s+application/i,
-    /application\s+for\s+the\s+position/i,
-    /proceed\s+with\s+another\s+candidate/i,
-    /decided\s+to\s+proceed\s+with/i,
-    /job\s+search/i,
-    /future\s+openings/i,
-    /career\s+site/i,
-    /recruitment\s+team/i,
-    /application\s+process/i,
+  // First, check for explicit exclusions that should NOT be job applications
+  const jobExclusionPatterns = [
+    // Job boards and alerts
+    /indeed\.com/i,
+    /linkedin\.com/i,
+    /glassdoor\.com/i,
+    /monster\.com/i,
+    /ziprecruiter\.com/i,
+    /careerbuilder\.com/i,
+    /job alert/i,
+    /job recommendation/i,
+    /new jobs/i,
+    /jobs matching/i,
+    /job search/i,
+    /career newsletter/i,
+    /weekly jobs/i,
+    /job digest/i,
+    /hiring event/i,
+    /career fair/i,
+    /join our talent/i,
+    /talent pool/i,
+    /we're hiring/i,
+    /now hiring/i,
+    /open positions/i,
+    /career opportunities/i,
+    /would you be interested/i,
+    /might be interested/i,
+    /connection request/i,
+    /invitation to connect/i,
+    /unsubscribe/i,
+    /marketing@/i,
+    /newsletter@/i,
+    /noreply@/i,
+    /no-reply@/i,
   ];
 
-  // Check if it matches job patterns
-  const isJobEmail = jobPatterns.some(
-    (pattern) =>
-      pattern.test(subject) || pattern.test(body) || pattern.test(from)
+  // Check if this email should be excluded from job classification
+  const shouldExclude = jobExclusionPatterns.some(
+    (pattern) => pattern.test(subject) || pattern.test(body) || pattern.test(from)
   );
 
-  if (isJobEmail) {
+  if (shouldExclude) {
+    console.log("❌ Email excluded from job classification due to exclusion patterns");
+    return {
+      type: "other",
+      confidence: 0.9,
+      actions: [],
+      method: "client-side-excluded",
+    };
+  }
+
+  // More specific job application patterns (only if not excluded)
+  const specificJobPatterns = [
+    // Very specific application confirmations
+    /thank\s+you\s+for\s+your\s+application\s+(?:for|to)/i,
+    /we\s+have\s+received\s+your\s+application\s+for/i,
+    /your\s+application\s+for\s+the\s+(?:position|role)\s+of/i,
+    /application\s+received.*position/i,
+    /application\s+confirmation.*position/i,
+    
+    // Interview specific patterns
+    /interview\s+(?:invitation|request|scheduled|confirmation).*(?:position|role)/i,
+    /(?:phone|video|zoom|teams)\s+interview.*(?:position|role)/i,
+    /would\s+like\s+to\s+schedule.*interview/i,
+    /interview\s+for\s+the\s+(?:position|role)\s+of/i,
+    
+    // Specific rejection patterns
+    /unfortunately.*not\s+(?:selected|moving\s+forward|proceeding)/i,
+    /regret\s+to\s+inform.*(?:position|application)/i,
+    /decided\s+to\s+(?:proceed|move\s+forward)\s+with\s+(?:another|other)\s+candidate/i,
+    /will\s+not\s+be\s+(?:moving\s+forward|proceeding)\s+with\s+your\s+application/i,
+    
+    // Offer patterns
+    /(?:pleased|excited|happy)\s+to\s+(?:extend|offer).*(?:position|role)/i,
+    /job\s+offer.*(?:position|role)/i,
+    /offer\s+of\s+employment/i,
+    /congratulations.*(?:selected|chosen|offered)/i,
+    
+    // Status update patterns (must be specific)
+    /application\s+status\s+update.*(?:position|role)/i,
+    /update\s+on\s+your\s+application\s+for/i,
+    /status\s+of\s+your\s+application\s+for/i,
+  ];
+
+  // Check for specific job application patterns
+  const hasSpecificJobPattern = specificJobPatterns.some(
+    (pattern) => pattern.test(subject) || pattern.test(body)
+  );
+
+  // Additional context checks for job emails
+  const hasJobContext = 
+    // Must have job-related keywords AND application context
+    (body.includes('application') || body.includes('applied')) &&
+    (body.includes('position') || body.includes('role') || body.includes('job')) &&
+    // Must be from a company domain (not common email providers)
+    !/(gmail|yahoo|outlook|hotmail|aol|icloud)\.com/i.test(from) &&
+    // Should have personal context (you, your)
+    (body.includes('your application') || body.includes('you applied') || body.includes('your interest'));
+
+  if (hasSpecificJobPattern || hasJobContext) {
     console.log("✅ Client-side classification: job_application");
     return {
       type: "job_application",
-      confidence: 0.8,
+      confidence: hasSpecificJobPattern ? 0.8 : 0.6,
       actions: [
         {
           type: "complex",
@@ -984,22 +1048,23 @@ function classifyEmailClientSide(emailData) {
     };
   }
 
-  // Travel patterns
-  const travelPatterns = [
-    /flight/i,
-    /booking/i,
-    /hotel/i,
-    /reservation/i,
-    /itinerary/i,
+  // Travel patterns (more specific)
+  const specificTravelPatterns = [
+    /flight\s+(?:confirmation|booking|itinerary|ticket)/i,
     /boarding\s+pass/i,
-    /confirmation/i,
+    /hotel\s+(?:confirmation|booking|reservation)/i,
+    /booking\s+confirmation.*(?:flight|hotel|car|rental)/i,
+    /itinerary.*(?:flight|hotel|trip)/i,
+    /reservation\s+confirmation/i,
+    /travel\s+itinerary/i,
+    /check-in\s+(?:reminder|now\s+available)/i,
   ];
 
-  const isTravelEmail = travelPatterns.some(
+  const hasSpecificTravelPattern = specificTravelPatterns.some(
     (pattern) => pattern.test(subject) || pattern.test(body)
   );
 
-  if (isTravelEmail) {
+  if (hasSpecificTravelPattern) {
     console.log("✅ Client-side classification: travel");
     return {
       type: "travel",
@@ -1016,21 +1081,22 @@ function classifyEmailClientSide(emailData) {
     };
   }
 
-  // Receipt patterns
-  const receiptPatterns = [
-    /receipt/i,
-    /invoice/i,
-    /payment/i,
-    /purchase/i,
-    /order/i,
-    /transaction/i,
+  // Receipt patterns (more specific)
+  const specificReceiptPatterns = [
+    /receipt.*(?:purchase|order|payment)/i,
+    /invoice.*(?:payment|due|amount)/i,
+    /payment\s+(?:confirmation|receipt|successful)/i,
+    /order\s+(?:confirmation|receipt|summary)/i,
+    /transaction\s+(?:receipt|confirmation|summary)/i,
+    /purchase\s+(?:confirmation|receipt|summary)/i,
+    /your\s+(?:receipt|invoice|bill)/i,
   ];
 
-  const isReceiptEmail = receiptPatterns.some(
+  const hasSpecificReceiptPattern = specificReceiptPatterns.some(
     (pattern) => pattern.test(subject) || pattern.test(body)
   );
 
-  if (isReceiptEmail) {
+  if (hasSpecificReceiptPattern) {
     console.log("✅ Client-side classification: receipt");
     return {
       type: "receipt",
