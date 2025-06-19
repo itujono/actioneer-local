@@ -172,22 +172,44 @@ function processRecentEmails(userEmail, historyId = null) {
     
     console.log("✅ User API key found for:", userEmail);
     
-    // For webhook mode, we need to use Gmail API instead of GmailApp
-    let threads = [];
+    // Store OAuth token for future webhook use (when running interactively)
+    storeUserOAuthToken(userEmail);
+    
+    // Try to get stored OAuth token for webhook mode
+    const storedToken = getStoredOAuthToken(userEmail);
     let emailMessages = [];
     
-    // Skip Gmail processing in webhook mode - we'll handle this differently
-    console.log("📝 Note: Webhook mode detected - skipping Gmail polling for now");
-    console.log("💡 Future: Gmail push notifications will trigger processing directly");
+    if (storedToken) {
+      console.log("📡 Webhook mode: Using stored OAuth token to fetch emails...");
+      try {
+        emailMessages = getRecentEmailsViaAPI(storedToken);
+      } catch (error) {
+        console.error("❌ Gmail API quota exceeded or error:", error);
+        console.log("🔄 Falling back to manual processing notification");
+        return {
+          success: true,
+          processedCount: 0,
+          jobApplicationsFound: 0,
+          userEmail: userEmail,
+          note: "Gmail API quota exceeded - manual processing required",
+          mode: "quota_limited"
+        };
+      }
+    } else {
+      console.log("⚠️ No stored OAuth token - using GmailApp for interactive mode");
+      try {
+        emailMessages = getRecentEmailsViaGmailApp();
+      } catch (error) {
+        console.error("❌ GmailApp error:", error);
+        return {
+          success: false,
+          error: "Gmail access failed",
+          userEmail: userEmail
+        };
+      }
+    }
     
-    return {
-      success: true,
-      processedCount: 0,
-      jobApplicationsFound: 0,
-      userEmail: userEmail,
-      note: "Webhook received but Gmail processing requires interactive authorization",
-      mode: "webhook"
-    };
+    console.log(`📬 Found ${emailMessages.length} recent emails to process`);
     
     let processedCount = 0;
     let jobApplicationsFound = 0;
@@ -263,7 +285,7 @@ function processRecentEmails(userEmail, historyId = null) {
       processedCount: processedCount,
       jobApplicationsFound: jobApplicationsFound,
       userEmail: userEmail,
-      searchQuery: 'is:unread newer_than:2h'
+      searchQuery: 'is:unread newer_than:10m'
     };
     
   } catch (error) {
@@ -331,6 +353,105 @@ function getRecentEmailsViaAPI(accessToken) {
     return emailMessages;
   } catch (error) {
     console.error('Error fetching emails via API:', error);
+    return [];
+  }
+}
+
+/**
+ * Store OAuth token for future webhook use
+ */
+function storeUserOAuthToken(userEmail) {
+  try {
+    // Only store token when running interactively (has OAuth session)
+    const currentUser = Session.getActiveUser().getEmail();
+    if (currentUser.toLowerCase() === userEmail.toLowerCase()) {
+      const accessToken = ScriptApp.getOAuthToken();
+      if (accessToken) {
+        console.log("🔑 Storing OAuth token for future webhook use...");
+        
+        // Get user API key to make the request
+        const userApiKey = getUserApiKeyByEmail(userEmail);
+        if (!userApiKey) {
+          console.log("❌ Cannot store token: No user API key found");
+          return;
+        }
+        
+        // Store token in Supabase
+        const payload = {
+          userEmail: userEmail,
+          accessToken: accessToken,
+          expiresAt: new Date(Date.now() + 3600000).toISOString() // 1 hour from now
+        };
+        
+        const response = UrlFetchApp.fetch(SUPABASE_URL + "/functions/v1/store-oauth-token", {
+          method: "POST",
+          headers: getEdgeFunctionHeaders(),
+          payload: JSON.stringify(payload)
+        });
+        
+        if (response.getResponseCode() === 200) {
+          console.log("✅ OAuth token stored successfully for webhook use");
+        } else {
+          console.log("⚠️ Failed to store OAuth token:", response.getContentText());
+        }
+      }
+    }
+  } catch (error) {
+    console.log("⚠️ Could not store OAuth token (normal in webhook mode):", error.message);
+  }
+}
+
+/**
+ * Get stored OAuth token for webhook mode
+ */
+function getStoredOAuthToken(userEmail) {
+  try {
+    const userApiKey = getUserApiKeyByEmail(userEmail);
+    if (!userApiKey) return null;
+    
+    const response = UrlFetchApp.fetch(SUPABASE_URL + "/functions/v1/get-oauth-token", {
+      method: "POST",
+      headers: getEdgeFunctionHeaders(),
+      payload: JSON.stringify({ userEmail: userEmail })
+    });
+    
+    if (response.getResponseCode() === 200) {
+      const data = JSON.parse(response.getContentText());
+      return data.accessToken;
+    }
+  } catch (error) {
+    console.log("⚠️ Could not get stored OAuth token:", error.message);
+  }
+  return null;
+}
+
+/**
+ * Get recent emails using GmailApp (interactive mode)
+ */
+function getRecentEmailsViaGmailApp() {
+  try {
+    console.log("📧 Using GmailApp to fetch recent emails...");
+    
+    // Get unread threads from last 10 minutes
+    const threads = GmailApp.search('is:unread newer_than:10m', 0, 5);
+    console.log(`📮 Found ${threads.length} unread threads in last 10 minutes`);
+    
+    const emailMessages = [];
+    for (const thread of threads) {
+      const messages = thread.getMessages();
+      for (const message of messages) {
+        if (message.isUnread()) {
+          const emailData = getEmailContentFromMessage(message);
+          if (emailData) {
+            emailMessages.push(emailData);
+          }
+        }
+      }
+    }
+    
+    return emailMessages;
+  } catch (error) {
+    console.error("❌ Error using GmailApp:", error);
     return [];
   }
 }

@@ -138,6 +138,10 @@ Deno.serve(async (req) => {
         status: jobData.status || "applied",
         applied_date:
           jobData.appliedDate || new Date().toISOString().split("T")[0],
+        country_code: jobData.countryCode || null,
+        country: jobData.countryCode
+          ? getCountryName(jobData.countryCode)
+          : null,
         details: {
           ...jobData,
           originalEmail: {
@@ -273,9 +277,10 @@ async function extractJobDataWithAI(
     {
       "company": "Company name (extracted from email domain, subject, or body)",
       "position": "Job position/title mentioned in the email",
-      "status": "One of: applied, interview, offer, rejected, accepted",
+      "status": "One of: applied, next_step, interview, offer, rejected, accepted",
       "appliedDate": "Date in YYYY-MM-DD format (use today's date if not found)",
       "confidence": "Your confidence level (0-1) in the extraction",
+      "countryCode": "ISO 3166-1 alpha-2 country code if mentioned/determinable from company (e.g., US, GB, CA)",
       "details": {
         "workLocation": "Remote/On-site/Hybrid if mentioned",
         "salary": "Salary range if mentioned",
@@ -286,11 +291,28 @@ async function extractJobDataWithAI(
     }
     
     Status determination rules:
-    - "applied": Initial application confirmation, acknowledgment
-    - "interview": Interview invitation, scheduling, or confirmation
+    - "applied": Initial application confirmation, acknowledgment only
+    - "next_step": Email mentions moving to next stage, additional information requested, assessment/test invitation, portfolio review, or progression beyond initial application
+    - "interview": Explicit interview invitation, scheduling, or confirmation
     - "offer": Job offer, contract, or acceptance letter
     - "rejected": Rejection, regret letter, or "not moving forward"
     - "accepted": Welcome messages, onboarding, or acceptance confirmation
+    
+    Pay special attention to "next_step" status for emails that indicate:
+    - "We'd like to move forward with your application"
+    - "Please complete this assessment/test"
+    - "We need additional information"
+    - "Next step in our process"
+    - "We're excited to proceed with your candidacy"
+    - "Take-home assignment" or coding challenge
+    - "Portfolio review" or "technical review"
+    - Any progression beyond initial application receipt
+    
+    For country detection, consider:
+    - Company headquarters location if known
+    - Domain TLD (.co.uk = GB, .ca = CA, etc.)
+    - Explicit country mentions in email
+    - Office locations mentioned
     
     IMPORTANT: Respond with ONLY valid JSON, no markdown formatting or code blocks.
   `;
@@ -338,6 +360,7 @@ async function extractJobDataWithAI(
         validateDate(jobData.appliedDate) ||
         new Date().toISOString().split("T")[0],
       confidence: jobData.confidence || 0.5,
+      countryCode: jobData.countryCode || extractCountryFromEmail(from) || null,
       details: jobData.details || {},
     };
   } catch (error) {
@@ -365,6 +388,7 @@ function fallbackJobExtraction(
     status: status || "applied",
     appliedDate: new Date().toISOString().split("T")[0],
     confidence: 0.3,
+    countryCode: extractCountryFromEmail(from) || null,
     details: {
       extractionMethod: "fallback",
       emailFrom: from,
@@ -392,6 +416,87 @@ function extractCompanyFromEmail(from: string): string | null {
     }
   }
   return null;
+}
+
+function extractCountryFromEmail(from: string): string | null {
+  // Extract country from email domain TLD
+  const tldMatch = from.match(/\.([a-zA-Z]{2})$/);
+  if (tldMatch && tldMatch[1]) {
+    const tld = tldMatch[1].toLowerCase();
+
+    // Map common country TLDs to ISO country codes
+    const tldToCountry: Record<string, string> = {
+      uk: "GB", // .co.uk domains
+      ca: "CA",
+      au: "AU",
+      de: "DE",
+      fr: "FR",
+      jp: "JP",
+      kr: "KR",
+      in: "IN",
+      br: "BR",
+      mx: "MX",
+      nl: "NL",
+      se: "SE",
+      ch: "CH",
+      it: "IT",
+      es: "ES",
+      id: "ID",
+      nz: "NZ",
+      sg: "SG",
+      hk: "HK",
+      tw: "TW",
+      ph: "PH",
+      za: "ZA",
+      my: "MY",
+      th: "TH",
+      vn: "VN",
+      ng: "NG",
+    };
+
+    return tldToCountry[tld] || null;
+  }
+
+  // Check for .co.uk pattern specifically
+  if (from.includes(".co.uk")) {
+    return "GB";
+  }
+
+  return null;
+}
+
+function getCountryName(countryCode: string): string | null {
+  const countryNames: Record<string, string> = {
+    US: "United States",
+    GB: "United Kingdom",
+    CA: "Canada",
+    AU: "Australia",
+    DE: "Germany",
+    FR: "France",
+    JP: "Japan",
+    KR: "South Korea",
+    IN: "India",
+    BR: "Brazil",
+    MX: "Mexico",
+    NL: "Netherlands",
+    SE: "Sweden",
+    CH: "Switzerland",
+    IT: "Italy",
+    ES: "Spain",
+    ID: "Indonesia",
+    NZ: "New Zealand",
+    SG: "Singapore",
+    HK: "Hong Kong",
+    TW: "Taiwan",
+    PH: "Philippines",
+    ZA: "South Africa",
+    MY: "Malaysia",
+    TH: "Thailand",
+    VN: "Vietnam",
+    NG: "Nigeria",
+  };
+
+  return countryNames[countryCode.toUpperCase()] || null;
 }
 
 function extractCompanyFromText(text: string): string | null {
@@ -497,6 +602,28 @@ function extractStatusFromText(text: string): string {
       "phone screen",
       "next round",
     ],
+    next_step: [
+      "move forward with your application",
+      "next step in our process",
+      "next stage",
+      "proceed with your candidacy",
+      "additional information",
+      "assessment",
+      "test",
+      "coding challenge",
+      "take-home assignment",
+      "portfolio review",
+      "technical review",
+      "excited to proceed",
+      "would like to proceed",
+      "please complete",
+      "technical challenge",
+      "coding test",
+      "skills assessment",
+      "move to the next",
+      "advance your application",
+      "further consideration",
+    ],
     offer: [
       "offer",
       "pleased to extend",
@@ -526,6 +653,7 @@ function extractStatusFromText(text: string): string {
 function validateStatus(status: string): string | null {
   const validStatuses = [
     "applied",
+    "next_step",
     "interview",
     "offer",
     "rejected",

@@ -16,9 +16,16 @@ import {
   XCircle,
   AlertCircle,
   MoreHorizontal,
+  ExternalLink,
+  Mail,
+  Settings,
+  Columns,
 } from "lucide-react";
 import { supabase } from "../supabase/client";
 import { formatDistanceToNow } from "date-fns";
+import { CustomFieldsManager } from "../components/CustomFieldsManager";
+import { CustomFieldCell } from "../components/CustomFieldInput";
+import { useCustomFields } from "../hooks/useCustomFields";
 
 export const jobsRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -33,6 +40,8 @@ type JobApplication = {
   position: string;
   status: string;
   applied_date: string;
+  country_code?: string;
+  country?: string;
   details: any;
   created_at: string;
 };
@@ -40,6 +49,124 @@ type JobApplication = {
 type SortConfig = {
   key: keyof JobApplication;
   direction: "asc" | "desc";
+};
+
+// Helper function to get flag emoji from country code
+const getFlagEmoji = (countryCode?: string): string => {
+  if (!countryCode) return "";
+
+  const flags: Record<string, string> = {
+    US: "🇺🇸",
+    GB: "🇬🇧",
+    CA: "🇨🇦",
+    AU: "🇦🇺",
+    DE: "🇩🇪",
+    FR: "🇫🇷",
+    JP: "🇯🇵",
+    KR: "🇰🇷",
+    IN: "🇮🇳",
+    BR: "🇧🇷",
+    MX: "🇲🇽",
+    NL: "🇳🇱",
+    SE: "🇸🇪",
+    CH: "🇨🇭",
+    IT: "🇮🇹",
+    ES: "🇪🇸",
+    ID: "🇮🇩",
+    NZ: "🇳🇿",
+    SG: "🇸🇬",
+    HK: "🇭🇰",
+    TW: "🇹🇼",
+    PH: "🇵🇭",
+    ZA: "🇿🇦",
+    MY: "🇲🇾",
+    TH: "🇹🇭",
+    VN: "🇻🇳",
+    NG: "🇳🇬",
+  };
+
+  return flags[countryCode.toUpperCase()] || "";
+};
+
+// Helper function to construct Gmail URL from message ID
+const getGmailUrl = (emailId: string, application?: JobApplication): string => {
+  console.log("🔗 Constructing Gmail URL for email ID:", emailId);
+
+  if (!emailId) {
+    console.warn("⚠️ No email ID provided, redirecting to inbox");
+    return "https://mail.google.com/mail/u/0/#inbox";
+  }
+
+  // Since Gmail API message IDs (msg-f:123456789) don't work with Gmail web URLs,
+  // we'll use a search-based approach that's more reliable
+
+  if (application?.company && application?.position) {
+    // Create a search query using company and position which should be unique enough
+    const searchTerms = [];
+
+    // Add company name (clean it up for search)
+    const cleanCompany = application.company.replace(/[^\w\s]/g, "").trim();
+    if (cleanCompany) {
+      searchTerms.push(`"${cleanCompany}"`);
+    }
+
+    // Add position keywords
+    const cleanPosition = application.position.replace(/[^\w\s]/g, "").trim();
+    if (cleanPosition) {
+      // Split position into words and add the most meaningful ones
+      const positionWords = cleanPosition
+        .split(/\s+/)
+        .filter(
+          (word) =>
+            word.length > 2 &&
+            !["the", "and", "for", "with"].includes(word.toLowerCase())
+        );
+      if (positionWords.length > 0) {
+        searchTerms.push(`"${positionWords.slice(0, 2).join(" ")}"`);
+      }
+    }
+
+    // Add "job" or "application" to narrow down results
+    searchTerms.push("(job OR application OR position OR role)");
+
+    const searchQuery = searchTerms.join(" ");
+    const encodedQuery = encodeURIComponent(searchQuery);
+    const searchUrl = `https://mail.google.com/mail/u/0/#search/${encodedQuery}`;
+
+    console.log("🔍 Generated search query:", searchQuery);
+    console.log("🌐 Generated search URL:", searchUrl);
+    return searchUrl;
+  }
+
+  // Fallback: Search for just the message ID (though this format likely won't match)
+  console.log("🔍 Using message ID fallback search");
+  const fallbackQuery = encodeURIComponent(`"${emailId}"`);
+  const fallbackUrl = `https://mail.google.com/mail/u/0/#search/${fallbackQuery}`;
+  console.log("🌐 Generated fallback URL:", fallbackUrl);
+  return fallbackUrl;
+};
+
+// Helper function to handle Gmail URL opening with error handling
+const openGmailUrl = (emailId: string, application?: JobApplication) => {
+  try {
+    const url = getGmailUrl(emailId, application);
+    console.log("🚀 Opening Gmail URL:", url);
+
+    // Open in new tab
+    const newWindow = window.open(url, "_blank", "noopener,noreferrer");
+
+    if (!newWindow) {
+      console.error("❌ Failed to open new window - popup blocked?");
+      // Fallback: try to navigate in current tab
+      window.location.href = url;
+    } else {
+      console.log("✅ Successfully opened Gmail search in new tab");
+    }
+  } catch (error) {
+    console.error("❌ Error opening Gmail URL:", error);
+    // Ultimate fallback: just go to Gmail inbox
+    window.open("https://mail.google.com/mail/u/0/#inbox", "_blank");
+  }
 };
 
 function JobsDashboard() {
@@ -52,6 +179,13 @@ function JobsDashboard() {
   });
   const [user, setUser] = useState<any>(null);
   const [authLoading, setAuthLoading] = useState(true);
+  const [showCustomFieldsManager, setShowCustomFieldsManager] = useState(false);
+
+  // Custom fields hook
+  const { customFields, getCustomFieldValue } = useCustomFields({
+    tableName: "job_applications",
+    userId: user?.id,
+  });
 
   // Check authentication status
   useEffect(() => {
@@ -260,6 +394,8 @@ function JobsDashboard() {
     switch (status.toLowerCase()) {
       case "applied":
         return <Clock className="h-4 w-4 text-blue-500" />;
+      case "next_step":
+        return <AlertCircle className="h-4 w-4 text-purple-500" />;
       case "interview":
       case "interviewing":
         return <AlertCircle className="h-4 w-4 text-yellow-500" />;
@@ -278,6 +414,8 @@ function JobsDashboard() {
     switch (status.toLowerCase()) {
       case "applied":
         return "bg-blue-100 text-blue-800";
+      case "next_step":
+        return "bg-purple-100 text-purple-800";
       case "interview":
       case "interviewing":
         return "bg-yellow-100 text-yellow-800";
@@ -381,6 +519,15 @@ function JobsDashboard() {
           </div>
           <div className="mt-4 flex md:mt-0 md:ml-4">
             <button
+              onClick={() => setShowCustomFieldsManager(true)}
+              type="button"
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mr-3"
+              title="Manage custom columns"
+            >
+              <Columns className="h-4 w-4 mr-2" />
+              Manage Columns
+            </button>
+            <button
               type="button"
               className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
             >
@@ -391,7 +538,7 @@ function JobsDashboard() {
         </div>
 
         {/* Stats Cards */}
-        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-4">
+        <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="p-5">
               <div className="flex items-center">
@@ -429,6 +576,31 @@ function JobsDashboard() {
                         : jobApplications?.filter(
                             (app: JobApplication) =>
                               app.status.toLowerCase() === "applied"
+                          ).length || 0}
+                    </dd>
+                  </dl>
+                </div>
+              </div>
+            </div>
+          </div>
+
+          <div className="bg-white overflow-hidden shadow rounded-lg">
+            <div className="p-5">
+              <div className="flex items-center">
+                <div className="flex-shrink-0">
+                  <AlertCircle className="h-6 w-6 text-purple-600" />
+                </div>
+                <div className="ml-5 w-0 flex-1">
+                  <dl>
+                    <dt className="text-sm font-medium text-gray-500 truncate">
+                      Next Step
+                    </dt>
+                    <dd className="text-lg font-medium text-gray-900">
+                      {isLoading
+                        ? "..."
+                        : jobApplications?.filter(
+                            (app: JobApplication) =>
+                              app.status.toLowerCase() === "next_step"
                           ).length || 0}
                     </dd>
                   </dl>
@@ -610,6 +782,18 @@ function JobsDashboard() {
                             ))}
                         </div>
                       </th>
+
+                      {/* Dynamic Custom Field Columns */}
+                      {customFields.map((field) => (
+                        <th
+                          key={field.id}
+                          scope="col"
+                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                        >
+                          {field.field_label}
+                        </th>
+                      ))}
+
                       <th
                         scope="col"
                         className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
@@ -631,8 +815,11 @@ function JobsDashboard() {
                       >
                         Last Updated
                       </th>
-                      <th scope="col" className="relative px-6 py-3">
-                        <span className="sr-only">Actions</span>
+                      <th
+                        scope="col"
+                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+                      >
+                        Find Email
                       </th>
                     </tr>
                   </thead>
@@ -648,8 +835,13 @@ function JobsDashboard() {
                                 </div>
                               </div>
                               <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900">
+                                <div className="text-sm font-medium text-gray-900 flex items-center">
                                   {application.company}
+                                  {getFlagEmoji(application.country_code) && (
+                                    <span className="ml-2 text-base">
+                                      {getFlagEmoji(application.country_code)}
+                                    </span>
+                                  )}
                                 </div>
                               </div>
                             </div>
@@ -667,11 +859,30 @@ function JobsDashboard() {
                                   application.status
                                 )}`}
                               >
-                                {application.status.charAt(0).toUpperCase() +
-                                  application.status.slice(1)}
+                                {application.status === "next_step"
+                                  ? "Next Step"
+                                  : application.status.charAt(0).toUpperCase() +
+                                    application.status.slice(1)}
                               </span>
                             </div>
                           </td>
+
+                          {/* Dynamic Custom Field Cells */}
+                          {customFields.map((field) => (
+                            <td
+                              key={field.id}
+                              className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                            >
+                              <CustomFieldCell
+                                field={field}
+                                value={getCustomFieldValue(
+                                  application.details,
+                                  field.field_name
+                                )}
+                              />
+                            </td>
+                          ))}
+
                           <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
                             <div className="flex items-center">
                               <Calendar className="h-4 w-4 text-gray-400 mr-2" />
@@ -687,8 +898,16 @@ function JobsDashboard() {
                             )}
                           </td>
                           <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button className="text-gray-400 hover:text-gray-600">
-                              <MoreHorizontal className="h-5 w-5" />
+                            <button
+                              onClick={() =>
+                                openGmailUrl(application.email_id, application)
+                              }
+                              className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                              title="Search for this email in Gmail"
+                            >
+                              <Mail className="h-3 w-3 mr-1" />
+                              Find in Gmail
+                              <ExternalLink className="h-3 w-3 ml-1" />
                             </button>
                           </td>
                         </tr>
@@ -701,6 +920,22 @@ function JobsDashboard() {
           </div>
         </div>
       </div>
+
+      {/* Custom Fields Manager Modal */}
+      <CustomFieldsManager
+        isOpen={showCustomFieldsManager}
+        onClose={() => setShowCustomFieldsManager(false)}
+        tableName="job_applications"
+        userId={user?.id || ""}
+      />
+
+      {/* Debug info for custom fields (to be removed) */}
+      {process.env.NODE_ENV === "development" && (
+        <div style={{ display: "none" }}>
+          {/* This prevents linter errors while we're developing */}
+          {customFields.length} {getCustomFieldValue({}, "test")}
+        </div>
+      )}
     </div>
   );
 }

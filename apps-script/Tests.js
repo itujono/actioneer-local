@@ -90,26 +90,81 @@ function testEmailClassification() {
  * Test API key validation
  */
 function testApiKeyValidation() {
-  console.log("=== Testing API Key Validation ===");
+  console.log("🔑 Testing API key validation only...");
+
   try {
-    const userApiKey =
-      PropertiesService.getUserProperties().getProperty("USER_API_KEY");
+    // Get user API key
+    let userApiKey = PropertiesService.getUserProperties().getProperty("USER_API_KEY");
     if (!userApiKey) {
-      console.log("No API key found to validate");
+      console.log("Generating user API key...");
+      userApiKey = ensureUserApiKey();
+    }
+
+    if (!userApiKey) {
+      console.log("❌ Failed to get user API key");
       return;
     }
 
-    console.log("Validating API key:", userApiKey);
-    const isValid = validateUserApiKey(userApiKey);
-    console.log("Validation result:", isValid);
+    console.log("✅ User API key:", userApiKey.substring(0, 10) + "...");
 
-    if (isValid) {
-      console.log("✅ API key is valid");
-    } else {
-      console.log("❌ API key is invalid");
-    }
+    // Test the exact headers being sent
+    const headers = {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      "x-user-api-key": userApiKey,
+    };
+
+    console.log("📋 Headers being sent:");
+    console.log("  Content-Type: application/json");
+    console.log("  apikey: " + (SUPABASE_ANON_KEY ? "✓ Present" : "❌ Missing"));
+    console.log("  Authorization: Bearer " + (SUPABASE_ANON_KEY ? "✓ Present" : "❌ Missing"));
+    console.log("  x-user-api-key: " + userApiKey.substring(0, 10) + "...");
+
+    const testPayload = {
+      messageId: "test-api-key-validation",
+      subject: "Test API Key",
+      from: "test@example.com",
+      emailBody: "Test body"
+    };
+
+    console.log("🌐 Making request to process-receipt...");
+    
+    // Make the exact same request as processReceiptInBackground
+    const response = UrlFetchApp.fetch(
+      `${BACKEND_API_URL}/process-receipt`,
+      {
+        method: "POST",
+        headers: headers,
+        payload: JSON.stringify(testPayload),
+        muteHttpExceptions: true,
+        timeout: 30000,
+      }
+    );
+
+    console.log("📨 Response code:", response.getResponseCode());
+    console.log("📨 Response headers:", JSON.stringify(response.getHeaders(), null, 2));
+    console.log("📨 Response content:", response.getContentText());
+
+    // Now test process-job-application with the same headers
+    console.log("\n🔄 Testing job application for comparison...");
+    
+    const jobResponse = UrlFetchApp.fetch(
+      `${BACKEND_API_URL}/process-job-application`,
+      {
+        method: "POST",
+        headers: headers,
+        payload: JSON.stringify(testPayload),
+        muteHttpExceptions: true,
+        timeout: 30000,
+      }
+    );
+
+    console.log("📨 Job response code:", jobResponse.getResponseCode());
+    console.log("📨 Job response content:", jobResponse.getContentText());
+
   } catch (error) {
-    console.error("Test error:", error);
+    console.error("❌ Test error:", error);
   }
 }
 
@@ -786,4 +841,85 @@ function testProcessRecentEmails() {
   }
   
   return result;
+}
+
+/**
+ * Test receipt processing directly to debug the issue
+ */
+function testReceiptProcessingDirectly() {
+  console.log("🧾 Testing receipt processing directly...");
+
+  try {
+    // Get or generate user API key
+    let userApiKey = PropertiesService.getUserProperties().getProperty("USER_API_KEY");
+    if (!userApiKey) {
+      console.log("Generating user API key...");
+      userApiKey = ensureUserApiKey();
+    }
+
+    if (!userApiKey) {
+      console.log("❌ Failed to get user API key");
+      return;
+    }
+
+    console.log("✅ User API key available:", userApiKey.substring(0, 10) + "...");
+
+    // Mock receipt email data
+    const mockEmailData = {
+      messageId: "test-receipt-" + Date.now(),
+      subject: "Your Vercel receipt [#2320-4368]",
+      from: "receipts@vercel.com",
+      body: "Thank you for your payment. Your subscription charge: $20.00. Invoice #2320-4368",
+    };
+
+    console.log("📧 Mock email data:", JSON.stringify(mockEmailData, null, 2));
+    console.log("🔗 BACKEND_API_URL:", BACKEND_API_URL);
+
+    // Call processReceiptInBackground directly
+    console.log("🚀 Calling processReceiptInBackground...");
+    processReceiptInBackground(mockEmailData, userApiKey);
+    
+    console.log("✅ Test completed! Check Supabase logs in ~10 seconds.");
+    console.log("💡 If no logs appear, the edge function wasn't invoked.");
+
+  } catch (error) {
+    console.error("❌ Test error:", error);
+  }
+}
+
+/**
+ * Fix stale API key issue by clearing and regenerating
+ */
+function fixStaleApiKey() {
+  console.log("🔧 Fixing stale API key issue...");
+
+  try {
+    // Clear the old API key
+    console.log("🗑️ Clearing old API key from properties...");
+    PropertiesService.getUserProperties().deleteProperty("USER_API_KEY");
+    
+    // Generate a fresh API key
+    console.log("🔑 Generating fresh API key...");
+    const newApiKey = ensureUserApiKey();
+    
+    if (newApiKey) {
+      console.log("✅ Fresh API key generated:", newApiKey.substring(0, 10) + "...");
+      
+      // Test the new API key immediately
+      console.log("🧪 Testing new API key...");
+      const isValid = validateUserApiKey(newApiKey);
+      
+      if (isValid) {
+        console.log("🎉 SUCCESS! New API key is valid and working!");
+        console.log("💡 You can now test receipt processing again.");
+      } else {
+        console.log("❌ New API key validation failed");
+      }
+    } else {
+      console.log("❌ Failed to generate new API key");
+    }
+    
+  } catch (error) {
+    console.error("❌ Error fixing API key:", error);
+  }
 }
