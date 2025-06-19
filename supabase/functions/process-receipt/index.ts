@@ -7,17 +7,21 @@ const corsHeaders = {
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-// Initialize Supabase client with service role key for backend operations
-const supabase = createClient(
-  Deno.env.get("SUPABASE_URL") ?? "",
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-  }
-);
+// Create Supabase client with service role for admin operations
+const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+
+// Regular client for normal operations
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Admin client for auth operations
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+});
 
 const OPENAI_API_KEY = Deno.env.get("OPENAI_API_KEY");
 
@@ -29,9 +33,33 @@ Deno.serve(async (req) => {
   }
 
   try {
-    const { messageId, subject, from, emailBody } = await req.json();
+    // Extract user API key from custom header
+    const userApiKey = req.headers.get("x-user-api-key");
+    if (!userApiKey) {
+      return new Response(
+        JSON.stringify({ error: "Missing user API key header" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
 
-    if (!messageId || !subject || !emailBody) {
+    // Validate user API key using the same logic as job applications
+    const user = await getUserByApiKey(userApiKey);
+    if (!user) {
+      console.log("❌ API key validation failed - no user found");
+      return new Response(JSON.stringify({ error: "Invalid API key" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Parse request body
+    const body = await req.json();
+    const { messageId, subject, from, emailBody } = body;
+
+    if (!messageId || !subject || !from || !emailBody) {
       return new Response(
         JSON.stringify({ error: "Missing required fields" }),
         {
@@ -41,31 +69,48 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Get user from API key
-    const userApiKey = req.headers.get("x-user-api-key");
-    if (!userApiKey) {
-      return new Response(JSON.stringify({ error: "Missing user API key" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
-    }
+    console.log("🔍 Processing receipt email:", {
+      messageId,
+      subject,
+      from,
+      userId: user.id,
+    });
 
-    // Get user by API key
-    const { data: user, error: userError } = await supabase
-      .from("users")
+    // Check if this email has already been processed
+    console.log("🔍 Checking for existing receipt with email_id:", messageId);
+    const { data: existingReceipt, error: existingError } = await supabase
+      .from("receipts")
       .select("*")
-      .eq("api_key", userApiKey)
+      .eq("email_id", messageId)
+      .eq("user_id", user.id)
       .single();
 
-    if (userError || !user) {
-      console.error("User lookup error:", userError);
-      return new Response(JSON.stringify({ error: "Invalid user API key" }), {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      });
+    if (existingReceipt && !existingError) {
+      console.log(
+        "✅ Receipt already exists for this email:",
+        existingReceipt.id
+      );
+      return new Response(
+        JSON.stringify({
+          success: true,
+          receiptId: existingReceipt.id,
+          extractedData: {
+            merchant: existingReceipt.merchant,
+            amount: existingReceipt.amount,
+            currency: existingReceipt.currency,
+            category: existingReceipt.category,
+            date: existingReceipt.date,
+          },
+          message: "Receipt already processed for this email",
+          duplicate: true,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
     }
 
-    console.log("✅ User authenticated:", user.email);
+    console.log("🆕 No existing receipt found, processing new email...");
 
     // Extract receipt data using AI
     const receiptData = await extractReceiptDataWithAI(
@@ -86,14 +131,21 @@ Deno.serve(async (req) => {
 
     console.log("📊 Extracted receipt data:", receiptData);
 
-    // Store receipt in database
-    const { data: receipt, error: receiptError } = await supabase
+    // Store receipt in database using the Supabase Auth user ID (mapped from custom user)
+    console.log("🔄 Inserting receipt for user:", user.email);
+    console.log("🔍 User ID being used:", user.id);
+    console.log("🔍 Auth user ID:", user.auth_user_id);
+    console.log("🔍 Custom user ID:", user.custom_user_id);
+
+    // Store in database using the user ID (should be Supabase Auth ID after mapping)
+    // Use supabaseAdmin to bypass RLS policies
+    const { data: storedData, error: storeError } = await supabaseAdmin
       .from("receipts")
       .insert({
-        user_id: user.id,
+        user_id: user.id, // This should now be the Supabase Auth user ID
         email_id: messageId,
-        merchant: receiptData.merchant,
-        amount: receiptData.amount,
+        merchant: receiptData.merchant || "Unknown Merchant",
+        amount: receiptData.amount || 0,
         currency: receiptData.currency || "USD",
         category: receiptData.category || "other",
         description: receiptData.description || subject,
@@ -101,13 +153,20 @@ Deno.serve(async (req) => {
         invoice_number: receiptData.invoice_number,
         payment_method: receiptData.payment_method,
         tax_amount: receiptData.tax_amount,
-        details: receiptData,
+        details: {
+          ...receiptData,
+          originalEmail: {
+            subject,
+            from,
+            processedAt: new Date().toISOString(),
+          },
+        },
       })
       .select()
       .single();
 
-    if (receiptError) {
-      console.error("Error storing receipt:", receiptError);
+    if (storeError) {
+      console.error("Error storing receipt:", storeError);
       return new Response(
         JSON.stringify({ error: "Failed to store receipt data" }),
         {
@@ -117,12 +176,13 @@ Deno.serve(async (req) => {
       );
     }
 
-    console.log("✅ Receipt stored successfully with ID:", receipt.id);
+    console.log("✅ Receipt stored successfully:", storedData.id);
+    console.log("✅ Stored with user_id:", storedData.user_id);
 
     return new Response(
       JSON.stringify({
         success: true,
-        receiptId: receipt.id,
+        receiptId: storedData.id,
         extractedData: receiptData,
         message: "Receipt processed successfully",
       }),
@@ -144,6 +204,80 @@ Deno.serve(async (req) => {
     );
   }
 });
+
+async function getUserByApiKey(apiKey: string) {
+  try {
+    console.log(
+      "🔍 Starting user lookup with API key:",
+      apiKey.substring(0, 10) + "..."
+    );
+
+    // Use admin client for users table access (has service role permissions)
+    const { data, error } = await supabaseAdmin
+      .from("users")
+      .select("*")
+      .eq("api_key", apiKey)
+      .eq("is_active", true)
+      .single();
+
+    if (error) {
+      console.log("❌ User lookup error:", error.message);
+      console.log("❌ Error details:", JSON.stringify(error, null, 2));
+      return null;
+    }
+
+    if (!data) {
+      console.log("❌ No user data returned");
+      return null;
+    }
+
+    console.log("✅ Found custom user:", data.email, "with ID:", data.id);
+
+    // If we found a custom user, try to find the corresponding Supabase Auth user by email
+    console.log("🔍 Looking up Supabase Auth user for email:", data.email);
+
+    try {
+      // Use the correct method to get user by email
+      const { data: authUsers, error: authError } =
+        await supabaseAdmin.auth.admin.listUsers();
+
+      if (authError) {
+        console.log("⚠️ Auth users list error:", authError.message);
+        console.log("⚠️ Falling back to custom user ID:", data.id);
+        return data;
+      }
+
+      // Find user by email in the list
+      const authUser = authUsers.users?.find(
+        (user) => user.email === data.email
+      );
+
+      if (authUser?.id) {
+        console.log("✅ Found Supabase Auth user:", authUser.id);
+        // Return a modified user object with the Supabase Auth ID
+        const modifiedUser = {
+          ...data,
+          id: authUser.id, // Use Supabase Auth ID instead of custom user ID
+          auth_user_id: authUser.id,
+          custom_user_id: data.id,
+        };
+        console.log("✅ Using Supabase Auth user ID:", modifiedUser.id);
+        return modifiedUser;
+      } else {
+        console.log("⚠️ No Supabase Auth user found for email:", data.email);
+        console.log("⚠️ Falling back to custom user ID:", data.id);
+        return data;
+      }
+    } catch (authLookupError) {
+      console.error("❌ Error during auth user lookup:", authLookupError);
+      console.log("⚠️ Falling back to custom user ID:", data.id);
+      return data;
+    }
+  } catch (error) {
+    console.error("❌ Error validating API key:", error);
+    return null;
+  }
+}
 
 async function extractReceiptDataWithAI(
   subject: string,

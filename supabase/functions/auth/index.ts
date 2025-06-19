@@ -26,11 +26,6 @@ const MASTER_API_KEY =
   Deno.env.get("MASTER_API_KEY") || "master_key_change_in_production";
 
 Deno.serve(async (req) => {
-  console.log("🚀 Auth function called!");
-  console.log("📍 Method:", req.method);
-  console.log("📍 URL:", req.url);
-  console.log("📍 Headers:", Object.fromEntries(req.headers.entries()));
-
   if (req.method === "OPTIONS") {
     console.log("✅ CORS preflight request");
     return new Response("ok", { headers: corsHeaders });
@@ -51,8 +46,33 @@ Deno.serve(async (req) => {
 
   const path = url.pathname.replace("/functions/v1/auth", "");
 
+  console.log("🔍 Debug - Full URL:", req.url);
+  console.log("🔍 Debug - Parsed pathname:", url.pathname);
+  console.log("🔍 Debug - Final path:", path);
+  console.log("🔍 Debug - Request method:", req.method);
+
   try {
-    // Handle different endpoints based on request body or path
+    // Handle path-based endpoints first (before body parsing)
+
+    // Handle GET requests for profile
+    if (req.method === "GET") {
+      console.log("👤 Profile request detected");
+      return await handleGetProfile(req);
+    }
+
+    // Handle OAuth sign-in from dashboard - creates public.users entry for existing auth.users
+    if (req.method === "POST" && path === "/oauth-signin") {
+      console.log("🔍 OAuth sign-in request detected");
+      return await handleOAuthSignIn(req, {});
+    }
+
+    // Admin endpoint to cleanup auth users (for testing)
+    if (req.method === "POST" && path === "/admin/cleanup-auth-users") {
+      console.log("🔍 Admin cleanup request detected");
+      return await handleCleanupAuthUsers(req, {});
+    }
+
+    // Handle different endpoints based on request body
     if (req.method === "POST") {
       const body = await req.json();
       console.log("📦 Request body:", body);
@@ -74,18 +94,6 @@ Deno.serve(async (req) => {
         console.log("🔍 Default validation request");
         return await handleValidateUserKey(body.api_key);
       }
-    }
-
-    // Handle GET requests for profile
-    if (req.method === "GET") {
-      console.log("👤 Profile request detected");
-      return await handleGetProfile(req);
-    }
-
-    // Handle OAuth sign-in from dashboard - creates public.users entry for existing auth.users
-    if (req.method === "POST" && path === "/oauth-signin") {
-      console.log("🔍 OAuth sign-in request detected");
-      return await handleOAuthSignIn(req, {});
     }
 
     console.log("❌ Invalid request - no matching endpoint");
@@ -496,5 +504,113 @@ async function getUserByApiKey(apiKey: string) {
   } catch (error) {
     console.error("Error getting user by API key:", error);
     return null;
+  }
+}
+
+// Admin function to cleanup auth users (for testing)
+async function handleCleanupAuthUsers(req: Request, body: any) {
+  console.log("🔍 handleCleanupAuthUsers called");
+
+  // Validate master key for admin access
+  const masterKeyHeader = req.headers.get("X-Master-Key");
+
+  if (!masterKeyHeader || masterKeyHeader !== MASTER_API_KEY) {
+    console.error("❌ Invalid or missing master key for admin operation");
+    return new Response(JSON.stringify({ error: "Unauthorized" }), {
+      status: 401,
+      headers: { ...corsHeaders, "Content-Type": "application/json" },
+    });
+  }
+
+  console.log("✅ Master key validated for admin operation");
+
+  try {
+    // List all auth users
+    const { data: authUsers, error: listError } =
+      await supabase.auth.admin.listUsers();
+
+    if (listError) {
+      console.error("❌ Error listing auth users:", listError);
+      return new Response(
+        JSON.stringify({ error: "Failed to list auth users" }),
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    if (!authUsers?.users || authUsers.users.length === 0) {
+      console.log("✅ No auth users to delete");
+      return new Response(
+        JSON.stringify({
+          success: true,
+          message: "No auth users found",
+          deleted_count: 0,
+        }),
+        { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log(`🔍 Found ${authUsers.users.length} auth users to delete`);
+
+    // Delete each auth user
+    const deletePromises = authUsers.users.map(async (user) => {
+      try {
+        const { error } = await supabase.auth.admin.deleteUser(user.id);
+        if (error) {
+          console.error(`❌ Failed to delete user ${user.id}:`, error);
+          return {
+            id: user.id,
+            email: user.email,
+            success: false,
+            error: error.message,
+          };
+        } else {
+          console.log(`✅ Deleted user ${user.id} (${user.email})`);
+          return { id: user.id, email: user.email, success: true };
+        }
+      } catch (err) {
+        console.error(`❌ Exception deleting user ${user.id}:`, err);
+        return {
+          id: user.id,
+          email: user.email,
+          success: false,
+          error: err.toString(),
+        };
+      }
+    });
+
+    const results = await Promise.all(deletePromises);
+    const successCount = results.filter((r) => r.success).length;
+    const failedResults = results.filter((r) => !r.success);
+
+    console.log(`✅ Successfully deleted ${successCount} auth users`);
+    if (failedResults.length > 0) {
+      console.log(
+        `❌ Failed to delete ${failedResults.length} users:`,
+        failedResults
+      );
+    }
+
+    return new Response(
+      JSON.stringify({
+        success: true,
+        message: `Deleted ${successCount} auth users`,
+        deleted_count: successCount,
+        failed_count: failedResults.length,
+        results: results,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  } catch (error) {
+    console.error("❌ Error in cleanup operation:", error);
+    return new Response(
+      JSON.stringify({ error: "Internal server error during cleanup" }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
   }
 }

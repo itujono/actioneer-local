@@ -1349,12 +1349,11 @@ function processReceiptInBackground(emailData, userApiKey) {
     };
 
     console.log("💰 DEBUG: Headers prepared (API keys hidden)");
-    // Hardcode the Supabase Edge Function URL since script properties might not be set
-    const edgeFunctionUrl = "https://whnvhuusxtnuvkhgfxnu.supabase.co/functions/v1/process-receipt";
-    console.log("💰 DEBUG: About to call:", edgeFunctionUrl);
-
-    // Call a receipt processing Edge Function with timeout
-    const response = UrlFetchApp.fetch(edgeFunctionUrl, {
+    
+    // Call the receipt processing Edge Function
+    const response = UrlFetchApp.fetch(
+      `${BACKEND_API_URL}/process-receipt`,
+      {
       method: "POST",
       headers: headers,
       payload: JSON.stringify(payload),

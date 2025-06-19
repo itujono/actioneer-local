@@ -1,6 +1,7 @@
 import { createRoute, useNavigate } from "@tanstack/react-router";
 import { rootRoute } from "./root";
 import { useState, useEffect } from "react";
+import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "../supabase/client";
 import { toast } from "sonner";
 import { Mail } from "lucide-react";
@@ -11,90 +12,196 @@ export const authRoute = createRoute({
   component: Auth,
 });
 
+// API functions
+const checkAuthSession = async () => {
+  const {
+    data: { session },
+    error,
+  } = await supabase.auth.getSession();
+  if (error) throw error;
+  return session;
+};
+
+const createPublicUserRecord = async (session: any) => {
+  const response = await fetch(
+    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auth/oauth-signin`,
+    {
+      method: "POST",
+      headers: {
+        "Content-Type": "application/json",
+        Authorization: `Bearer ${session.access_token}`,
+        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+      },
+    }
+  );
+
+  if (!response.ok) {
+    throw new Error(`HTTP error! status: ${response.status}`);
+  }
+
+  const result = await response.json();
+
+  if (!result.success) {
+    throw new Error(result.error || "Failed to create user record");
+  }
+
+  return result;
+};
+
+const initiateGoogleOAuth = async () => {
+  const { data, error } = await supabase.auth.signInWithOAuth({
+    provider: "google",
+    options: {
+      redirectTo: `${window.location.origin}/dashboard`,
+    },
+  });
+
+  if (error) throw error;
+  return data;
+};
+
 function Auth() {
   const navigate = useNavigate();
-  const [loading, setLoading] = useState(false);
+  const [authListenerSetup, setAuthListenerSetup] = useState(false);
 
-  // Listen for auth state changes and handle OAuth sign-in completion
+  // Check if user is already authenticated using TanStack Query
+  const {
+    data: session,
+    isLoading: checkingAuth,
+    error: authError,
+  } = useQuery({
+    queryKey: ["auth-session"],
+    queryFn: checkAuthSession,
+    retry: 1,
+    refetchOnWindowFocus: false,
+  });
+
+  // Mutation for creating public user record
+  const createUserMutation = useMutation({
+    mutationFn: createPublicUserRecord,
+    onSuccess: (result) => {
+      console.log("✅ Public user record created/found:", result.user_id);
+      toast.success(result.created ? "Welcome to Actioneer!" : "Welcome back!");
+      navigate({ to: "/dashboard" });
+    },
+    onError: (error) => {
+      console.error("❌ Failed to create user record:", error);
+      toast.error(
+        "Sign-in successful, but failed to set up your account. Please try again."
+      );
+      // Still navigate to dashboard as auth was successful
+      navigate({ to: "/dashboard" });
+    },
+  });
+
+  // Mutation for Google OAuth
+  const googleSignInMutation = useMutation({
+    mutationFn: initiateGoogleOAuth,
+    onError: (error) => {
+      console.error("❌ Google sign-in error:", error);
+      if (error instanceof Error) {
+        toast.error(error.message);
+      } else {
+        toast.error("An unexpected error occurred");
+      }
+    },
+  });
+
+  // Redirect if already authenticated
   useEffect(() => {
+    if (session?.user && !checkingAuth) {
+      console.log("🔐 User already authenticated, redirecting to dashboard");
+      navigate({ to: "/dashboard" });
+    }
+  }, [session, checkingAuth, navigate]);
+
+  // Set up auth state listener (this still needs useEffect as it's an event listener)
+  useEffect(() => {
+    if (authListenerSetup) return;
+
     const {
       data: { subscription },
     } = supabase.auth.onAuthStateChange(async (event, session) => {
       if (event === "SIGNED_IN" && session?.user) {
         console.log("🔐 User signed in via OAuth:", session.user.email);
 
-        // Call our auth endpoint to create public.users entry
-        try {
-          const response = await fetch(
-            `${
-              import.meta.env.VITE_SUPABASE_URL
-            }/functions/v1/auth/oauth-signin`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${session.access_token}`,
-                apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-              },
-            }
-          );
-
-          const result = await response.json();
-
-          if (result.success) {
-            console.log("✅ Public user record created/found:", result.user_id);
-            toast.success(
-              result.created ? "Welcome to Actioneer!" : "Welcome back!"
-            );
-
-            // Navigate to dashboard
-            navigate({ to: "/dashboard" });
-          } else {
-            console.error("❌ Failed to create user record:", result.error);
-            toast.error(
-              "Sign-in successful, but failed to set up your account. Please try again."
-            );
-          }
-        } catch (error) {
-          console.error("❌ Error calling auth endpoint:", error);
-          toast.error(
-            "Sign-in successful, but failed to set up your account. Please try again."
-          );
-
-          // Still navigate to dashboard as auth was successful
-          navigate({ to: "/dashboard" });
-        }
+        // Use the mutation to create public user record
+        createUserMutation.mutate(session);
       }
     });
+
+    setAuthListenerSetup(true);
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [navigate]);
+  }, [authListenerSetup, createUserMutation]);
 
-  const handleGoogleSignIn = async () => {
-    setLoading(true);
-
-    try {
-      const { data, error } = await supabase.auth.signInWithOAuth({
-        provider: "google",
-        options: {
-          redirectTo: `${window.location.origin}/auth`,
-        },
-      });
-
-      if (error) throw error;
-
-      // The redirect will happen automatically, and the auth state change listener will handle the rest
-    } catch (error) {
-      if (error instanceof Error) {
-        toast.error(error.message);
-      } else {
-        toast.error("An unexpected error occurred");
-      }
-      setLoading(false);
-    }
+  // Handle Google sign-in button click
+  const handleGoogleSignIn = () => {
+    googleSignInMutation.mutate();
   };
+
+  // Show loading spinner while checking authentication state
+  if (checkingAuth) {
+    return (
+      <div className="min-h-screen flex justify-center items-center bg-gray-50">
+        <div className="text-center">
+          <svg
+            className="animate-spin h-8 w-8 text-blue-500 mx-auto"
+            xmlns="http://www.w3.org/2000/svg"
+            fill="none"
+            viewBox="0 0 24 24"
+          >
+            <circle
+              className="opacity-25"
+              cx="12"
+              cy="12"
+              r="10"
+              stroke="currentColor"
+              strokeWidth="4"
+            ></circle>
+            <path
+              className="opacity-75"
+              fill="currentColor"
+              d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+            ></path>
+          </svg>
+          <p className="mt-2 text-sm text-gray-600">
+            Checking authentication...
+          </p>
+        </div>
+      </div>
+    );
+  }
+
+  // Show error state if auth check failed
+  if (authError) {
+    return (
+      <div className="min-h-screen flex justify-center items-center bg-gray-50">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">
+            <svg
+              className="h-8 w-8 mx-auto"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.732-.833-2.5 0L4.268 18.5c-.77.833-.23 2.5 1.732 2.5z"
+              />
+            </svg>
+          </div>
+          <p className="text-sm text-gray-600">
+            Error checking authentication. Please refresh the page.
+          </p>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50">
@@ -117,23 +224,26 @@ function Auth() {
               <button
                 type="button"
                 onClick={handleGoogleSignIn}
-                disabled={loading}
+                disabled={
+                  googleSignInMutation.isPending || createUserMutation.isPending
+                }
                 className="w-full flex justify-center items-center px-4 py-3 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
               >
-                {loading ? (
+                {googleSignInMutation.isPending ||
+                createUserMutation.isPending ? (
                   <span className="flex items-center">
                     <svg
-                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-700\"
-                      xmlns="http://www.w3.org/2000/svg\"
-                      fill="none\"
+                      className="animate-spin -ml-1 mr-3 h-5 w-5 text-gray-700"
+                      xmlns="http://www.w3.org/2000/svg"
+                      fill="none"
                       viewBox="0 0 24 24"
                     >
                       <circle
-                        className="opacity-25\"
-                        cx="12\"
-                        cy="12\"
-                        r="10\"
-                        stroke="currentColor\"
+                        className="opacity-25"
+                        cx="12"
+                        cy="12"
+                        r="10"
+                        stroke="currentColor"
                         strokeWidth="4"
                       ></circle>
                       <path
@@ -142,7 +252,9 @@ function Auth() {
                         d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
                       ></path>
                     </svg>
-                    Signing in...
+                    {createUserMutation.isPending
+                      ? "Setting up account..."
+                      : "Signing in..."}
                   </span>
                 ) : (
                   <>
