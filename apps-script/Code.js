@@ -139,6 +139,29 @@ function doPost(e) {
 function processRecentEmails(userEmail, historyId = null) {
   console.log("📨 Starting email processing for:", userEmail);
   
+  // Cooldown mechanism - prevent rapid fire calls
+  const lastProcessedKey = `last_processed_${userEmail}`;
+  const lastProcessed = PropertiesService.getScriptProperties().getProperty(lastProcessedKey);
+  const now = Date.now();
+  
+  // if (lastProcessed) {
+  //   const timeSinceLastProcessed = now - parseInt(lastProcessed);
+  //   const cooldownPeriod = 30000; // 30 seconds cooldown
+    
+  //   if (timeSinceLastProcessed < cooldownPeriod) {
+  //     console.log(`⏰ Cooldown active. Last processed ${timeSinceLastProcessed}ms ago, need ${cooldownPeriod}ms`);
+  //     return {
+  //       success: false,
+  //       error: "Cooldown period active",
+  //       userEmail: userEmail,
+  //       cooldownRemaining: cooldownPeriod - timeSinceLastProcessed
+  //     };
+  //   }
+  // }
+  
+  // Set current timestamp
+  PropertiesService.getScriptProperties().setProperty(lastProcessedKey, now.toString());
+  
   try {
     // Get user API key for this email
     const userApiKey = getUserApiKeyByEmail(userEmail);
@@ -149,24 +172,31 @@ function processRecentEmails(userEmail, historyId = null) {
     
     console.log("✅ User API key found for:", userEmail);
     
-    // Search for recent unread emails (last 2 hours to catch any missed)
-    const searchQuery = 'is:unread newer_than:2h';
-    const threads = GmailApp.search(searchQuery, 0, 20); // Limit to 20 most recent
+    // For webhook mode, we need to use Gmail API instead of GmailApp
+    let threads = [];
+    let emailMessages = [];
     
-    console.log(`📬 Found ${threads.length} recent email threads`);
+    // Skip Gmail processing in webhook mode - we'll handle this differently
+    console.log("📝 Note: Webhook mode detected - skipping Gmail polling for now");
+    console.log("💡 Future: Gmail push notifications will trigger processing directly");
+    
+    return {
+      success: true,
+      processedCount: 0,
+      jobApplicationsFound: 0,
+      userEmail: userEmail,
+      note: "Webhook received but Gmail processing requires interactive authorization",
+      mode: "webhook"
+    };
     
     let processedCount = 0;
     let jobApplicationsFound = 0;
     
-    for (let i = 0; i < threads.length; i++) {
-      const thread = threads[i];
-      const messages = thread.getMessages();
+    for (let i = 0; i < emailMessages.length; i++) {
+      const emailData = emailMessages[i];
+      const messageId = emailData.messageId;
       
-      // Process only the latest message in each thread
-      const latestMessage = messages[messages.length - 1];
-      const messageId = latestMessage.getId();
-      
-      console.log(`📧 Processing message ${i + 1}/${threads.length}: ${messageId}`);
+      console.log(`📧 Processing message ${i + 1}/${emailMessages.length}: ${messageId}`);
       
       // Check if we've already processed this email
       const preProcessedData = getPreProcessedEmailData(messageId, userApiKey);
@@ -175,8 +205,6 @@ function processRecentEmails(userEmail, historyId = null) {
         continue;
       }
       
-      // Get email content
-      const emailData = getEmailContentFromMessage(latestMessage);
       if (!emailData) {
         console.log(`⚠️ Could not extract content from message ${messageId}`);
         continue;
@@ -190,6 +218,12 @@ function processRecentEmails(userEmail, historyId = null) {
       }
       
       console.log(`🎯 Email ${messageId} classified as: ${classification.type}`);
+      
+      // DEBUG: Log detailed classification info
+      console.log(`🔍 CLASSIFICATION DEBUG for ${messageId}:`);
+      console.log(`📧 Subject: ${emailData.subject}`);
+      console.log(`📬 From: ${emailData.from}`);
+      console.log(`🎯 Classification result:`, JSON.stringify(classification, null, 2));
       
       // Process based on classification
       if (classification.type === "other") {
@@ -209,8 +243,14 @@ function processRecentEmails(userEmail, historyId = null) {
         console.log("✈️ Travel email found - could be processed in future");
         // TODO: Add travel processing when ready
       } else if (classification.type === "receipt") {
-        console.log("💰 Receipt email found - could be processed in future");
-        // TODO: Add receipt processing when ready
+        console.log("💰 Processing receipt email...");
+        console.log(`💰 DEBUG: About to call processReceiptInBackground for ${messageId}`);
+        try {
+          processReceiptInBackground(emailData, userApiKey);
+          console.log(`✅ Receipt processed for email ${messageId}`);
+        } catch (error) {
+          console.error(`❌ Error processing receipt ${messageId}:`, error);
+        }
       }
       
       processedCount++;
@@ -223,7 +263,7 @@ function processRecentEmails(userEmail, historyId = null) {
       processedCount: processedCount,
       jobApplicationsFound: jobApplicationsFound,
       userEmail: userEmail,
-      searchQuery: searchQuery
+      searchQuery: 'is:unread newer_than:2h'
     };
     
   } catch (error) {
@@ -233,6 +273,65 @@ function processRecentEmails(userEmail, historyId = null) {
       error: error.toString(),
       userEmail: userEmail
     };
+  }
+}
+
+/**
+ * Get recent emails using Gmail API directly
+ * This works better than GmailApp in webhook mode
+ */
+function getRecentEmailsViaAPI(accessToken) {
+  try {
+    // First try a broader search to see if we get any emails at all
+    console.log('🔍 DEBUG: Starting Gmail API search...');
+    console.log('🔑 DEBUG: OAuth token available:', !!accessToken);
+    
+    // Search for recent unread emails (last 10 minutes only - webhook should be real-time)
+    const query = 'is:unread newer_than:10m';
+    const url = `https://gmail.googleapis.com/gmail/v1/users/me/messages?q=${encodeURIComponent(query)}&maxResults=2`;
+    
+    console.log('📡 DEBUG: Gmail API URL:', url);
+    console.log('🔍 DEBUG: Search query:', query);
+    
+    const response = UrlFetchApp.fetch(url, {
+      method: 'GET',
+      headers: {
+        'Authorization': 'Bearer ' + accessToken,
+        'Content-Type': 'application/json'
+      }
+    });
+    
+    console.log('📊 DEBUG: Gmail API response code:', response.getResponseCode());
+    
+    if (response.getResponseCode() !== 200) {
+      console.error('Gmail API error:', response.getContentText());
+      return [];
+    }
+    
+    const data = JSON.parse(response.getContentText());
+    const messages = data.messages || [];
+    
+    console.log('📬 DEBUG: Raw Gmail API response:', JSON.stringify(data, null, 2));
+    console.log(`Found ${messages.length} recent email message IDs`);
+    
+    // If no unread emails found, just log it - don't do another search
+    if (messages.length === 0) {
+      console.log('📭 No unread emails found in last 10 minutes (this is normal)');
+    }
+    
+    // Get full content for each message (reduce to 1 for testing to save quota)
+    const emailMessages = [];
+    for (const message of messages.slice(0, 1)) { // Limit to 1 to conserve Gmail API quota
+      const emailContent = getEmailContent(message.id, accessToken);
+      if (emailContent) {
+        emailMessages.push(emailContent);
+      }
+    }
+    
+    return emailMessages;
+  } catch (error) {
+    console.error('Error fetching emails via API:', error);
+    return [];
   }
 }
 
@@ -306,6 +405,30 @@ function getEmailContentFromMessage(message) {
     console.error("Error extracting email content:", error);
     return null;
   }
+}
+
+// ============================================================================
+// DEBUG FUNCTION - Remove after testing
+// ============================================================================
+
+function debugConfiguration() {
+  console.log("=== DEBUG CONFIGURATION ===");
+  console.log("BACKEND_API_URL:", BACKEND_API_URL);
+  console.log("SUPABASE_ANON_KEY available:", !!SUPABASE_ANON_KEY);
+  console.log("Current time:", new Date().toISOString());
+  
+  try {
+    const userEmail = Session.getActiveUser().getEmail();
+    console.log("Active user:", userEmail);
+  } catch (e) {
+    console.log("No active user session");
+  }
+  
+  return {
+    backendUrl: BACKEND_API_URL,
+    hasSupabaseKey: !!SUPABASE_ANON_KEY,
+    timestamp: new Date().toISOString()
+  };
 }
 
 // ============================================================================
@@ -398,6 +521,15 @@ function onGmailMessage(e) {
     // Auto-process based on classification
     if (classification.type === "receipt") {
       console.log("💰 Receipt detected - auto-processing...");
+      
+      // Trigger backend receipt processing
+      try {
+        processReceiptInBackground(emailData, userApiKey);
+        console.log("✅ Backend receipt processing triggered");
+      } catch (error) {
+        console.error("❌ Backend receipt processing failed:", error);
+      }
+      
       const card = createReceiptProcessedCard(gmailMessage, emailData);
       console.log("🎨 Receipt processed card created successfully");
       return [card];
@@ -824,6 +956,16 @@ function getEmailContent(messageId, accessToken) {
   try {
     console.log("🔍 Getting email content for messageId:", messageId);
 
+    // Check cache first to avoid duplicate API calls
+    const emailCache = CacheService.getScriptCache();
+    const emailCacheKey = `email_content_${messageId}`;
+    const cachedContent = emailCache.get(emailCacheKey);
+    
+    if (cachedContent) {
+      console.log("📦 Using cached email content for:", messageId);
+      return JSON.parse(cachedContent);
+    }
+
     // Use Gmail Apps Script service instead of direct API calls
     // This automatically handles authentication
     const message = GmailApp.getMessageById(messageId);
@@ -852,6 +994,9 @@ function getEmailContent(messageId, accessToken) {
       body,
     };
 
+    // Cache the result for 1 hour to avoid re-fetching
+    emailCache.put(emailCacheKey, JSON.stringify(result), 3600); // 1 hour cache
+
     console.log("✅ Email content extracted successfully");
     return result;
   } catch (error) {
@@ -874,11 +1019,14 @@ function classifyEmail(emailData, userApiKey) {
       date: emailData.date,
     };
 
-    const response = UrlFetchApp.fetch(`${BACKEND_API_URL}/classify-email`, {
+    // Hardcode the Supabase Edge Function URL
+    const edgeFunctionUrl = "https://whnvhuusxtnuvkhgfxnu.supabase.co/functions/v1/classify-email";
+    const response = UrlFetchApp.fetch(edgeFunctionUrl, {
       method: "POST",
       headers: getEdgeFunctionHeaders(), // Use the Edge Function headers
       payload: JSON.stringify(payload),
       muteHttpExceptions: true,
+      timeout: 20000, // 20 second timeout
     });
 
     if (response.getResponseCode() === 200) {
@@ -1174,6 +1322,68 @@ function processJobApplicationInBackground(emailData, userApiKey) {
 }
 
 /**
+ * Process receipt email in background
+ */
+function processReceiptInBackground(emailData, userApiKey) {
+  console.log("🔄 Starting background receipt processing...");
+  console.log("💰 DEBUG: Receipt processing called with messageId:", emailData.messageId);
+  console.log("💰 DEBUG: BACKEND_API_URL:", BACKEND_API_URL);
+  console.log("💰 DEBUG: User API key available:", !!userApiKey);
+
+  try {
+    const payload = {
+      messageId: emailData.messageId,
+      subject: emailData.subject,
+      from: emailData.from,
+      emailBody: emailData.body,
+    };
+
+    console.log("💰 DEBUG: Payload prepared:", JSON.stringify(payload, null, 2));
+
+    // Headers required for Supabase Edge Functions
+    const headers = {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      "x-user-api-key": userApiKey,
+    };
+
+    console.log("💰 DEBUG: Headers prepared (API keys hidden)");
+    // Hardcode the Supabase Edge Function URL since script properties might not be set
+    const edgeFunctionUrl = "https://whnvhuusxtnuvkhgfxnu.supabase.co/functions/v1/process-receipt";
+    console.log("💰 DEBUG: About to call:", edgeFunctionUrl);
+
+    // Call a receipt processing Edge Function with timeout
+    const response = UrlFetchApp.fetch(edgeFunctionUrl, {
+      method: "POST",
+      headers: headers,
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+      timeout: 30000, // 30 second timeout to prevent hanging
+    });
+
+    console.log("💰 DEBUG: Response received. Status code:", response.getResponseCode());
+    console.log("💰 DEBUG: Response content:", response.getContentText());
+
+    if (response.getResponseCode() === 200) {
+      const result = JSON.parse(response.getContentText());
+      console.log(
+        "✅ Receipt processed successfully:",
+        result.receiptId
+      );
+      console.log(
+        "📊 Extracted data:",
+        JSON.stringify(result.extractedData, null, 2)
+      );
+    } else {
+      console.error("❌ Receipt processing failed:", response.getContentText());
+    }
+  } catch (error) {
+    console.error("💥 Error in background receipt processing:", error);
+  }
+}
+
+/**
  * Check for pre-processed email data from auto-processing
  */
 function getPreProcessedEmailData(messageId, userApiKey) {
@@ -1188,14 +1398,13 @@ function getPreProcessedEmailData(messageId, userApiKey) {
     };
 
     // Check if email exists in our database with processed data
-    const response = UrlFetchApp.fetch(
-      `${BACKEND_API_URL}/get-processed-email?messageId=${messageId}`,
-      {
-        method: "GET",
-        headers: headers,
-        muteHttpExceptions: true,
-      }
-    );
+    const edgeFunctionUrl = `https://whnvhuusxtnuvkhgfxnu.supabase.co/functions/v1/get-processed-email?messageId=${messageId}`;
+    const response = UrlFetchApp.fetch(edgeFunctionUrl, {
+      method: "GET",
+      headers: headers,
+      muteHttpExceptions: true,
+      timeout: 15000, // 15 second timeout
+    });
 
     if (response.getResponseCode() === 200) {
       const result = JSON.parse(response.getContentText());

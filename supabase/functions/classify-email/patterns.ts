@@ -89,7 +89,7 @@ export const CLASSIFICATION_CONFIG: ClassificationConfig = {
       /check-in\s+(?:reminder|now\s+available)/i,
     ],
 
-    // Receipt patterns (more specific)
+    // Receipt patterns (enhanced for Supabase-style invoices)
     receipt: [
       /receipt.*(?:purchase|order|payment)/i,
       /invoice.*(?:payment|due|amount)/i,
@@ -98,6 +98,13 @@ export const CLASSIFICATION_CONFIG: ClassificationConfig = {
       /transaction\s+(?:receipt|confirmation|summary)/i,
       /purchase\s+(?:confirmation|receipt|summary)/i,
       /your\s+(?:receipt|invoice|bill)/i,
+      // Enhanced patterns for business invoices
+      /receipt\s+\[#[\w-]+\]/i, // Matches "receipt [#1946-4660]"
+      /invoice\s+\(#[\w-]+\)/i, // Matches "invoice (#WGTALJ-00010)"
+      /payment\s+received.*invoice\s+\(#[\w-]+\)/i,
+      /your\s+[\w\s]+(?:pte\s+ltd|ltd|llc|inc|corp)\s+receipt/i,
+      /invoice\s*#[\w-]+/i,
+      /receipt\s*#[\w-]+/i,
     ],
   },
 };

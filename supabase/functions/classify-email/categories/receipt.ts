@@ -13,7 +13,7 @@ export const RECEIPT_PATTERNS = {
     /thank\s+you\s+for\s+your\s+(?:purchase|order)/i,
   ],
 
-  // Invoices and bills
+  // Enhanced invoices and bills patterns with specific invoice number formats
   invoices: [
     /invoice.*(?:payment|due|amount|billing)/i,
     /bill.*(?:payment|due|amount)/i,
@@ -22,6 +22,18 @@ export const RECEIPT_PATTERNS = {
     /account\s+(?:statement|summary|balance)/i,
     /monthly\s+(?:statement|bill|invoice)/i,
     /subscription\s+(?:renewal|payment|charge)/i,
+    // Specific invoice number patterns for Supabase-style receipts
+    /receipt\s+\[#[\w-]+\]/i, // Matches "receipt [#1946-4660]"
+    /invoice\s+\(#[\w-]+\)/i, // Matches "invoice (#WGTALJ-00010)"
+    /payment\s+received.*invoice\s+\(#[\w-]+\)/i, // Matches "Payment received for ... invoice (#...)"
+    /your\s+[\w\s]+(?:pte\s+ltd|ltd|llc|inc|corp|corporation)\s+receipt/i, // Company receipt patterns
+    /receipt\s+from\s+[\w\s]+(?:pte\s+ltd|ltd|llc|inc|corp)/i,
+    // Generic invoice number patterns
+    /invoice\s*#[\w-]+/i,
+    /receipt\s*#[\w-]+/i,
+    /bill\s*#[\w-]+/i,
+    /reference\s*#[\w-]+/i,
+    /transaction\s*#[\w-]+/i,
   ],
 
   // Digital receipts and confirmations
@@ -36,7 +48,7 @@ export const RECEIPT_PATTERNS = {
     /square\s+(?:receipt|payment)/i,
   ],
 
-  // Subscription and recurring payments
+  // Enhanced subscription and recurring payments with SaaS patterns
   subscriptions: [
     /subscription\s+(?:payment|renewal|charge|confirmation)/i,
     /recurring\s+(?:payment|charge|billing)/i,
@@ -44,9 +56,14 @@ export const RECEIPT_PATTERNS = {
     /membership\s+(?:renewal|payment|fee)/i,
     /annual\s+(?:renewal|subscription|payment)/i,
     /monthly\s+(?:subscription|payment|charge)/i,
+    // SaaS specific patterns
+    /(?:saas|software)\s+(?:subscription|license|payment)/i,
+    /(?:plan|tier)\s+(?:renewal|upgrade|payment)/i,
+    /usage\s+(?:bill|invoice|charge)/i,
+    /service\s+(?:bill|invoice|payment)/i,
   ],
 
-  // Financial institutions and payment processors
+  // Enhanced domains with SaaS and business service providers
   domains: [
     /paypal/i,
     /stripe/i,
@@ -70,6 +87,27 @@ export const RECEIPT_PATTERNS = {
     /wellsfargo/i,
     /citi\.com/i,
     /americanexpress/i,
+    // SaaS and business service domains
+    /supabase/i,
+    /vercel/i,
+    /netlify/i,
+    /aws\.amazon\.com/i,
+    /digitalocean/i,
+    /linode/i,
+    /cloudflare/i,
+    /github/i,
+    /gitlab/i,
+    /notion/i,
+    /slack/i,
+    /zoom/i,
+    /microsoft/i,
+    /office365/i,
+    /adobe/i,
+    /salesforce/i,
+    /hubspot/i,
+    /mailchimp/i,
+    /canva/i,
+    /figma/i,
   ],
 
   // Expense categories
@@ -85,6 +123,12 @@ export const RECEIPT_PATTERNS = {
     /utilities\s+(?:bill|payment|statement)/i,
     /internet\s+(?:bill|payment|service)/i,
     /phone\s+(?:bill|payment|service)/i,
+    // Business expense categories
+    /cloud\s+(?:hosting|service|storage)/i,
+    /domain\s+(?:registration|renewal)/i,
+    /ssl\s+(?:certificate|cert)/i,
+    /api\s+(?:usage|subscription|fee)/i,
+    /database\s+(?:hosting|service)/i,
   ],
 };
 
@@ -100,18 +144,31 @@ export function buildReceiptPrompt(emailData: EmailData): string {
     - Subscription renewal notices
     - Banking and credit card statements
     - Expense-related confirmations
+    - SaaS platform invoices (Supabase, Vercel, AWS, etc.)
+    - Business service receipts with invoice numbers
+    
+    SPECIFIC PATTERNS TO LOOK FOR:
+    - Invoice numbers in brackets: "receipt [#1946-4660]"
+    - Invoice numbers in parentheses: "invoice (#WGTALJ-00010)"
+    - Company receipts: "Your [Company] Pte Ltd receipt"
+    - Payment confirmations: "Payment received for [Company] invoice"
+    - Reference numbers: "Receipt #ABC-123", "Transaction #XYZ"
+    - SaaS billing: subscription charges, usage bills, plan upgrades
     
     INCLUDE:
     - Any document that shows money was spent or charged
-    - Invoices requiring payment
+    - Invoices requiring payment or payment confirmations
     - Subscription and recurring payment confirmations
     - Digital purchase confirmations
+    - Business expense receipts with clear invoice/reference numbers
+    - Service provider billing (cloud hosting, software licenses, etc.)
     
     EXCLUDE:
     - Marketing emails from retailers
     - Promotional offers or discounts
     - Account signup confirmations (without payment)
     - General newsletters from financial institutions
+    - Trial signup confirmations (unless paid trial)
     
     Email Subject: ${emailData.subject}
     From: ${emailData.from}

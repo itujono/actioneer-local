@@ -82,6 +82,12 @@ Deno.serve(async (req) => {
       return await handleGetProfile(req);
     }
 
+    // Handle OAuth sign-in from dashboard - creates public.users entry for existing auth.users
+    if (req.method === "POST" && path === "/oauth-signin") {
+      console.log("🔍 OAuth sign-in request detected");
+      return await handleOAuthSignIn(req, {});
+    }
+
     console.log("❌ Invalid request - no matching endpoint");
     return new Response(JSON.stringify({ error: "Invalid request" }), {
       status: 400,
@@ -264,6 +270,109 @@ async function handleGetProfile(req: Request) {
   );
 }
 
+// Handle OAuth sign-in from dashboard - creates public.users entry for existing auth.users
+async function handleOAuthSignIn(req: Request, body: any) {
+  console.log("🔍 handleOAuthSignIn called");
+
+  // This endpoint expects a Supabase Auth JWT token
+  const authHeader = req.headers.get("Authorization");
+  if (!authHeader || !authHeader.startsWith("Bearer ")) {
+    return new Response(
+      JSON.stringify({ error: "Missing authorization header" }),
+      {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+
+  const token = authHeader.split(" ")[1];
+
+  // Verify the JWT and get user info
+  const {
+    data: { user },
+    error: userError,
+  } = await supabase.auth.getUser(token);
+
+  if (userError || !user) {
+    console.error("❌ Invalid JWT token:", userError);
+    return new Response(
+      JSON.stringify({ error: "Invalid authentication token" }),
+      {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+
+  console.log("✅ Valid auth user:", user.id, user.email);
+
+  // Check if user already exists in public.users
+  const { data: existingUser, error: findError } = await supabase
+    .from("users")
+    .select("*")
+    .eq("email", user.email)
+    .eq("is_active", true)
+    .single();
+
+  if (existingUser && !findError) {
+    console.log("✅ User already exists in public.users:", existingUser.id);
+    return new Response(
+      JSON.stringify({
+        success: true,
+        user_id: existingUser.id,
+        api_key: existingUser.api_key,
+        message: "User already exists",
+        created: false,
+      }),
+      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+    );
+  }
+
+  console.log("🆕 Creating public.users entry for OAuth user");
+
+  // Generate API key for the user
+  const apiKey = generateSecureApiKey();
+
+  // Create public.users entry using the auth user's ID
+  const { data: newUser, error: createError } = await supabase
+    .from("users")
+    .insert({
+      id: user.id, // Use the Supabase Auth user ID
+      email: user.email,
+      api_key: apiKey,
+      name: user.user_metadata?.name || user.email?.split("@")[0],
+      source: "oauth_dashboard",
+      is_active: true,
+    })
+    .select()
+    .single();
+
+  if (createError) {
+    console.error("❌ Error creating public.users entry:", createError);
+    return new Response(
+      JSON.stringify({ error: "Failed to create user record" }),
+      {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
+    );
+  }
+
+  console.log("✅ Created public.users entry:", newUser.id);
+
+  return new Response(
+    JSON.stringify({
+      success: true,
+      user_id: newUser.id,
+      api_key: newUser.api_key,
+      message: "User created successfully",
+      created: true,
+    }),
+    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+  );
+}
+
 // Helper functions
 function generateSecureApiKey(): string {
   const randomBytes = crypto.getRandomValues(new Uint8Array(32));
@@ -278,6 +387,8 @@ async function createOrGetUser(
   name: string | null = null,
   source: string = "gmail_addon"
 ) {
+  console.log("🔍 createOrGetUser called for:", email);
+
   // First, try to find existing user using service role (bypasses RLS)
   const { data: existingUser, error: findError } = await supabase
     .from("users")
@@ -287,13 +398,17 @@ async function createOrGetUser(
     .single();
 
   if (existingUser && !findError) {
+    console.log("✅ Found existing custom user:", existingUser.id);
     return { user: existingUser, created: false };
   }
+
+  console.log("🆕 Creating new user for:", email);
 
   // Generate new API key
   const apiKey = generateSecureApiKey();
 
-  // Create new user using service role (bypasses RLS)
+  // Create custom user in public.users table (Gmail add-on flow)
+  // Note: This creates a separate UUID for Gmail add-on users, they can link to auth users later via email
   const { data: newUser, error: createError } = await supabase
     .from("users")
     .insert({
@@ -307,10 +422,63 @@ async function createOrGetUser(
     .single();
 
   if (createError) {
+    console.error("❌ Error creating custom user:", createError);
     throw createError;
   }
 
+  console.log("✅ Custom user created successfully:", newUser.id);
   return { user: newUser, created: true };
+}
+
+async function getOrCreateAuthUser(
+  email: string,
+  name?: string | null
+): Promise<string | null> {
+  try {
+    console.log("🔍 Checking for existing Supabase Auth user:", email);
+
+    // First, check if user exists in auth.users
+    const { data: existingUser } = await supabase.auth.admin.getUserByEmail(
+      email
+    );
+
+    if (existingUser?.user?.id) {
+      console.log(
+        "✅ Found existing Supabase Auth user:",
+        existingUser.user.id
+      );
+      return existingUser.user.id;
+    }
+
+    console.log("🆕 Creating new Supabase Auth user for:", email);
+
+    // Create a new auth user with a random password (they'll sign in via Google OAuth)
+    const { data: newUser, error } = await supabase.auth.admin.createUser({
+      email,
+      email_confirm: true, // Auto-confirm since we trust Gmail addon
+      user_metadata: {
+        name: name || email.split("@")[0],
+        created_via: "gmail_addon",
+        created_at: new Date().toISOString(),
+      },
+    });
+
+    if (error) {
+      console.error("❌ Error creating Supabase Auth user:", error);
+      return null;
+    }
+
+    if (newUser?.user?.id) {
+      console.log("✅ Created new Supabase Auth user:", newUser.user.id);
+      return newUser.user.id;
+    }
+
+    console.error("❌ No user ID returned from Supabase Auth creation");
+    return null;
+  } catch (error) {
+    console.error("❌ Error in getOrCreateAuthUser:", error);
+    return null;
+  }
 }
 
 async function getUserByApiKey(apiKey: string) {

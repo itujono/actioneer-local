@@ -41,6 +41,7 @@
     "urlFetchWhitelist": [
       "https://whnvhuusxtnuvkhgfxnu.supabase.co/",
       "https://whnvhuusxtnuvkhgfxnu.supabase.co/functions/",
-      "https://actioneer.online/"
+      "https://actioneer.online/",
+      "https://gmail.googleapis.com/"
     ]
   }
