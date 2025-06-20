@@ -11,7 +11,7 @@ import { detectUserLocation } from "./utils.ts";
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-user-api-key",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -169,27 +169,46 @@ Deno.serve(async (req) => {
       JSON.stringify(travelData, null, 2)
     );
 
-    // Generate price comparisons based on travel type
-    let comparisonData;
-    switch (travelData.type) {
-      case "flight":
-        comparisonData = await getFlightComparisons(travelData);
-        break;
-      case "hotel":
-        comparisonData = await getHotelComparisons(travelData);
-        break;
-      case "attraction":
-        comparisonData = await getAttractionComparisons(travelData);
-        break;
-      default:
-        // For general or unclassified travel emails, default to hotel search
-        console.log("🏨 General travel detected, defaulting to hotel search");
-        comparisonData = await getHotelComparisons(travelData);
-    }
+    // Generate ALL price comparisons for comprehensive travel assistance
+    console.log(
+      "🎯 Fetching comprehensive travel data: hotels, attractions, and flights..."
+    );
+
+    // Fetch all three categories in parallel for better performance
+    const [hotelData, attractionData, flightData] = await Promise.allSettled([
+      getHotelComparisons(travelData),
+      getAttractionComparisons(travelData),
+      getFlightComparisons(travelData),
+    ]);
+
+    // Process results with fallback handling
+    const comparisonData = {
+      hotels:
+        hotelData.status === "fulfilled"
+          ? hotelData.value
+          : { comparisons: [], type: "hotel" },
+      attractions:
+        attractionData.status === "fulfilled"
+          ? attractionData.value
+          : { comparisons: [], type: "attraction" },
+      flights:
+        flightData.status === "fulfilled"
+          ? flightData.value
+          : { comparisons: [], type: "flight" },
+      type: "comprehensive",
+    };
 
     console.log(
-      "💰 Generated comparisons:",
-      JSON.stringify(comparisonData, null, 2)
+      "💰 Generated comprehensive comparisons:",
+      JSON.stringify(
+        {
+          hotels: comparisonData.hotels.comparisons?.length || 0,
+          attractions: comparisonData.attractions.comparisons?.length || 0,
+          flights: comparisonData.flights.comparisons?.length || 0,
+        },
+        null,
+        2
+      )
     );
 
     // Store travel data in database
@@ -201,13 +220,17 @@ Deno.serve(async (req) => {
       // Continue anyway - don't fail the request for storage issues
     }
 
-    // Return the travel data and comparisons
+    // Return the travel data and comprehensive comparisons
     return new Response(
       JSON.stringify({
         success: true,
         travelData,
-        comparisons: comparisonData.comparisons,
-        type: travelData.type,
+        comparisons: {
+          hotels: comparisonData.hotels.comparisons || [],
+          attractions: comparisonData.attractions.comparisons || [],
+          flights: comparisonData.flights.comparisons || [],
+        },
+        type: "comprehensive",
       }),
       { headers: { ...corsHeaders, "Content-Type": "application/json" } }
     );

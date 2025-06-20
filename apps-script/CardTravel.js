@@ -17,8 +17,8 @@ function createTravelProcessedCard(gmailMessage, emailData) {
   const card = CardService.newCardBuilder()
     .setHeader(
       CardService.newCardHeader()
-        .setTitle("✈️ Travel Comparison")
-        .setSubtitle("AI-powered price analysis")
+        .setTitle("🌍 Travel Assistant")
+        .setSubtitle("AI-powered comprehensive analysis")
         .setImageUrl(ICON_URL)
     )
     .setName("travel_processed_card");
@@ -32,22 +32,48 @@ function createTravelProcessedCard(gmailMessage, emailData) {
     return createTravelErrorCard(travelComparison.error);
   }
 
-  if (travelComparison && travelComparison.comparisons && travelComparison.comparisons.length > 0) {
+  // Check if we have the new comprehensive data structure
+  const hasComprehensiveData = travelComparison.comparisons && 
+    (travelComparison.comparisons.hotels || travelComparison.comparisons.attractions || travelComparison.comparisons.flights);
+
+  // Check if we have legacy data structure
+  const hasLegacyData = travelComparison.comparisons && 
+    Array.isArray(travelComparison.comparisons) && 
+    travelComparison.comparisons.length > 0;
+
+  if (hasComprehensiveData) {
+    console.log("🎯 Using comprehensive travel data structure");
+    
+    // Add travel details section
+    if (travelComparison.travelData) {
+      addTravelDetailsSection(card, travelComparison.travelData);
+    }
+    
+    // Add comprehensive travel sections (hotels & attractions for card)
+    addComprehensiveTravelSections(card, travelComparison.travelData, travelComparison.comparisons);
+    
+    // Add enhanced CTA for dashboard
+    addComprehensiveTravelActionSection(card, emailData, travelComparison.travelData);
+    
+  } else if (hasLegacyData) {
+    console.log("🔄 Using legacy travel data structure");
+    
     // Add travel details section with improved formatting
     addTravelDetailsSection(card, travelComparison.travelData);
     
     // Add price comparison section with enhanced UI
     addPriceComparisonSection(card, travelComparison);
     
-    // Add insights section (new feature)
+    // Add insights section
     addTravelInsightsSection(card, travelComparison);
+    
+    // Enhanced action section
+    addTravelActionSection(card, emailData);
+    
   } else {
     // Enhanced fallback with better messaging
     addTravelFallbackSection(card, emailData);
   }
-
-  // Enhanced action section with more options
-  addTravelActionSection(card, emailData);
   
   return card.build();
 }
@@ -61,23 +87,32 @@ function createCachedTravelCard(preProcessedData, gmailMessage, emailData) {
   // Extract travel data and comparisons from the details field
   const details = preProcessedData.details || {};
   const travelData = details.travelData || details; // Fallback to details if no nested structure
-  const comparisons = details.comparisons || [];
+  const comparisons = details.comparisons || {};
   
   console.log("📊 Cached travel data:", JSON.stringify(travelData, null, 2));
   console.log("💰 Cached comparisons:", JSON.stringify(comparisons, null, 2));
   
-  // Prepare the travel comparison data structure to determine what we have
-  const travelComparison = {
-    travelData: travelData,
-    comparisons: comparisons.comparisons || comparisons, // Handle nested structure
-    type: travelData.type
-  };
+  // Check if we have comprehensive data structure (new format)
+  const isComprehensiveData = comparisons.hotels || comparisons.attractions || comparisons.flights;
   
-  const hasComparisons = travelComparison.comparisons && travelComparison.comparisons.length > 0;
+  // For comprehensive data, check if we have sufficient content
+  let hasUsefulData = false;
+  if (isComprehensiveData) {
+    const hotelCount = (comparisons.hotels && comparisons.hotels.length) || 0;
+    const attractionCount = (comparisons.attractions && comparisons.attractions.length) || 0;
+    const flightCount = (comparisons.flights && comparisons.flights.length) || 0;
+    
+    hasUsefulData = hotelCount > 0 || attractionCount > 0 || flightCount > 0;
+    console.log(`📈 Comprehensive data counts - Hotels: ${hotelCount}, Attractions: ${attractionCount}, Flights: ${flightCount}`);
+  } else {
+    // Legacy format check
+    hasUsefulData = comparisons.comparisons && comparisons.comparisons.length > 0;
+  }
+  
   const hasTravelData = travelData && Object.keys(travelData).length > 0;
   
   // If we don't have sufficient data, automatically trigger live analysis
-  if (!hasComparisons && !hasTravelData) {
+  if (!hasUsefulData && !hasTravelData) {
     console.log("🔄 Insufficient cached data, triggering automatic live analysis");
     return createTravelProcessedCard(gmailMessage, emailData);
   }
@@ -85,37 +120,33 @@ function createCachedTravelCard(preProcessedData, gmailMessage, emailData) {
   const card = CardService.newCardBuilder()
     .setHeader(
       CardService.newCardHeader()
-        .setTitle("✈️ Travel Comparison")
-        .setSubtitle(hasComparisons ? "From cache • Previously analyzed" : "Analyzing prices...")
+        .setTitle("🌍 Travel Assistant")
+        .setSubtitle(hasUsefulData ? "Comprehensive travel recommendations" : "Analyzing prices...")
         .setImageUrl(ICON_URL)
     )
     .setName("cached_travel_card");
 
-  // Add appropriate status message based on what data we have
-  const statusSection = CardService.newCardSection();
-  
-  if (hasComparisons) {
-    statusSection.addWidget(
-      CardService.newTextParagraph().setText(
-        "⚡ <strong>Complete travel analysis from cache</strong><br>" +
-        "<font color=\"#5f6368\">Travel details and price comparisons retrieved instantly from previous analysis.</font>"
-      )
-    );
-  } else if (hasTravelData) {
-    // If we have travel data but no comparisons, automatically trigger live analysis
-    console.log("🔄 Travel data found but no comparisons, triggering automatic live analysis");
-    return createTravelProcessedCard(gmailMessage, emailData);
+  // Add travel destination info
+  if (hasTravelData) {
+    addTravelDetailsSection(card, travelData);
   }
-  
-  card.addSection(statusSection);
 
-  // Show content - at this point we know we have complete data
-  addTravelDetailsSection(card, travelComparison.travelData);
-  addPriceComparisonSection(card, travelComparison);
-  addTravelInsightsSection(card, travelComparison);
+  // Show comprehensive comparisons if we have them
+  if (isComprehensiveData && hasUsefulData) {
+    addComprehensiveTravelSections(card, travelData, comparisons);
+  } else if (hasUsefulData) {
+    // Legacy format handling
+    const legacyComparison = {
+      travelData: travelData,
+      comparisons: comparisons.comparisons || comparisons,
+      type: travelData.type
+    };
+    addPriceComparisonSection(card, legacyComparison);
+    addTravelInsightsSection(card, legacyComparison);
+  }
 
-  // Enhanced action section with cache-specific options
-  addCachedTravelActionSection(card, emailData, hasComparisons);
+  // Add CTA for full dashboard experience
+  addComprehensiveTravelActionSection(card, emailData, travelData);
   
   return card.build();
 }
@@ -304,6 +335,204 @@ function addCachedTravelActionSection(card, emailData, hasComparisons) {
   section.addWidget(
     CardService.newTextButton()
       .setText("🔄 Refresh Price Data")
+      .setOnClickAction(
+        CardService.newAction()
+          .setFunctionName("reprocessTravelEmail")
+          .setParameters({ messageId: emailData.messageId })
+      )
+  );
+  
+  card.addSection(section);
+}
+
+/**
+ * Add comprehensive travel sections for hotels and attractions
+ */
+function addComprehensiveTravelSections(card, travelData, comparisons) {
+  // Add hotels section if we have hotel data
+  if (comparisons.hotels && comparisons.hotels.length > 0) {
+    addCompactHotelSection(card, comparisons.hotels, travelData);
+  }
+  
+  // Add attractions section if we have attraction data
+  if (comparisons.attractions && comparisons.attractions.length > 0) {
+    addCompactAttractionSection(card, comparisons.attractions, travelData);
+  }
+  
+  // Add summary insights
+  addComprehensiveInsightsSection(card, comparisons, travelData);
+}
+
+/**
+ * Add compact hotel recommendations section
+ */
+function addCompactHotelSection(card, hotels, travelData) {
+  const section = CardService.newCardSection()
+    .setHeader("🏨 Hotel Recommendations");
+    
+  // Show top 2 hotels to keep card compact
+  hotels.slice(0, 2).forEach((hotel, index) => {
+    const hotelWidget = createCompactHotelWidget(hotel, index === 0);
+    section.addWidget(hotelWidget);
+    
+    // Add best booking option for each hotel
+    if (hotel.otaOptions && hotel.otaOptions.length > 0) {
+      const bestOption = hotel.otaOptions.sort((a, b) => parseFloat(a.price) - parseFloat(b.price))[0];
+      const bookingButton = CardService.newTextButton()
+        .setText(`Book on ${bestOption.provider} - ${bestOption.currency} ${bestOption.price}`)
+        .setOpenLink(
+          CardService.newOpenLink()
+            .setUrl(bestOption.bookingUrl || 'https://www.booking.com')
+            .setOpenAs(CardService.OpenAs.FULL_SIZE)
+        );
+      section.addWidget(bookingButton);
+    }
+    
+    if (index < Math.min(hotels.length - 1, 1)) {
+      section.addWidget(
+        CardService.newTextParagraph().setText("<hr style='border-color: #e8eaed;'>")
+      );
+    }
+  });
+  
+  if (hotels.length > 2) {
+    section.addWidget(
+      CardService.newTextParagraph()
+        .setText(`<font color="#5f6368">+ ${hotels.length - 2} more hotels available on dashboard</font>`)
+    );
+  }
+  
+  card.addSection(section);
+}
+
+/**
+ * Add compact attractions section
+ */
+function addCompactAttractionSection(card, attractions, travelData) {
+  const section = CardService.newCardSection()
+    .setHeader("🎯 Top Attractions");
+    
+  // Show top 2 attractions to keep card compact
+  attractions.slice(0, 2).forEach((attraction, index) => {
+    const attractionWidget = createCompactAttractionWidget(attraction, index === 0);
+    section.addWidget(attractionWidget);
+    
+    // Add best booking option for each attraction
+    if (attraction.otaOptions && attraction.otaOptions.length > 0) {
+      const bestOption = attraction.otaOptions.sort((a, b) => parseFloat(a.price) - parseFloat(b.price))[0];
+      const bookingButton = CardService.newTextButton()
+        .setText(`Book on ${bestOption.provider} - ${bestOption.currency} ${bestOption.price}`)
+        .setOpenLink(
+          CardService.newOpenLink()
+            .setUrl(bestOption.bookingUrl || 'https://www.getyourguide.com')
+            .setOpenAs(CardService.OpenAs.FULL_SIZE)
+        );
+      section.addWidget(bookingButton);
+    }
+    
+    if (index < Math.min(attractions.length - 1, 1)) {
+      section.addWidget(
+        CardService.newTextParagraph().setText("<hr style='border-color: #e8eaed;'>")
+      );
+    }
+  });
+  
+  if (attractions.length > 2) {
+    section.addWidget(
+      CardService.newTextParagraph()
+        .setText(`<font color="#5f6368">+ ${attractions.length - 2} more activities available on dashboard</font>`)
+    );
+  }
+  
+  card.addSection(section);
+}
+
+/**
+ * Add comprehensive insights section
+ */
+function addComprehensiveInsightsSection(card, comparisons, travelData) {
+  const insights = [];
+  
+  // Hotel insights
+  if (comparisons.hotels && comparisons.hotels.length > 0) {
+    const hotelPrices = [];
+    comparisons.hotels.forEach(hotel => {
+      if (hotel.otaOptions) {
+        hotel.otaOptions.forEach(option => {
+          const price = parseFloat(option.price);
+          if (!isNaN(price)) hotelPrices.push(price);
+        });
+      }
+    });
+    
+    if (hotelPrices.length > 0) {
+      const minPrice = Math.min(...hotelPrices);
+      const maxPrice = Math.max(...hotelPrices);
+      const currency = comparisons.hotels[0].otaOptions?.[0]?.currency || 'USD';
+      insights.push(`🏨 Hotels from ${currency} ${minPrice} - ${currency} ${maxPrice} per night`);
+    }
+  }
+  
+  // Attraction insights
+  if (comparisons.attractions && comparisons.attractions.length > 0) {
+    const attractionCount = comparisons.attractions.length;
+    insights.push(`🎯 ${attractionCount} top-rated activities and attractions found`);
+  }
+  
+  // Destination insights
+  if (travelData.destination) {
+    insights.push(`✈️ Flight prices from your location available on dashboard`);
+  }
+  
+  if (insights.length > 0) {
+    const section = CardService.newCardSection()
+      .setHeader("💡 Quick Insights");
+    
+    insights.forEach(insight => {
+      section.addWidget(
+        CardService.newTextParagraph()
+          .setText(`<font color="#5f6368">${insight}</font>`)
+      );
+    });
+    
+    card.addSection(section);
+  }
+}
+
+/**
+ * Add comprehensive travel action section with enhanced CTA
+ */
+function addComprehensiveTravelActionSection(card, emailData, travelData) {
+  const section = CardService.newCardSection();
+  
+  // Create compelling CTA message
+  const destination = travelData?.destination || 'your destination';
+  const ctaText = `🚀 Complete Travel Guide for ${destination}`;
+  const ctaSubtext = "Flight prices from your city • All hotels • Full activity list • Smart recommendations";
+  
+  // Add CTA description
+  section.addWidget(
+    CardService.newTextParagraph().setText(
+      `<b>${ctaText}</b><br>` +
+      `<font color="#5f6368">${ctaSubtext}</font>`
+    )
+  );
+  
+  // Primary CTA button
+  section.addWidget(
+    CardService.newTextButton()
+      .setText("📊 Open Full Travel Dashboard")
+      .setOpenLink(
+        CardService.newOpenLink()
+          .setUrl(`${BASE_URL}/travel?from=gmail&messageId=${emailData.messageId}&email=${encodeURIComponent(Session.getActiveUser().getEmail())}`)
+          .setOpenAs(CardService.OpenAs.OVERLAY)
+      )
+  );
+  
+  // Secondary action
+  section.addWidget(
+    CardService.newTextButton()
+      .setText("🔄 Refresh Recommendations")
       .setOnClickAction(
         CardService.newAction()
           .setFunctionName("reprocessTravelEmail")
@@ -507,6 +736,80 @@ function createBookingButton(comparison, isBestDeal) {
         .setUrl(bookingUrl)
         .setOpenAs(CardService.OpenAs.FULL_SIZE)
     );
+}
+
+/**
+ * Create compact hotel widget for comprehensive view
+ */
+function createCompactHotelWidget(hotel, isBestDeal) {
+  let hotelHtml = "";
+  
+  // Add "Best Deal" badge for the first (cheapest) option
+  if (isBestDeal) {
+    hotelHtml += "<font color=\"#34a853\"><b>🏆 BEST VALUE</b></font><br>";
+  }
+  
+  const hotelName = hotel.hotelName || hotel.name || 'Hotel';
+  const rating = hotel.rating || 'N/A';
+  const location = hotel.location || 'Location';
+  
+  if (hotel.otaOptions && hotel.otaOptions.length > 0) {
+    // Find price range from all OTA options
+    const prices = hotel.otaOptions.map(ota => parseFloat(ota.price));
+    const minPrice = Math.min(...prices);
+    const currency = hotel.otaOptions[0].currency || 'USD';
+    
+    hotelHtml += `<b>${hotelName}</b><br>` +
+                 `<font color="#1a73e8"><b>From ${currency} ${minPrice}/night</b></font><br>` +
+                 `<font color="#5f6368">⭐ ${rating} • ${location}</font>`;
+  } else {
+    // Fallback for old structure
+    const currency = hotel.currency || 'USD';
+    const price = hotel.price || 'N/A';
+    
+    hotelHtml += `<b>${hotelName}</b><br>` +
+                 `<font color="#1a73e8"><b>${currency} ${price}/night</b></font><br>` +
+                 `<font color="#5f6368">⭐ ${rating} • ${location}</font>`;
+  }
+  
+  return CardService.newTextParagraph().setText(hotelHtml);
+}
+
+/**
+ * Create compact attraction widget for comprehensive view
+ */
+function createCompactAttractionWidget(attraction, isBestDeal) {
+  let attractionHtml = "";
+  
+  // Add "Best Deal" badge for the first (cheapest) option
+  if (isBestDeal) {
+    attractionHtml += "<font color=\"#34a853\"><b>🎯 TOP PICK</b></font><br>";
+  }
+  
+  const name = attraction.name || 'Activity';
+  const rating = attraction.rating || 'N/A';
+  const category = attraction.category || attraction.description || 'Experience';
+  
+  if (attraction.otaOptions && attraction.otaOptions.length > 0) {
+    // Find price range from all OTA options  
+    const prices = attraction.otaOptions.map(ota => parseFloat(ota.price));
+    const minPrice = Math.min(...prices);
+    const currency = attraction.otaOptions[0].currency || 'USD';
+    
+    attractionHtml += `<b>${name}</b><br>` +
+                      `<font color="#1a73e8"><b>From ${currency} ${minPrice}</b></font><br>` +
+                      `<font color="#5f6368">⭐ ${rating} • ${category}</font>`;
+  } else {
+    // Fallback for old structure
+    const currency = attraction.currency || '';
+    const price = attraction.price || 'N/A';
+    
+    attractionHtml += `<b>${name}</b><br>` +
+                      `<font color="#1a73e8"><b>${currency ? currency + ' ' : ''}${price}</b></font><br>` +
+                      `<font color="#5f6368">⭐ ${rating} • ${category}</font>`;
+  }
+  
+  return CardService.newTextParagraph().setText(attractionHtml);
 }
 
 // ============================================================================
