@@ -1,7 +1,7 @@
 import { createRoute, useNavigate } from "@tanstack/react-router";
 import { rootRoute } from "./root";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo, useEffect } from "react";
 import {
   BriefcaseIcon,
   Search,
@@ -20,12 +20,24 @@ import {
   Mail,
   Settings,
   Columns,
+  GripVertical,
 } from "lucide-react";
 import { supabase } from "../supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { CustomFieldsManager } from "../components/CustomFieldsManager";
-import { CustomFieldCell } from "../components/CustomFieldInput";
+import {
+  CustomFieldCell,
+  EditableCustomFieldCell,
+} from "../components/CustomFieldInput";
 import { useCustomFields } from "../hooks/useCustomFields";
+import { useMutation, useQueryClient } from "@tanstack/react-query";
+import { DndContext, DragEndEvent, closestCenter } from "@dnd-kit/core";
+import {
+  SortableContext,
+  horizontalListSortingStrategy,
+} from "@dnd-kit/sortable";
+import { useColumnOrder, ColumnConfig } from "../hooks/useColumnOrder";
+import { DraggableTableHeader } from "../components/DraggableTableHeader";
 
 export const jobsRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -182,9 +194,120 @@ function JobsDashboard() {
   const [showCustomFieldsManager, setShowCustomFieldsManager] = useState(false);
 
   // Custom fields hook
-  const { customFields, getCustomFieldValue } = useCustomFields({
-    tableName: "job_applications",
-    userId: user?.id,
+  const { customFields, getCustomFieldValue, setCustomFieldValue } =
+    useCustomFields({
+      tableName: "job_applications",
+      userId: user?.id,
+    });
+
+  // Define default columns configuration
+  const defaultColumns: ColumnConfig[] = [
+    { id: "company", label: "Company", key: "company", sortable: true },
+    { id: "position", label: "Position", key: "position", sortable: true },
+    { id: "status", label: "Status", key: "status", sortable: true },
+    // Custom fields will be added dynamically
+    {
+      id: "applied_date",
+      label: "Applied Date",
+      key: "applied_date",
+      sortable: true,
+    },
+    {
+      id: "created_at",
+      label: "Last Updated",
+      key: "created_at",
+      sortable: true,
+    },
+    { id: "actions", label: "Find Email", key: "actions", fixed: true }, // Fixed column
+  ];
+
+  // Add custom fields to columns
+  const columnsWithCustomFields = React.useMemo(() => {
+    const baseColumns = defaultColumns.filter(
+      (col) =>
+        col.id !== "applied_date" &&
+        col.id !== "created_at" &&
+        col.id !== "actions"
+    );
+    const customFieldColumns: ColumnConfig[] = customFields.map((field) => ({
+      id: `custom-${field.id}`,
+      label: field.field_label,
+      key: field.field_name,
+      sortable: false, // Custom fields aren't sortable yet
+    }));
+
+    // Add back the date columns and actions at the end
+    const endColumns = defaultColumns.filter(
+      (col) =>
+        col.id === "applied_date" ||
+        col.id === "created_at" ||
+        col.id === "actions"
+    );
+
+    return [...baseColumns, ...customFieldColumns, ...endColumns];
+  }, [customFields]);
+
+  // Column order hook
+  const { columnOrder, handleDragEnd, resetColumnOrder } = useColumnOrder({
+    defaultColumns: columnsWithCustomFields,
+    storageKey: "job-applications-column-order",
+  });
+
+  // Handle drag end for columns
+  const onDragEnd = (event: DragEndEvent) => {
+    const { active, over } = event;
+    if (over && active.id !== over.id) {
+      handleDragEnd(String(active.id), String(over.id));
+    }
+  };
+
+  // Query client for cache invalidation
+  const queryClient = useQueryClient();
+
+  // Mutation to update job application custom fields
+  const updateJobApplicationMutation = useMutation({
+    mutationFn: async ({
+      jobId,
+      fieldName,
+      newValue,
+    }: {
+      jobId: string;
+      fieldName: string;
+      newValue: any;
+    }) => {
+      // Find the job application to update
+      const jobApp = jobApplications?.find((app) => app.id === jobId);
+      if (!jobApp) {
+        throw new Error("Job application not found");
+      }
+
+      // Update the custom field value in the details JSON
+      const updatedDetails = setCustomFieldValue(
+        jobApp.details,
+        fieldName,
+        newValue
+      );
+
+      // Update in database
+      const { data, error } = await supabase
+        .from("job_applications")
+        .update({ details: updatedDetails })
+        .eq("id", jobId)
+        .select()
+        .single();
+
+      if (error) {
+        throw error;
+      }
+
+      return data;
+    },
+    onSuccess: () => {
+      // Invalidate and refetch job applications
+      queryClient.invalidateQueries({
+        queryKey: ["job-applications", user?.id],
+      });
+    },
   });
 
   // Check authentication status
@@ -382,12 +505,23 @@ function JobsDashboard() {
     return filtered;
   }, [jobApplications, searchTerm, statusFilter, sortConfig]);
 
-  const handleSort = (key: keyof JobApplication) => {
-    setSortConfig((current: SortConfig) => ({
-      key,
-      direction:
-        current.key === key && current.direction === "asc" ? "desc" : "asc",
-    }));
+  const handleSort = (key: string) => {
+    // Type guard to ensure we only sort by valid JobApplication keys
+    const validKeys: (keyof JobApplication)[] = [
+      "company",
+      "position",
+      "status",
+      "applied_date",
+      "created_at",
+    ];
+
+    if (validKeys.includes(key as keyof JobApplication)) {
+      setSortConfig((current: SortConfig) => ({
+        key: key as keyof JobApplication,
+        direction:
+          current.key === key && current.direction === "asc" ? "desc" : "asc",
+      }));
+    }
   };
 
   const getStatusIcon = (status: string) => {
@@ -517,15 +651,23 @@ function JobsDashboard() {
               Track and manage your job applications
             </p>
           </div>
-          <div className="mt-4 flex md:mt-0 md:ml-4">
+          <div className="mt-4 flex md:mt-0 md:ml-4 space-x-3">
             <button
               onClick={() => setShowCustomFieldsManager(true)}
               type="button"
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 mr-3"
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
               title="Manage custom columns"
             >
               <Columns className="h-4 w-4 mr-2" />
               Manage Columns
+            </button>
+            <button
+              onClick={resetColumnOrder}
+              type="button"
+              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-600 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              title="Reset column order to default"
+            >
+              <GripVertical className="h-4 w-4" />
             </button>
             <button
               type="button"
@@ -734,187 +876,212 @@ function JobsDashboard() {
               </div>
             ) : (
               <div className="overflow-x-auto">
-                <table className="min-w-full divide-y divide-gray-200">
-                  <thead className="bg-gray-50">
-                    <tr>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                        onClick={() => handleSort("company")}
+                <DndContext
+                  collisionDetection={closestCenter}
+                  onDragEnd={onDragEnd}
+                >
+                  <table className="min-w-full divide-y divide-gray-200">
+                    <thead className="bg-gray-50">
+                      <SortableContext
+                        items={columnOrder.map((col) => col.id)}
+                        strategy={horizontalListSortingStrategy}
                       >
-                        <div className="flex items-center space-x-1">
-                          <span>Company</span>
-                          {sortConfig.key === "company" &&
-                            (sortConfig.direction === "asc" ? (
-                              <SortAsc className="h-4 w-4" />
-                            ) : (
-                              <SortDesc className="h-4 w-4" />
-                            ))}
-                        </div>
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                        onClick={() => handleSort("position")}
-                      >
-                        <div className="flex items-center space-x-1">
-                          <span>Position</span>
-                          {sortConfig.key === "position" &&
-                            (sortConfig.direction === "asc" ? (
-                              <SortAsc className="h-4 w-4" />
-                            ) : (
-                              <SortDesc className="h-4 w-4" />
-                            ))}
-                        </div>
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                        onClick={() => handleSort("status")}
-                      >
-                        <div className="flex items-center space-x-1">
-                          <span>Status</span>
-                          {sortConfig.key === "status" &&
-                            (sortConfig.direction === "asc" ? (
-                              <SortAsc className="h-4 w-4" />
-                            ) : (
-                              <SortDesc className="h-4 w-4" />
-                            ))}
-                        </div>
-                      </th>
-
-                      {/* Dynamic Custom Field Columns */}
-                      {customFields.map((field) => (
-                        <th
-                          key={field.id}
-                          scope="col"
-                          className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                        >
-                          {field.field_label}
-                        </th>
-                      ))}
-
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider cursor-pointer hover:bg-gray-100"
-                        onClick={() => handleSort("applied_date")}
-                      >
-                        <div className="flex items-center space-x-1">
-                          <span>Applied Date</span>
-                          {sortConfig.key === "applied_date" &&
-                            (sortConfig.direction === "asc" ? (
-                              <SortAsc className="h-4 w-4" />
-                            ) : (
-                              <SortDesc className="h-4 w-4" />
-                            ))}
-                        </div>
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Last Updated
-                      </th>
-                      <th
-                        scope="col"
-                        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
-                      >
-                        Find Email
-                      </th>
-                    </tr>
-                  </thead>
-                  <tbody className="bg-white divide-y divide-gray-200">
-                    {filteredAndSortedApplications.map(
-                      (application: JobApplication) => (
-                        <tr key={application.id} className="hover:bg-gray-50">
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              <div className="flex-shrink-0 h-10 w-10">
-                                <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                  <Building2 className="h-5 w-5 text-gray-500" />
-                                </div>
-                              </div>
-                              <div className="ml-4">
-                                <div className="text-sm font-medium text-gray-900 flex items-center">
-                                  {application.company}
-                                  {getFlagEmoji(application.country_code) && (
-                                    <span className="ml-2 text-base">
-                                      {getFlagEmoji(application.country_code)}
-                                    </span>
-                                  )}
-                                </div>
-                              </div>
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="text-sm text-gray-900">
-                              {application.position}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap">
-                            <div className="flex items-center">
-                              {getStatusIcon(application.status)}
-                              <span
-                                className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(
-                                  application.status
-                                )}`}
-                              >
-                                {application.status === "next_step"
-                                  ? "Next Step"
-                                  : application.status.charAt(0).toUpperCase() +
-                                    application.status.slice(1)}
-                              </span>
-                            </div>
-                          </td>
-
-                          {/* Dynamic Custom Field Cells */}
-                          {customFields.map((field) => (
-                            <td
-                              key={field.id}
-                              className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
-                            >
-                              <CustomFieldCell
-                                field={field}
-                                value={getCustomFieldValue(
-                                  application.details,
-                                  field.field_name
-                                )}
-                              />
-                            </td>
+                        <tr>
+                          {columnOrder.map((column) => (
+                            <DraggableTableHeader
+                              key={column.id}
+                              column={column}
+                              sortConfig={sortConfig}
+                              onSort={handleSort}
+                            />
                           ))}
-
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-900">
-                            <div className="flex items-center">
-                              <Calendar className="h-4 w-4 text-gray-400 mr-2" />
-                              {new Date(
-                                application.applied_date
-                              ).toLocaleDateString()}
-                            </div>
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-sm text-gray-500">
-                            {formatDistanceToNow(
-                              new Date(application.created_at),
-                              { addSuffix: true }
-                            )}
-                          </td>
-                          <td className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
-                            <button
-                              onClick={() =>
-                                openGmailUrl(application.email_id, application)
-                              }
-                              className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
-                              title="Search for this email in Gmail"
-                            >
-                              <Mail className="h-3 w-3 mr-1" />
-                              Find in Gmail
-                              <ExternalLink className="h-3 w-3 ml-1" />
-                            </button>
-                          </td>
                         </tr>
-                      )
-                    )}
-                  </tbody>
-                </table>
+                      </SortableContext>
+                    </thead>
+                    <tbody className="bg-white divide-y divide-gray-200">
+                      {filteredAndSortedApplications.map(
+                        (application: JobApplication) => (
+                          <tr key={application.id} className="hover:bg-gray-50">
+                            {columnOrder.map((column) => {
+                              const cellKey = `${application.id}-${column.id}`;
+
+                              // Render different cell types based on column
+                              switch (column.id) {
+                                case "company":
+                                  return (
+                                    <td
+                                      key={cellKey}
+                                      className="px-6 py-4 whitespace-nowrap"
+                                    >
+                                      <div className="flex items-center">
+                                        <div className="flex-shrink-0 h-10 w-10">
+                                          <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
+                                            <Building2 className="h-5 w-5 text-gray-500" />
+                                          </div>
+                                        </div>
+                                        <div className="ml-4">
+                                          <div className="text-sm font-medium text-gray-900 flex items-center">
+                                            {application.company}
+                                            {getFlagEmoji(
+                                              application.country_code
+                                            ) && (
+                                              <span className="ml-2 text-base">
+                                                {getFlagEmoji(
+                                                  application.country_code
+                                                )}
+                                              </span>
+                                            )}
+                                          </div>
+                                        </div>
+                                      </div>
+                                    </td>
+                                  );
+
+                                case "position":
+                                  return (
+                                    <td
+                                      key={cellKey}
+                                      className="px-6 py-4 whitespace-nowrap"
+                                    >
+                                      <div className="text-sm text-gray-900">
+                                        {application.position}
+                                      </div>
+                                    </td>
+                                  );
+
+                                case "status":
+                                  return (
+                                    <td
+                                      key={cellKey}
+                                      className="px-6 py-4 whitespace-nowrap"
+                                    >
+                                      <div className="flex items-center">
+                                        {getStatusIcon(application.status)}
+                                        <span
+                                          className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(
+                                            application.status
+                                          )}`}
+                                        >
+                                          {application.status === "next_step"
+                                            ? "Next Step"
+                                            : application.status
+                                                .charAt(0)
+                                                .toUpperCase() +
+                                              application.status.slice(1)}
+                                        </span>
+                                      </div>
+                                    </td>
+                                  );
+
+                                case "applied_date":
+                                  return (
+                                    <td
+                                      key={cellKey}
+                                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                                    >
+                                      <div className="flex items-center">
+                                        <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                                        {new Date(
+                                          application.applied_date
+                                        ).toLocaleDateString()}
+                                      </div>
+                                    </td>
+                                  );
+
+                                case "created_at":
+                                  return (
+                                    <td
+                                      key={cellKey}
+                                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                    >
+                                      {formatDistanceToNow(
+                                        new Date(application.created_at),
+                                        { addSuffix: true }
+                                      )}
+                                    </td>
+                                  );
+
+                                case "actions":
+                                  return (
+                                    <td
+                                      key={cellKey}
+                                      className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
+                                    >
+                                      <button
+                                        onClick={() =>
+                                          openGmailUrl(
+                                            application.email_id,
+                                            application
+                                          )
+                                        }
+                                        className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                        title="Search for this email in Gmail"
+                                      >
+                                        <Mail className="h-3 w-3 mr-1" />
+                                        Find in Gmail
+                                        <ExternalLink className="h-3 w-3 ml-1" />
+                                      </button>
+                                    </td>
+                                  );
+
+                                default:
+                                  // Handle custom fields
+                                  if (column.id.startsWith("custom-")) {
+                                    const fieldId = column.id.replace(
+                                      "custom-",
+                                      ""
+                                    );
+                                    const field = customFields.find(
+                                      (f) => f.id === fieldId
+                                    );
+
+                                    if (field) {
+                                      return (
+                                        <td
+                                          key={cellKey}
+                                          className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                                        >
+                                          <EditableCustomFieldCell
+                                            field={field}
+                                            value={getCustomFieldValue(
+                                              application.details,
+                                              field.field_name
+                                            )}
+                                            onSave={async (newValue) => {
+                                              await updateJobApplicationMutation.mutateAsync(
+                                                {
+                                                  jobId: application.id,
+                                                  fieldName: field.field_name,
+                                                  newValue,
+                                                }
+                                              );
+                                            }}
+                                            disabled={
+                                              updateJobApplicationMutation.isPending
+                                            }
+                                          />
+                                        </td>
+                                      );
+                                    }
+                                  }
+
+                                  // Fallback for unknown columns
+                                  return (
+                                    <td
+                                      key={cellKey}
+                                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                    >
+                                      —
+                                    </td>
+                                  );
+                              }
+                            })}
+                          </tr>
+                        )
+                      )}
+                    </tbody>
+                  </table>
+                </DndContext>
               </div>
             )}
           </div>
