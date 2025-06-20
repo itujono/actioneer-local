@@ -199,7 +199,6 @@ export function EditableCustomFieldCell({
 }: EditableCustomFieldCellProps) {
   const [isEditing, setIsEditing] = React.useState(false);
   const [editValue, setEditValue] = React.useState(value);
-  const [isSaving, setIsSaving] = React.useState(false);
   const [error, setError] = React.useState<string | null>(null);
   const inputRef = React.useRef<HTMLInputElement | HTMLSelectElement>(null);
 
@@ -231,18 +230,19 @@ export function EditableCustomFieldCell({
   };
 
   const handleSave = async () => {
-    if (isSaving) return;
-
-    setIsSaving(true);
     setError(null);
+
+    // If value hasn't changed, just cancel instead of saving
+    if (editValue === value) {
+      handleCancel();
+      return;
+    }
 
     try {
       await onSave(editValue);
       setIsEditing(false);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
-    } finally {
-      setIsSaving(false);
     }
   };
 
@@ -286,7 +286,7 @@ export function EditableCustomFieldCell({
   };
 
   const renderEditInput = () => {
-    const baseInputClasses = `w-full px-2 py-1 text-sm border rounded focus:ring-blue-500 focus:border-blue-500 ${
+    const baseInputClasses = `w-full px-2 py-1 text-sm border rounded focus:ring-blue-500 focus:border-blue-500 bg-white min-h-[28px] ${
       error ? "border-red-300" : "border-gray-300"
     }`;
 
@@ -324,8 +324,8 @@ export function EditableCustomFieldCell({
 
       case "currency":
         return (
-          <div className="relative">
-            <span className="absolute left-2 top-1 text-gray-500 text-xs">
+          <div className="relative w-full h-full">
+            <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs z-10">
               {field.field_options.currency || "USD"}
             </span>
             <input
@@ -419,45 +419,47 @@ export function EditableCustomFieldCell({
     }
   };
 
-  if (isEditing) {
-    return (
-      <div className="min-w-0">
-        {renderEditInput()}
-        {error && <p className="text-xs text-red-600 mt-1">{error}</p>}
-        {isSaving && (
-          <div className="flex items-center mt-1">
-            <div className="animate-spin rounded-full h-3 w-3 border-b border-blue-600"></div>
-            <span className="text-xs text-gray-500 ml-1">Saving...</span>
-          </div>
-        )}
-      </div>
-    );
-  }
-
   return (
     <div
-      className={`group flex items-center space-x-2 ${
+      className={`group flex items-center space-x-2 min-h-[28px] relative ${
         disabled ? "" : "cursor-pointer hover:bg-gray-50 rounded px-1 py-1"
       }`}
       onClick={handleEdit}
     >
-      <span className="text-sm text-gray-900 min-w-0 flex-1">
-        {formatDisplayValue()}
-      </span>
-      {!disabled && (
-        <svg
-          className="h-3 w-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-          fill="none"
-          stroke="currentColor"
-          viewBox="0 0 24 24"
-        >
-          <path
-            strokeLinecap="round"
-            strokeLinejoin="round"
-            strokeWidth={2}
-            d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-          />
-        </svg>
+      {isEditing ? (
+        // Edit mode - replace the content entirely
+        <div className="flex-1 min-w-0">{renderEditInput()}</div>
+      ) : (
+        // Display mode
+        <>
+          <span className="text-sm text-gray-900 min-w-0 flex-1 py-1">
+            {formatDisplayValue()}
+          </span>
+          {!disabled && (
+            <svg
+              className="h-3 w-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
+              />
+            </svg>
+          )}
+        </>
+      )}
+
+      {/* Error display - positioned outside to avoid layout shifts */}
+      {error && isEditing && (
+        <div className="absolute top-full left-0 mt-1 z-20">
+          <p className="text-xs text-red-600 bg-white px-1 py-0.5 rounded shadow-sm border">
+            {error}
+          </p>
+        </div>
       )}
     </div>
   );

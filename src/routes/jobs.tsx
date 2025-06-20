@@ -5,30 +5,21 @@ import React, { useState, useMemo, useEffect } from "react";
 import {
   BriefcaseIcon,
   Search,
-  Filter,
-  SortAsc,
-  SortDesc,
   Plus,
-  Building2,
   Calendar,
   CheckCircle,
   Clock,
   XCircle,
   AlertCircle,
-  MoreHorizontal,
   ExternalLink,
   Mail,
-  Settings,
   Columns,
   GripVertical,
 } from "lucide-react";
 import { supabase } from "../supabase/client";
 import { formatDistanceToNow } from "date-fns";
 import { CustomFieldsManager } from "../components/CustomFieldsManager";
-import {
-  CustomFieldCell,
-  EditableCustomFieldCell,
-} from "../components/CustomFieldInput";
+import { EditableCustomFieldCell } from "../components/CustomFieldInput";
 import { useCustomFields } from "../hooks/useCustomFields";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DndContext, DragEndEvent, closestCenter } from "@dnd-kit/core";
@@ -218,7 +209,7 @@ function JobsDashboard() {
       key: "created_at",
       sortable: true,
     },
-    { id: "actions", label: "Find Email", key: "actions", fixed: true }, // Fixed column
+    // { id: "actions", label: "Find Email", key: "actions", fixed: true }, // Fixed column
   ];
 
   // Add custom fields to columns
@@ -659,7 +650,7 @@ function JobsDashboard() {
               title="Manage custom columns"
             >
               <Columns className="h-4 w-4 mr-2" />
-              Manage Columns
+              Manage Custom Fields
             </button>
             <button
               onClick={resetColumnOrder}
@@ -819,19 +810,23 @@ function JobsDashboard() {
                 </div>
                 <input
                   type="text"
-                  className="block w-full pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  className="block w-full max-w-sm pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Search companies or positions..."
                   value={searchTerm}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
                     setSearchTerm(e.target.value)
                   }
+                  onKeyDown={(e: React.KeyboardEvent<HTMLInputElement>) => {
+                    if (e.key === "Escape") {
+                      setSearchTerm("");
+                    }
+                  }}
                 />
               </div>
 
               {/* Status Filter */}
               <div className="flex items-center space-x-4">
                 <div className="flex items-center">
-                  <Filter className="h-5 w-5 text-gray-400 mr-2" />
                   <select
                     className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                     value={statusFilter}
@@ -913,25 +908,23 @@ function JobsDashboard() {
                                       key={cellKey}
                                       className="px-6 py-4 whitespace-nowrap"
                                     >
-                                      <div className="flex items-center">
-                                        <div className="flex-shrink-0 h-10 w-10">
+                                      <div className="flex">
+                                        {/* <div className="flex-shrink-0 h-10 w-10">
                                           <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
                                             <Building2 className="h-5 w-5 text-gray-500" />
                                           </div>
-                                        </div>
-                                        <div className="ml-4">
-                                          <div className="text-sm font-medium text-gray-900 flex items-center">
-                                            {application.company}
-                                            {getFlagEmoji(
-                                              application.country_code
-                                            ) && (
-                                              <span className="ml-2 text-base">
-                                                {getFlagEmoji(
-                                                  application.country_code
-                                                )}
-                                              </span>
-                                            )}
-                                          </div>
+                                        </div> */}
+                                        <div className="text-sm font-medium text-gray-900 flex items-center">
+                                          {application.company}
+                                          {getFlagEmoji(
+                                            application.country_code
+                                          ) && (
+                                            <span className="ml-2 text-base">
+                                              {getFlagEmoji(
+                                                application.country_code
+                                              )}
+                                            </span>
+                                          )}
                                         </div>
                                       </div>
                                     </td>
@@ -995,8 +988,7 @@ function JobsDashboard() {
                                       className="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
                                     >
                                       {formatDistanceToNow(
-                                        new Date(application.created_at),
-                                        { addSuffix: true }
+                                        new Date(application.created_at)
                                       )}
                                     </td>
                                   );

@@ -9,7 +9,7 @@ export interface EmailData {
 }
 
 export interface Classification {
-  type: "job_application" | "travel" | "receipt" | "other";
+  type: "job_application" | "travel" | "receipt" | "revenue" | "other";
   confidence: number;
   reasoning?: string;
   actions: Action[];
@@ -40,5 +40,6 @@ export interface ClassificationConfig {
     jobApplication: RegExp[];
     travel: RegExp[];
     receipt: RegExp[];
+    revenue: RegExp[];
   };
 }

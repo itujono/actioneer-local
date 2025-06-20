@@ -106,6 +106,29 @@ export const CLASSIFICATION_CONFIG: ClassificationConfig = {
       /invoice\s*#[\w-]+/i,
       /receipt\s*#[\w-]+/i,
     ],
+
+    // Revenue patterns (money coming IN)
+    revenue: [
+      /payment\s+(?:received|successful|completed|processed)/i,
+      /money\s+(?:received|sent\s+to\s+you|transferred\s+to)/i,
+      /you\s+(?:received|got)\s+(?:a\s+)?payment/i,
+      /funds\s+(?:received|added|deposited)/i,
+      /refund\s+(?:issued|processed|completed|successful)/i,
+      /reimbursement\s+(?:issued|processed|approved)/i,
+      /credit\s+(?:issued|applied|processed)/i,
+      /invoice\s+(?:#[\w-]+\s+)?(?:paid|payment\s+received)/i,
+      /client\s+payment\s+received/i,
+      /freelance\s+payment/i,
+      /dividend\s+(?:payment|received|credited)/i,
+      /interest\s+(?:payment|earned|credited)/i,
+      /tax\s+(?:refund|return|credit)/i,
+      /sale\s+(?:completed|successful|confirmed)/i,
+      /item\s+sold/i,
+      /paypal.*(?:payment\s+received|money\s+received)/i,
+      /venmo.*(?:payment\s+received|sent\s+you)/i,
+      /zelle.*(?:payment\s+received|sent\s+you)/i,
+      /stripe.*payment\s+received/i,
+    ],
   },
 };
 

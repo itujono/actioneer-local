@@ -12,7 +12,6 @@ import {
   Menu,
   X,
   Mail,
-  User,
 } from "lucide-react";
 
 interface LayoutProps {
@@ -139,15 +138,15 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
               </Link>
 
               <Link
-                to="/expenses"
+                to="/finance"
                 className={`group flex items-center px-2 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
-                  location.pathname === "/expenses"
+                  location.pathname === "/finance"
                     ? "bg-blue-100 text-blue-900"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
                 <Receipt className="mr-4 h-6 w-6 text-blue-600" />
-                Receipts & Expenses
+                Finance
               </Link>
 
               <Link
@@ -229,15 +228,15 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
               </Link>
 
               <Link
-                to="/expenses"
+                to="/finance"
                 className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
-                  location.pathname === "/expenses"
+                  location.pathname === "/finance"
                     ? "bg-blue-100 text-blue-900"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
                 <Receipt className="mr-3 h-6 w-6 text-blue-600" />
-                Receipts & Expenses
+                Finance
               </Link>
 
               <Link

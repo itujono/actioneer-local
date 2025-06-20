@@ -64,6 +64,10 @@ export function DraggableTableHeader({
     >
       <div className="flex items-center justify-between">
         <div className="flex items-center space-x-2">
+          <div className="flex items-center space-x-1">
+            <span className="select-none">{column.label}</span>
+            {children}
+          </div>
           {/* Drag handle - only show for non-fixed columns */}
           {!column.fixed && (
             <div
@@ -75,11 +79,6 @@ export function DraggableTableHeader({
               <GripVertical className="h-3 w-3 text-gray-400" />
             </div>
           )}
-
-          <div className="flex items-center space-x-1">
-            <span className="select-none">{column.label}</span>
-            {children}
-          </div>
         </div>
 
         {/* Sort indicator */}

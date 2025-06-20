@@ -15,42 +15,67 @@ import {
 } from "./categories/job-application.ts";
 import { classifyTravel, buildTravelPrompt } from "./categories/travel.ts";
 import { classifyReceipt, buildReceiptPrompt } from "./categories/receipt.ts";
+import { classifyRevenue } from "./categories/revenue.ts";
 
 // Initialize OpenAI
 const openai = new OpenAI({
   apiKey: Deno.env.get("OPENAI_API_KEY") || "",
 });
 
-export async function classifyEmailWithOpenAI(
+export async function classifyEmail(
   emailData: EmailData
 ): Promise<Classification> {
-  console.log("🤖 Starting AI-powered classification...");
+  console.log("🔍 Starting email classification...");
 
-  // First, try category-specific AI classification for better accuracy
-  const categoryClassification = await trySpecificCategoryClassification(
-    emailData
-  );
-  if (categoryClassification) {
-    console.log(
-      "✅ Category-specific AI classification successful:",
-      categoryClassification.type
-    );
-    return categoryClassification;
+  // Run all classifiers in parallel for efficiency
+  const [
+    jobClassification,
+    travelClassification,
+    receiptClassification,
+    revenueClassification,
+  ] = await Promise.all([
+    Promise.resolve(classifyJobApplication(emailData)),
+    Promise.resolve(classifyTravel(emailData)),
+    Promise.resolve(classifyReceipt(emailData)),
+    Promise.resolve(classifyRevenue(emailData)),
+  ]);
+
+  // Collect all valid classifications
+  const classifications = [
+    jobClassification,
+    travelClassification,
+    receiptClassification,
+    revenueClassification,
+  ].filter((c): c is Classification => c !== null);
+
+  console.log("📊 Classification results:", {
+    total: classifications.length,
+    types: classifications.map((c) => `${c.type}(${c.confidence})`),
+  });
+
+  // Return the classification with highest confidence
+  if (classifications.length === 0) {
+    return {
+      type: "other",
+      confidence: 0.1,
+      reasoning: "No specific patterns matched",
+      actions: [],
+      method: "default",
+    };
   }
 
-  // Fallback to general AI classification
-  const generalClassification = await tryGeneralAIClassification(emailData);
-  if (generalClassification && generalClassification.type !== "other") {
-    console.log(
-      "✅ General AI classification successful:",
-      generalClassification.type
-    );
-    return generalClassification;
-  }
+  // Sort by confidence and return the best match
+  const bestMatch = classifications.sort(
+    (a, b) => b.confidence - a.confidence
+  )[0];
 
-  // Final fallback to pattern-based classification
-  console.log("🔄 Falling back to pattern-based classification...");
-  return classifyEmailWithPatterns(emailData);
+  console.log("✅ Best classification match:", {
+    type: bestMatch.type,
+    confidence: bestMatch.confidence,
+    method: bestMatch.method,
+  });
+
+  return bestMatch;
 }
 
 async function trySpecificCategoryClassification(
