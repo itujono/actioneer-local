@@ -1,6 +1,6 @@
 import { createRoute } from "@tanstack/react-router";
 import { rootRoute } from "./root";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useInfiniteQuery } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../supabase/client";
@@ -41,6 +41,8 @@ import {
   RefreshCw,
   Grid3X3,
   List,
+  ChevronDown,
+  Loader2,
 } from "lucide-react";
 
 export const financeRoute = createRoute({
@@ -131,18 +133,22 @@ function FinancialDashboard() {
   // Use TanStack Query for auth management
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
 
-  // Fetch expenses (receipts)
+  // Fetch expenses (receipts) with infinite query
+  const PAGE_SIZE = 20;
   const {
-    data: receipts,
+    data: receiptsPages,
     isLoading: receiptsLoading,
     error: receiptsError,
+    fetchNextPage: fetchNextReceipts,
+    hasNextPage: hasNextReceiptsPage,
+    isFetchingNextPage: isFetchingNextReceipts,
     refetch: refetchReceipts,
-  } = useQuery({
+  } = useInfiniteQuery({
     queryKey: ["receipts", timeframe, user?.id],
-    queryFn: async () => {
+    queryFn: async ({ pageParam }: { pageParam: number }) => {
       if (!user) throw new Error("User not authenticated");
 
-      console.log("📊 Fetching receipts for user:", user.id);
+      console.log(`📊 Fetching receipts page ${pageParam} for user:`, user.id);
 
       const now = new Date();
       let startDate = new Date();
@@ -165,7 +171,9 @@ function FinancialDashboard() {
         query = query.gte("date", startDate.toISOString());
       }
 
-      query = query.order("date", { ascending: false });
+      query = query
+        .order("date", { ascending: false })
+        .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
 
       const { data, error } = await query;
 
@@ -174,24 +182,45 @@ function FinancialDashboard() {
         throw error;
       }
 
-      console.log("✅ Receipts fetched:", data?.length || 0);
-      return data;
+      console.log(`✅ Receipts page ${pageParam} fetched:`, data?.length || 0);
+      return { data: data || [], pageParam };
+    },
+    initialPageParam: 0,
+    getNextPageParam: (
+      lastPage: { data: any[]; pageParam: number },
+      pages: any[]
+    ) => {
+      // If we got less than PAGE_SIZE items, we've reached the end
+      if (lastPage.data.length < PAGE_SIZE) {
+        return undefined;
+      }
+      return pages.length; // Next page number
     },
     enabled: !!user && !authLoading,
   });
 
-  // Fetch revenue
+  // Flatten receipts from all pages
+  const receipts = useMemo(() => {
+    return (
+      receiptsPages?.pages.flatMap((page: { data: any[] }) => page.data) || []
+    );
+  }, [receiptsPages]);
+
+  // Fetch revenue with infinite query
   const {
-    data: revenue,
+    data: revenuePages,
     isLoading: revenueLoading,
     error: revenueError,
+    fetchNextPage: fetchNextRevenue,
+    hasNextPage: hasNextRevenuePage,
+    isFetchingNextPage: isFetchingNextRevenue,
     refetch: refetchRevenue,
-  } = useQuery({
+  } = useInfiniteQuery({
     queryKey: ["revenue", timeframe, user?.id],
-    queryFn: async () => {
+    queryFn: async ({ pageParam }: { pageParam: number }) => {
       if (!user) throw new Error("User not authenticated");
 
-      console.log("💰 Fetching revenue for user:", user.id);
+      console.log(`💰 Fetching revenue page ${pageParam} for user:`, user.id);
 
       const now = new Date();
       let startDate = new Date();
@@ -214,7 +243,9 @@ function FinancialDashboard() {
         query = query.gte("date", startDate.toISOString());
       }
 
-      query = query.order("date", { ascending: false });
+      query = query
+        .order("date", { ascending: false })
+        .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
 
       const { data, error } = await query;
 
@@ -223,11 +254,29 @@ function FinancialDashboard() {
         throw error;
       }
 
-      console.log("✅ Revenue fetched:", data?.length || 0);
-      return data;
+      console.log(`✅ Revenue page ${pageParam} fetched:`, data?.length || 0);
+      return { data: data || [], pageParam };
+    },
+    initialPageParam: 0,
+    getNextPageParam: (
+      lastPage: { data: any[]; pageParam: number },
+      pages: any[]
+    ) => {
+      // If we got less than PAGE_SIZE items, we've reached the end
+      if (lastPage.data.length < PAGE_SIZE) {
+        return undefined;
+      }
+      return pages.length; // Next page number
     },
     enabled: !!user && !authLoading,
   });
+
+  // Flatten revenue from all pages
+  const revenue = useMemo(() => {
+    return (
+      revenuePages?.pages.flatMap((page: { data: any[] }) => page.data) || []
+    );
+  }, [revenuePages]);
 
   // Calculate comprehensive financial metrics with multi-currency support
   const metrics = useMemo(() => {
@@ -560,7 +609,7 @@ function FinancialDashboard() {
         <div className="flex flex-col space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-3xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-gray-900">
                 Financial Dashboard
               </h1>
               <p className="mt-2 text-lg text-gray-600">
@@ -1258,6 +1307,32 @@ function FinancialDashboard() {
                 </div>
               )
             )}
+          </div>
+        )}
+
+        {/* Show More Button */}
+        {(hasNextReceiptsPage || hasNextRevenuePage) && (
+          <div className="mt-8 flex justify-center">
+            <button
+              onClick={() => {
+                if (hasNextReceiptsPage) fetchNextReceipts();
+                if (hasNextRevenuePage) fetchNextRevenue();
+              }}
+              disabled={isFetchingNextReceipts || isFetchingNextRevenue}
+              className="inline-flex items-center px-6 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            >
+              {isFetchingNextReceipts || isFetchingNextRevenue ? (
+                <>
+                  <Loader2 className="h-4 w-4 mr-2 animate-spin" />
+                  Loading more...
+                </>
+              ) : (
+                <>
+                  <ChevronDown className="h-4 w-4 mr-2" />
+                  Show more transactions
+                </>
+              )}
+            </button>
           </div>
         )}
       </div>
