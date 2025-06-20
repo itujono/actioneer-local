@@ -244,7 +244,7 @@ function Dashboard() {
                   <RecentActivityCard
                     key={email.id}
                     title={email.subject}
-                    description={`From: ${email.from}`}
+                    description={email.from_email}
                     type={email.classification}
                     date={formatDistanceToNow(new Date(email.created_at), {
                       addSuffix: true,

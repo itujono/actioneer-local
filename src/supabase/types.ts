@@ -76,7 +76,7 @@ export interface Database {
           user_id: string;
           message_id: string;
           subject: string;
-          from: string;
+          from_email: string;
           date: string;
           classification: string;
           created_at: string;
@@ -86,7 +86,7 @@ export interface Database {
           user_id: string;
           message_id: string;
           subject: string;
-          from: string;
+          from_email: string;
           date: string;
           classification: string;
           created_at?: string;
@@ -96,7 +96,7 @@ export interface Database {
           user_id?: string;
           message_id?: string;
           subject?: string;
-          from?: string;
+          from_email?: string;
           date?: string;
           classification?: string;
           created_at?: string;

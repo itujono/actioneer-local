@@ -1,5 +1,12 @@
-import React from 'react';
-import { ChevronRight, ReceiptIcon, PlaneIcon, BriefcaseIcon, MessageSquare } from 'lucide-react';
+import React from "react";
+import {
+  ChevronRight,
+  ReceiptIcon,
+  PlaneIcon,
+  BriefcaseIcon,
+  MessageSquare,
+  DollarSignIcon,
+} from "lucide-react";
 
 interface RecentActivityCardProps {
   title: string;
@@ -17,11 +24,13 @@ export default function RecentActivityCard({
   // Determine icon based on type
   const getIcon = () => {
     switch (type) {
-      case 'receipt':
+      case "receipt":
         return <ReceiptIcon className="h-5 w-5 text-indigo-600" />;
-      case 'travel':
+      case "revenue":
+        return <DollarSignIcon className="h-5 w-5 text-green-600" />;
+      case "travel":
         return <PlaneIcon className="h-5 w-5 text-teal-600" />;
-      case 'job_application':
+      case "job_application":
         return <BriefcaseIcon className="h-5 w-5 text-amber-600" />;
       default:
         return <MessageSquare className="h-5 w-5 text-gray-600" />;
@@ -31,14 +40,14 @@ export default function RecentActivityCard({
   // Determine destination link based on type
   const getLink = () => {
     switch (type) {
-      case 'receipt':
-        return '/receipts';
-      case 'travel':
-        return '/travel';
-      case 'job_application':
-        return '/jobs';
+      case "receipt":
+        return "/receipts";
+      case "travel":
+        return "/travel";
+      case "job_application":
+        return "/jobs";
       default:
-        return '/dashboard';
+        return "/dashboard";
     }
   };
 
@@ -59,7 +68,8 @@ export default function RecentActivityCard({
                     {title}
                   </p>
                   <p className="mt-1 flex items-center text-sm text-gray-500">
-                    <span className="truncate">{description}</span>
+                    From&nbsp;{" "}
+                    <span className="font-semibold">{description}</span>
                   </p>
                 </div>
               </div>
