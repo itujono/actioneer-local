@@ -39,6 +39,8 @@ import {
   Landmark,
   Globe,
   RefreshCw,
+  Grid3X3,
+  List,
 } from "lucide-react";
 
 export const financeRoute = createRoute({
@@ -122,6 +124,7 @@ function FinancialDashboard() {
   const [viewMode, setViewMode] = useState<"all" | "expenses" | "revenue">(
     "all"
   );
+  const [displayMode, setDisplayMode] = useState<"cards" | "list">("cards");
   const [baseCurrency, setBaseCurrency] = useState("USD");
   const [showCurrencyBreakdown, setShowCurrencyBreakdown] = useState(false);
 
@@ -551,7 +554,7 @@ function FinancialDashboard() {
   const isLoading = receiptsLoading || revenueLoading;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-6">
+    <div className="min-h-screen bg-gray-50 py-6 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
         {/* Header Section */}
         <div className="flex flex-col space-y-6">
@@ -612,13 +615,37 @@ function FinancialDashboard() {
               </div>
             </div>
 
-            <div className="flex flex-wrap items-center gap-3">
+            <div className="flex flex-wrap items-center gap-6">
+              {/* Display Mode Toggle */}
+              <div className="flex items-center space-x-2">
+                <div className="flex bg-gray-100 rounded-lg p-1">
+                  <button
+                    onClick={() => setDisplayMode("cards")}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all flex items-center space-x-1 ${
+                      displayMode === "cards"
+                        ? "bg-white text-blue-600 shadow-sm"
+                        : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    <Grid3X3 className="h-4 w-4" />
+                    <span>Cards</span>
+                  </button>
+                  <button
+                    onClick={() => setDisplayMode("list")}
+                    className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all flex items-center space-x-1 ${
+                      displayMode === "list"
+                        ? "bg-white text-blue-600 shadow-sm"
+                        : "text-gray-600 hover:text-gray-900"
+                    }`}
+                  >
+                    <List className="h-4 w-4" />
+                    <span>List</span>
+                  </button>
+                </div>
+              </div>
+
               {/* Currency Selector */}
               <div className="flex items-center space-x-2">
-                <Globe className="h-4 w-4 text-gray-500" />
-                <span className="text-sm font-medium text-gray-700">
-                  Currency:
-                </span>
                 <select
                   value={baseCurrency}
                   onChange={(e) => setBaseCurrency(e.target.value)}
@@ -909,13 +936,13 @@ function FinancialDashboard() {
           <div className="space-y-8">
             {Object.entries(groupedTransactions).map(
               ([dateString, transactionsForDay]) => (
-                <div key={dateString} className="space-y-4 px-8">
+                <div key={dateString} className="space-y-2 px-8">
                   {/* Date Header with Daily Summary */}
                   <div className="flex items-center justify-between">
                     <h3 className="text-lg font-semibold text-gray-900">
                       {formatDateLabel(dateString)}
                     </h3>
-                    <div className="text-right space-y-1">
+                    <div className="text-right">
                       <div className="flex items-center space-x-4 text-sm text-gray-500">
                         {getDayRevenue(transactionsForDay) > 0 && (
                           <span className="text-emerald-600">
@@ -939,7 +966,7 @@ function FinancialDashboard() {
                         )}
                       </div>
                       <div
-                        className={`font-bold ${
+                        className={`font-bold text-sm ${
                           getDayTotal(transactionsForDay) >= 0
                             ? "text-emerald-600"
                             : "text-red-600"
@@ -954,157 +981,280 @@ function FinancialDashboard() {
                     </div>
                   </div>
 
-                  {/* Transaction Cards Grid */}
-                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
-                    {(transactionsForDay as any[]).map((transaction: any) => (
-                      <div
-                        key={`${transaction.type}-${transaction.id}`}
-                        className={`bg-white rounded-xl shadow-md border-2 p-6 hover:shadow-lg transition-all duration-200 relative ${
-                          transaction.type === "revenue"
-                            ? "border-emerald-200 hover:border-emerald-300"
-                            : "border-red-200 hover:border-red-300"
-                        }`}
-                      >
-                        {/* Transaction Header */}
-                        <div className="flex items-start justify-between mb-4">
-                          <div className="flex items-center space-x-3">
-                            <div
-                              className={`flex-shrink-0 p-2 rounded-lg ${
+                  {/* Conditional Rendering: Cards or List View */}
+                  {displayMode === "cards" ? (
+                    /* Transaction Cards Grid */
+                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                      {(transactionsForDay as any[]).map((transaction: any) => (
+                        <div
+                          key={`${transaction.type}-${transaction.id}`}
+                          className={`bg-white rounded-xl shadow-md border-2 p-6 hover:shadow-lg transition-all duration-200 relative ${
+                            transaction.type === "revenue"
+                              ? "border-emerald-200 hover:border-emerald-300"
+                              : "border-red-200 hover:border-red-300"
+                          }`}
+                        >
+                          {/* Transaction Header */}
+                          <div className="flex items-start justify-between mb-4">
+                            <div className="flex items-center space-x-3">
+                              <div
+                                className={`flex-shrink-0 p-2 rounded-lg ${
+                                  transaction.type === "revenue"
+                                    ? "bg-emerald-100"
+                                    : "bg-red-100"
+                                }`}
+                              >
+                                {transaction.type === "revenue"
+                                  ? revenueIcons[
+                                      transaction.category as keyof typeof revenueIcons
+                                    ] || revenueIcons.default
+                                  : categoryIcons[
+                                      transaction.category as keyof typeof categoryIcons
+                                    ] || categoryIcons.default}
+                              </div>
+                              <div className="flex-1 min-w-0">
+                                <h4 className="font-semibold text-gray-900 truncate">
+                                  {transaction.type === "revenue"
+                                    ? "Income"
+                                    : "Expense"}{" "}
+                                  #{transaction.id.slice(-4)}
+                                </h4>
+                                <p
+                                  className={`text-xs font-medium ${
+                                    transaction.type === "revenue"
+                                      ? "text-emerald-600"
+                                      : "text-red-600"
+                                  }`}
+                                >
+                                  {transaction.type === "revenue"
+                                    ? "↗ Money In"
+                                    : "↘ Money Out"}
+                                </p>
+                              </div>
+                            </div>
+                            {/* Category tag moved to top-right */}
+                            <span
+                              className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium absolute -top-3 right-4 ${
                                 transaction.type === "revenue"
-                                  ? "bg-emerald-100"
-                                  : "bg-red-100"
+                                  ? revenueColors[
+                                      transaction.category as keyof typeof revenueColors
+                                    ] || revenueColors.default
+                                  : categoryColors[
+                                      transaction.category as keyof typeof categoryColors
+                                    ] || categoryColors.default
                               }`}
                             >
-                              {transaction.type === "revenue"
-                                ? revenueIcons[
-                                    transaction.category as keyof typeof revenueIcons
-                                  ] || revenueIcons.default
-                                : categoryIcons[
-                                    transaction.category as keyof typeof categoryIcons
-                                  ] || categoryIcons.default}
+                              {transaction.category}
+                            </span>
+                          </div>
+
+                          {/* Transaction Content */}
+                          <div className="space-y-3">
+                            <div>
+                              <p className="text-sm font-medium text-gray-900 truncate">
+                                {transaction.merchant ||
+                                  transaction.source ||
+                                  "Unknown"}
+                              </p>
+                              <p className="text-xs text-gray-500 mt-1">
+                                {transaction.description ||
+                                  transaction.merchant ||
+                                  transaction.source ||
+                                  "No description"}
+                              </p>
                             </div>
-                            <div className="flex-1 min-w-0">
-                              <h4 className="text-lg font-semibold text-gray-900 truncate">
-                                {transaction.type === "revenue"
-                                  ? "Income"
-                                  : "Expense"}{" "}
-                                #{transaction.id.slice(-4)}
-                              </h4>
-                              <p
-                                className={`text-xs font-medium ${
+
+                            {/* Amount section - now takes full width */}
+                            <div>
+                              <div
+                                className={`font-bold ${
                                   transaction.type === "revenue"
                                     ? "text-emerald-600"
                                     : "text-red-600"
                                 }`}
                               >
-                                {transaction.type === "revenue"
-                                  ? "↗ Money In"
-                                  : "↘ Money Out"}
-                              </p>
-                            </div>
-                          </div>
-                          {/* Category tag moved to top-right */}
-                          <span
-                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium absolute -top-3 right-4 ${
-                              transaction.type === "revenue"
-                                ? revenueColors[
-                                    transaction.category as keyof typeof revenueColors
-                                  ] || revenueColors.default
-                                : categoryColors[
-                                    transaction.category as keyof typeof categoryColors
-                                  ] || categoryColors.default
-                            }`}
-                          >
-                            {transaction.category}
-                          </span>
-                        </div>
-
-                        {/* Transaction Content */}
-                        <div className="space-y-3">
-                          <div>
-                            <p className="text-sm font-medium text-gray-900 truncate">
-                              {transaction.merchant ||
-                                transaction.source ||
-                                "Unknown"}
-                            </p>
-                            <p className="text-xs text-gray-500 mt-1">
-                              {transaction.description ||
-                                transaction.merchant ||
-                                transaction.source ||
-                                "No description"}
-                            </p>
-                          </div>
-
-                          {/* Amount section - now takes full width */}
-                          <div>
-                            <div
-                              className={`font-bold ${
-                                transaction.type === "revenue"
-                                  ? "text-emerald-600"
-                                  : "text-red-600"
-                              }`}
-                            >
-                              {transaction.type === "revenue" ? "+" : "-"}
-                              {formatCurrency(
-                                transaction.amount,
-                                transaction.currency
+                                {transaction.type === "revenue" ? "+" : "-"}
+                                {formatCurrency(
+                                  transaction.amount,
+                                  transaction.currency
+                                )}
+                              </div>
+                              {transaction.currency !== baseCurrency && (
+                                <div className="text-xs text-gray-500 mt-1">
+                                  ≈ {getCurrencySymbol(baseCurrency)}
+                                  {currencyManager
+                                    .convert(
+                                      transaction.amount,
+                                      transaction.currency,
+                                      baseCurrency
+                                    )
+                                    .toFixed(2)}
+                                </div>
                               )}
                             </div>
-                            {transaction.currency !== baseCurrency && (
-                              <div className="text-xs text-gray-500 mt-1">
-                                ≈ {getCurrencySymbol(baseCurrency)}
-                                {currencyManager
-                                  .convert(
-                                    transaction.amount,
-                                    transaction.currency,
-                                    baseCurrency
-                                  )
-                                  .toFixed(2)}
+                          </div>
+
+                          {/* Attachments Section */}
+                          {transaction.attachments &&
+                            transaction.attachments.length > 0 && (
+                              <div className="mt-4 pt-3 border-t border-gray-100">
+                                <div className="flex items-center justify-between">
+                                  <div className="flex items-center space-x-2">
+                                    <Paperclip className="h-4 w-4 text-gray-400" />
+                                    <span className="text-sm text-gray-600">
+                                      {transaction.attachment_count} attachment
+                                      {transaction.attachment_count > 1
+                                        ? "s"
+                                        : ""}
+                                    </span>
+                                  </div>
+                                  <div className="flex space-x-1">
+                                    {transaction.attachments
+                                      .slice(0, 3)
+                                      .map((attachment: any, index: number) => (
+                                        <div
+                                          key={index}
+                                          className="flex items-center p-1 rounded hover:bg-gray-100 cursor-pointer"
+                                          title={`${attachment.filename} (${attachment.mimeType})`}
+                                        >
+                                          {getAttachmentIcon(
+                                            attachment.mimeType
+                                          )}
+                                        </div>
+                                      ))}
+                                    {transaction.attachments.length > 3 && (
+                                      <div className="flex items-center justify-center w-6 h-6 text-xs text-gray-500 bg-gray-100 rounded">
+                                        +{transaction.attachments.length - 3}
+                                      </div>
+                                    )}
+                                  </div>
+                                </div>
                               </div>
                             )}
-                          </div>
-                        </div>
 
-                        {/* Attachments Section */}
-                        {transaction.attachments &&
-                          transaction.attachments.length > 0 && (
-                            <div className="mt-4 pt-3 border-t border-gray-100">
+                          {/* Transaction Footer - Commented out for now */}
+                        </div>
+                      ))}
+                    </div>
+                  ) : (
+                    /* Transaction List View */
+                    <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
+                      <div className="divide-y divide-gray-200">
+                        {(transactionsForDay as any[]).map(
+                          (transaction: any) => (
+                            <div
+                              key={`${transaction.type}-${transaction.id}`}
+                              className="p-4 hover:bg-gray-50 transition-colors duration-150"
+                            >
                               <div className="flex items-center justify-between">
-                                <div className="flex items-center space-x-2">
-                                  <Paperclip className="h-4 w-4 text-gray-400" />
-                                  <span className="text-sm text-gray-600">
-                                    {transaction.attachment_count} attachment
-                                    {transaction.attachment_count > 1
-                                      ? "s"
-                                      : ""}
-                                  </span>
-                                </div>
-                                <div className="flex space-x-1">
-                                  {transaction.attachments
-                                    .slice(0, 3)
-                                    .map((attachment: any, index: number) => (
-                                      <div
-                                        key={index}
-                                        className="flex items-center p-1 rounded hover:bg-gray-100 cursor-pointer"
-                                        title={`${attachment.filename} (${attachment.mimeType})`}
+                                {/* Left side: Icon, merchant, and description */}
+                                <section className="flex items-center space-x-4 flex-1 min-w-0">
+                                  <div
+                                    className={`flex-shrink-0 p-2 rounded-lg ${
+                                      transaction.type === "revenue"
+                                        ? "bg-emerald-100"
+                                        : "bg-red-100"
+                                    }`}
+                                  >
+                                    {transaction.type === "revenue"
+                                      ? revenueIcons[
+                                          transaction.category as keyof typeof revenueIcons
+                                        ] || revenueIcons.default
+                                      : categoryIcons[
+                                          transaction.category as keyof typeof categoryIcons
+                                        ] || categoryIcons.default}
+                                  </div>
+                                  <div className="flex-1 min-w-0">
+                                    <div className="flex items-center space-x-2">
+                                      <p className="text-sm font-medium text-gray-900 truncate">
+                                        {transaction.merchant ||
+                                          transaction.source ||
+                                          "Unknown"}
+                                      </p>
+                                      <span
+                                        className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${
+                                          transaction.type === "revenue"
+                                            ? revenueColors[
+                                                transaction.category as keyof typeof revenueColors
+                                              ] || revenueColors.default
+                                            : categoryColors[
+                                                transaction.category as keyof typeof categoryColors
+                                              ] || categoryColors.default
+                                        }`}
                                       >
-                                        {getAttachmentIcon(attachment.mimeType)}
-                                      </div>
-                                    ))}
-                                  {transaction.attachments.length > 3 && (
-                                    <div className="flex items-center justify-center w-6 h-6 text-xs text-gray-500 bg-gray-100 rounded">
-                                      +{transaction.attachments.length - 3}
+                                        {transaction.category}
+                                      </span>
+                                      <span
+                                        className={`text-xs font-medium ${
+                                          transaction.type === "revenue"
+                                            ? "text-emerald-600"
+                                            : "text-red-600"
+                                        }`}
+                                      >
+                                        {transaction.type === "revenue"
+                                          ? "↗ Income"
+                                          : "↘ Expense"}
+                                      </span>
+                                      <span className="text-xs text-gray-400">
+                                        #{transaction.id.slice(-4)}
+                                      </span>
+                                      {transaction.attachments &&
+                                        transaction.attachments.length > 0 && (
+                                          <div className="flex items-center space-x-1">
+                                            <Paperclip className="h-3 w-3 text-gray-400" />
+                                            <span className="text-xs text-gray-400">
+                                              {transaction.attachment_count}
+                                            </span>
+                                          </div>
+                                        )}
+                                    </div>
+                                    <p className="text-xs text-gray-500 mt-1 truncate">
+                                      {transaction.description ||
+                                        transaction.merchant ||
+                                        transaction.source ||
+                                        "No description"}
+                                    </p>
+                                    {/* <div className="flex items-center space-x-3 mt-1">
+                                      
+                                    </div> */}
+                                  </div>
+                                </section>
+
+                                {/* Right side: Amount and currency conversion */}
+                                <div className="flex-shrink-0 text-right">
+                                  <div
+                                    className={`text-sm font-semibold ${
+                                      transaction.type === "revenue"
+                                        ? "text-emerald-600"
+                                        : "text-red-600"
+                                    }`}
+                                  >
+                                    {transaction.type === "revenue" ? "+" : "-"}
+                                    {formatCurrency(
+                                      transaction.amount,
+                                      transaction.currency
+                                    )}
+                                  </div>
+                                  {transaction.currency !== baseCurrency && (
+                                    <div className="text-xs text-gray-500 mt-1">
+                                      ≈ {getCurrencySymbol(baseCurrency)}
+                                      {currencyManager
+                                        .convert(
+                                          transaction.amount,
+                                          transaction.currency,
+                                          baseCurrency
+                                        )
+                                        .toFixed(2)}
                                     </div>
                                   )}
                                 </div>
                               </div>
                             </div>
-                          )}
-
-                        {/* Transaction Footer - Commented out for now */}
+                          )
+                        )}
                       </div>
-                    ))}
-                  </div>
+                    </div>
+                  )}
                 </div>
               )
             )}

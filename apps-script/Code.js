@@ -1527,11 +1527,16 @@ function processRevenueInBackground(emailData, userApiKey) {
   console.log("💰 DEBUG: User API key available:", !!userApiKey);
 
   try {
+    // Get the email message to extract the correct date
+    const message = GmailApp.getMessageById(emailData.messageId);
+    const emailDate = message ? message.getDate().toISOString() : new Date().toISOString();
+    
     const payload = {
       messageId: emailData.messageId,
       subject: emailData.subject,
       from: emailData.from,
       emailBody: emailData.body,
+      emailDate: emailDate, // Include the actual email date
     };
 
     console.log("💰 DEBUG: Payload prepared:", JSON.stringify(payload, null, 2));

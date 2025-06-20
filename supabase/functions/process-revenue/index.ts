@@ -55,7 +55,7 @@ Deno.serve(async (req) => {
 
     // Parse request body
     const body = await req.json();
-    const { messageId, subject, from, emailBody } = body;
+    const { messageId, subject, from, emailBody, emailDate } = body;
 
     if (!messageId || !subject || !from || !emailBody) {
       return new Response(
@@ -71,6 +71,7 @@ Deno.serve(async (req) => {
     console.log("📧 Subject:", subject);
     console.log("👤 From:", from);
     console.log("🆔 Message ID:", messageId);
+    console.log("📅 Email Date:", emailDate);
     console.log("👤 User:", user.email);
 
     // Create Supabase client with service role key for admin operations
@@ -125,7 +126,8 @@ Deno.serve(async (req) => {
     const revenueData = await extractRevenueDataWithAI(
       subject,
       from,
-      emailBody
+      emailBody,
+      emailDate
     );
 
     console.log("💰 Extracted revenue data:", revenueData);
@@ -284,7 +286,8 @@ async function getUserByApiKey(apiKey: string) {
 async function extractRevenueDataWithAI(
   subject: string,
   from: string,
-  emailBody: string
+  emailBody: string,
+  emailDate?: string
 ) {
   const prompt = `
     Extract revenue/income information from this email. This represents money coming INTO the account.
@@ -400,20 +403,22 @@ async function extractRevenueDataWithAI(
       category: revenueData.category || "payment_received",
       revenue_type: revenueData.revenue_type || "other",
       description: revenueData.description || subject,
-      date: validateDate(revenueData.date) || new Date().toISOString(),
+      date:
+        validateDate(revenueData.date) || emailDate || new Date().toISOString(),
       reference_number: revenueData.reference_number,
       tax_implications: revenueData.tax_implications || {},
     };
   } catch (error) {
     console.error("Error with OpenAI revenue extraction:", error);
-    return fallbackRevenueExtraction(subject, from, emailBody);
+    return fallbackRevenueExtraction(subject, from, emailBody, emailDate);
   }
 }
 
 function fallbackRevenueExtraction(
   subject: string,
   from: string,
-  emailBody: string
+  emailBody: string,
+  emailDate?: string
 ) {
   console.log("🔍 Using fallback pattern-based revenue extraction");
 
@@ -447,7 +452,7 @@ function fallbackRevenueExtraction(
     category: extractRevenueCategoryFromText(text),
     revenue_type: "other",
     description: subject,
-    date: new Date().toISOString(),
+    date: emailDate || new Date().toISOString(),
     reference_number: extractReferenceNumber(text),
     tax_implications: {},
   };
