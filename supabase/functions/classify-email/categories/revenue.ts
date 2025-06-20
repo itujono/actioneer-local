@@ -77,6 +77,20 @@ export const REVENUE_PATTERNS = {
     /google\s+pay.*received/i,
   ],
 
+  // Cryptocurrency and withdrawal patterns
+  crypto_withdrawals: [
+    /withdrawal\s+(?:successful|completed|processed)/i,
+    /successfully\s+withdrawn/i,
+    /you\s+have\s+successfully\s+(?:withdrawn|made\s+a\s+withdrawal)/i,
+    /crypto\s+withdrawal\s+(?:successful|completed)/i,
+    /funds\s+(?:withdrawn|transferred)\s+to\s+(?:your\s+)?bank/i,
+    /withdrawal.*to\s+(?:your\s+)?bank\s+account/i,
+    /(?:rupiah|usd|dollar|eur|euro)\s+withdrawal\s+successful/i,
+    /transferred\s+to\s+your\s+bank\s+account/i,
+    /withdrawal\s+confirmation/i,
+    /successfully\s+transferred.*to.*bank/i,
+  ],
+
   // Sale and marketplace income
   sales: [
     /sale\s+(?:completed|successful|confirmed)/i,
@@ -133,6 +147,12 @@ export const REVENUE_PATTERNS = {
     /binance/i,
     /kraken/i,
     /gemini/i,
+    /pintu/i,
+    /tokocrypto/i,
+    /indodax/i,
+    /bitget/i,
+    /kucoin/i,
+    /bybit/i,
   ],
 };
 
@@ -147,6 +167,7 @@ export function buildRevenuePrompt(emailData: EmailData): string {
     - Investment income (dividends, interest, trading profits)
     - Government payments (tax refunds, benefits, stimulus)
     - Digital platform income (PayPal, Venmo, Stripe received payments)
+    - Cryptocurrency withdrawals to bank accounts (money coming to you)
     - Sales income (marketplace sales, product sales)
     - Insurance payouts and settlements
     - Rental income payments
@@ -161,6 +182,9 @@ export function buildRevenuePrompt(emailData: EmailData): string {
     - "Dividend payment"
     - "Sale completed" or "Item sold"
     - "Insurance claim approved"
+    - "Withdrawal successful" or "Successfully withdrawn"
+    - "Transferred to your bank account"
+    - "Crypto withdrawal completed"
     
     INCLUDE:
     - Any notification that money is coming INTO your account
@@ -169,6 +193,8 @@ export function buildRevenuePrompt(emailData: EmailData): string {
     - Investment returns and gains
     - Government payments and refunds
     - Marketplace and platform payouts
+    - Cryptocurrency withdrawals to your bank account
+    - Money transfers from digital platforms to your bank
     
     EXCLUDE:
     - Marketing emails about potential earnings
@@ -181,7 +207,7 @@ export function buildRevenuePrompt(emailData: EmailData): string {
     From: ${emailData.from}
     Email Body: ${emailData.body.substring(0, 1500)}
     
-    Respond with JSON: { "isMatch": boolean, "confidence": 0-1, "reasoning": "explanation", "revenueType": "payment_received|refund|business_income|investment|government|digital_platform|sales" }
+    Respond with JSON: { "isMatch": boolean, "confidence": 0-1, "reasoning": "explanation", "revenueType": "payment_received|refund|business_income|investment|government|digital_platform|sales|crypto_withdrawal" }
   `;
 }
 
@@ -224,9 +250,15 @@ export function classifyRevenue(emailData: EmailData): Classification | null {
     (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
   );
 
-  // Look for monetary amounts (incoming money indicators)
+  const hasCryptoWithdrawalPattern = REVENUE_PATTERNS.crypto_withdrawals.some(
+    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
+  );
+
+  // Look for monetary amounts (incoming money indicators) - comprehensive currency support
   const hasMoneyAmount =
-    /\$\d+|\d+\.\d{2}|total.*\d+|amount.*\d+|received.*\d+/i.test(bodyLower);
+    /(\$|USD|CAD|AUD|NZD|MXN)\s*[\d,\.]+|(€|EUR)\s*[\d,\.]+|(£|GBP)\s*[\d,\.]+|(¥|JPY)\s*[\d,\.]+|(₩|KRW|won)\s*[\d,\.]+|(₹|INR|rupee)\s*[\d,\.]+|(Rp|IDR|rupiah)\s*[\d,\.]+|(S\$|SGD)\s*[\d,\.]+|(HK\$|HKD)\s*[\d,\.]+|(NT\$|TWD)\s*[\d,\.]+|(₱|PHP|peso)\s*[\d,\.]+|(RM|MYR)\s*[\d,\.]+|(฿|THB|baht)\s*[\d,\.]+|(₫|VND|dong)\s*[\d,\.]+|(CHF|franc)\s*[\d,\.]+|(SEK|kr)\s*[\d,\.]+|(R\$|BRL|real)\s*[\d,\.]+|(ZAR|rand)\s*[\d,\.]+|(₦|NGN|naira)\s*[\d,\.]+|total.*\d+|amount.*\d+|received.*\d+|\d+[\.\,]\d+/i.test(
+      bodyLower
+    );
 
   // Determine confidence and type
   let confidence = 0;
@@ -253,11 +285,16 @@ export function classifyRevenue(emailData: EmailData): Classification | null {
   } else if (hasSalesPattern) {
     confidence = 0.75;
     revenueType = "sales";
+  } else if (hasCryptoWithdrawalPattern && hasMoneyAmount) {
+    confidence = 0.85;
+    revenueType = "digital_platform";
   } else if (
     isFromRevenueDomain &&
     (hasMoneyAmount ||
       bodyLower.includes("received") ||
-      bodyLower.includes("credited"))
+      bodyLower.includes("credited") ||
+      bodyLower.includes("withdrawal") ||
+      bodyLower.includes("withdrawn"))
   ) {
     confidence = 0.7;
     revenueType = "payment_received";
@@ -331,6 +368,14 @@ function getRevenueActions(revenueType: string): Action[] {
         type: "simple" as const,
         label: "Update Inventory",
         handler: "updateInventory",
+        data: {},
+      });
+      break;
+    case "digital_platform":
+      baseActions.push({
+        type: "simple" as const,
+        label: "Track Crypto Activity",
+        handler: "trackCryptoActivity",
         data: {},
       });
       break;

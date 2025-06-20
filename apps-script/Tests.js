@@ -605,7 +605,7 @@ function testProactiveReceiptProcessing() {
     }
 
     console.log("💰 Creating proactive receipt card...");
-    const card = createReceiptProcessedCard(mockEmailData);
+    const card = createFinancialTransactionCard(mockGmailMessage, mockEmailData, 'expense');
 
     if (card) {
       console.log("✅ Proactive receipt card created successfully!");

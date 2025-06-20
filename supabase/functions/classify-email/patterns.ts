@@ -128,6 +128,14 @@ export const CLASSIFICATION_CONFIG: ClassificationConfig = {
       /venmo.*(?:payment\s+received|sent\s+you)/i,
       /zelle.*(?:payment\s+received|sent\s+you)/i,
       /stripe.*payment\s+received/i,
+      // Cryptocurrency withdrawal patterns
+      /withdrawal\s+(?:successful|completed|processed)/i,
+      /successfully\s+withdrawn/i,
+      /you\s+have\s+successfully\s+(?:withdrawn|made\s+a\s+withdrawal)/i,
+      /funds\s+(?:withdrawn|transferred)\s+to\s+(?:your\s+)?bank/i,
+      /withdrawal.*to\s+(?:your\s+)?bank\s+account/i,
+      /(?:rupiah|usd|dollar|eur|euro)\s+withdrawal\s+successful/i,
+      /transferred\s+to\s+your\s+bank\s+account/i,
     ],
   },
 };

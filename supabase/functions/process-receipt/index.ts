@@ -389,11 +389,18 @@ Important rules:
       }
     }
 
+    // Enhanced currency detection
+    const detectedCurrency =
+      receiptData.currency ||
+      detectCurrencyFromText(`${subject} ${emailBody}`) ||
+      detectCurrencyFromMerchant(merchant) ||
+      "USD";
+
     return {
       merchant,
       amount:
         typeof receiptData.amount === "number" ? receiptData.amount : null,
-      currency: receiptData.currency || "USD",
+      currency: detectedCurrency,
       category: receiptData.category || "other",
       description: receiptData.description || subject,
       date: validateDate(receiptData.date) || new Date().toISOString(),
@@ -441,10 +448,15 @@ function fallbackReceiptExtraction(
     }
   }
 
+  const detectedCurrency =
+    detectCurrencyFromText(text) ||
+    detectCurrencyFromMerchant(merchant) ||
+    "USD";
+
   return {
     merchant,
     amount: extractAmountFromText(text),
-    currency: "USD", // Default to USD
+    currency: detectedCurrency,
     category: extractCategoryFromText(text),
     description: subject,
     date: new Date().toISOString(),
@@ -605,6 +617,95 @@ function extractInvoiceNumber(text: string): string | null {
     const match = text.match(pattern);
     if (match && match[1]) {
       return match[1];
+    }
+  }
+
+  return null;
+}
+
+function detectCurrencyFromText(text: string): string | null {
+  const lowerText = text.toLowerCase();
+
+  // Currency symbol patterns
+  const currencyPatterns = [
+    { pattern: /\$\d|usd|\busd\b/i, currency: "USD" },
+    { pattern: /€\d|eur|\beur\b/i, currency: "EUR" },
+    { pattern: /£\d|gbp|\bgbp\b/i, currency: "GBP" },
+    { pattern: /¥\d|jpy|\bjpy\b/i, currency: "JPY" },
+    { pattern: /₹\d|inr|\binr\b/i, currency: "INR" },
+    { pattern: /rp\s*\d|idr|\bidr\b|rupiah/i, currency: "IDR" },
+    { pattern: /s\$\d|sgd|\bsgd\b/i, currency: "SGD" },
+    { pattern: /rm\s*\d|myr|\bmyr\b/i, currency: "MYR" },
+    { pattern: /₿\d|btc|\bbtc\b|bitcoin/i, currency: "BTC" },
+    { pattern: /eth|\beth\b|ethereum/i, currency: "ETH" },
+    { pattern: /cad|\bcad\b/i, currency: "CAD" },
+    { pattern: /aud|\baud\b/i, currency: "AUD" },
+    { pattern: /chf|\bchf\b/i, currency: "CHF" },
+    { pattern: /cny|\bcny\b|yuan/i, currency: "CNY" },
+    { pattern: /krw|\bkrw\b|won/i, currency: "KRW" },
+    { pattern: /thb|\bthb\b|baht/i, currency: "THB" },
+    { pattern: /vnd|\bvnd\b|dong/i, currency: "VND" },
+    { pattern: /php|\bphp\b|peso/i, currency: "PHP" },
+  ];
+
+  for (const { pattern, currency } of currencyPatterns) {
+    if (pattern.test(lowerText)) {
+      return currency;
+    }
+  }
+
+  return null;
+}
+
+function detectCurrencyFromMerchant(merchant: string): string | null {
+  const lowerMerchant = merchant.toLowerCase();
+
+  // Country/region-based currency detection for merchants
+  const merchantCurrencyMap: Record<string, string> = {
+    // US companies
+    paypal: "USD",
+    stripe: "USD",
+    apple: "USD",
+    google: "USD",
+    amazon: "USD",
+    microsoft: "USD",
+    github: "USD",
+    vercel: "USD",
+    netlify: "USD",
+    uber: "USD",
+    lyft: "USD",
+    doordash: "USD",
+
+    // UK companies
+    revolut: "GBP",
+    monzo: "GBP",
+    starling: "GBP",
+    deliveroo: "GBP",
+
+    // European companies
+    wise: "EUR",
+    klarna: "EUR",
+    adyen: "EUR",
+    spotify: "EUR",
+
+    // Asian companies
+    grab: "SGD",
+    gojek: "IDR",
+    tokopedia: "IDR",
+    shopee: "SGD",
+    lazada: "SGD",
+    foodpanda: "SGD",
+
+    // Crypto exchanges
+    coinbase: "USD",
+    binance: "USD",
+    kraken: "USD",
+    gemini: "USD",
+  };
+
+  for (const [company, currency] of Object.entries(merchantCurrencyMap)) {
+    if (lowerMerchant.includes(company)) {
+      return currency;
     }
   }
 

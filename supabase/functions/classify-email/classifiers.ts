@@ -15,7 +15,7 @@ import {
 } from "./categories/job-application.ts";
 import { classifyTravel, buildTravelPrompt } from "./categories/travel.ts";
 import { classifyReceipt, buildReceiptPrompt } from "./categories/receipt.ts";
-import { classifyRevenue } from "./categories/revenue.ts";
+import { classifyRevenue, buildRevenuePrompt } from "./categories/revenue.ts";
 
 // Initialize OpenAI
 const openai = new OpenAI({
@@ -87,6 +87,7 @@ async function trySpecificCategoryClassification(
       { name: "job_application", prompt: buildJobApplicationPrompt(emailData) },
       { name: "travel", prompt: buildTravelPrompt(emailData) },
       { name: "receipt", prompt: buildReceiptPrompt(emailData) },
+      { name: "revenue", prompt: buildRevenuePrompt(emailData) },
     ];
 
     for (const test of categoryTests) {
@@ -181,7 +182,12 @@ export function classifyEmailWithPatterns(
   console.log("🔍 Using pattern-based classification...");
 
   // Try each category-specific classifier
-  const classifiers = [classifyJobApplication, classifyTravel, classifyReceipt];
+  const classifiers = [
+    classifyJobApplication,
+    classifyTravel,
+    classifyReceipt,
+    classifyRevenue,
+  ];
 
   for (const classifier of classifiers) {
     const result = classifier(emailData);
@@ -223,6 +229,21 @@ function getActionsByType(type: Classification["type"]) {
           type: "simple" as const,
           label: "Track Expense",
           handler: "handleTrackExpense",
+          data: {},
+        },
+        {
+          type: "complex" as const,
+          label: "View Financial Dashboard",
+          handler: "openFinancialDashboard",
+          data: {},
+        },
+      ];
+    case "revenue":
+      return [
+        {
+          type: "simple" as const,
+          label: "Track Income",
+          handler: "handleTrackIncome",
           data: {},
         },
         {

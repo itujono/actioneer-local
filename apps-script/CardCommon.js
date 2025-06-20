@@ -68,7 +68,17 @@ function createSmartActionsCard(classification, messageId) {
 
       switch (action.type) {
         case "expense_dashboard":
-          webAppUrl = `${BASE_URL}/expenses?from=gmail&messageId=${messageId}&email=${encodeURIComponent(
+          webAppUrl = `${BASE_URL}/finance?view=expenses&from=gmail&messageId=${messageId}&email=${encodeURIComponent(
+            userEmail
+          )}`;
+          break;
+        case "revenue_dashboard":
+          webAppUrl = `${BASE_URL}/finance?view=revenue&from=gmail&messageId=${messageId}&email=${encodeURIComponent(
+            userEmail
+          )}`;
+          break;
+        case "financial_dashboard":
+          webAppUrl = `${BASE_URL}/finance?from=gmail&messageId=${messageId}&email=${encodeURIComponent(
             userEmail
           )}`;
           break;

@@ -1,32 +1,71 @@
-import { serve } from "https://deno.land/std@0.168.0/http/server.ts";
-import { createClient } from "https://esm.sh/@supabase/supabase-js@2";
+import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
   "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+    "authorization, x-client-info, apikey, content-type, x-user-api-key",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
-serve(async (req) => {
-  // Handle CORS preflight requests
+// Create Supabase client with service role for admin operations
+const supabaseUrl = Deno.env.get("SUPABASE_URL") ?? "";
+const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "";
+const supabaseAnonKey = Deno.env.get("SUPABASE_ANON_KEY") ?? "";
+
+// Regular client for normal operations
+const supabase = createClient(supabaseUrl, supabaseAnonKey);
+
+// Admin client for auth operations
+const supabaseAdmin = createClient(supabaseUrl, supabaseServiceKey, {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+});
+
+Deno.serve(async (req) => {
+  console.log("💰 Revenue processing function called");
+
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
   }
 
   try {
-    const { emailData, user } = await req.json();
-
-    if (!emailData || !user) {
+    // Extract user API key from custom header
+    const userApiKey = req.headers.get("x-user-api-key");
+    if (!userApiKey) {
       return new Response(
-        JSON.stringify({ error: "Missing email data or user information" }),
+        JSON.stringify({ error: "Missing user API key header" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    // Validate user API key
+    const user = await getUserByApiKey(userApiKey);
+    if (!user) {
+      console.log("❌ API key validation failed - no user found");
+      return new Response(JSON.stringify({ error: "Invalid API key" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
+    }
+
+    // Parse request body
+    const body = await req.json();
+    const { messageId, subject, from, emailBody } = body;
+
+    if (!messageId || !subject || !from || !emailBody) {
+      return new Response(
+        JSON.stringify({ error: "Missing required fields" }),
         {
           status: 400,
           headers: { ...corsHeaders, "Content-Type": "application/json" },
         }
       );
     }
-
-    const { subject, from, body, messageId } = emailData;
 
     console.log("🟢 Processing revenue email:");
     console.log("📧 Subject:", subject);
@@ -46,8 +85,48 @@ serve(async (req) => {
       }
     );
 
+    // Check if this email has already been processed
+    console.log("🔍 Checking for existing revenue with email_id:", messageId);
+    const { data: existingRevenue, error: existingError } = await supabase
+      .from("revenue")
+      .select("*")
+      .eq("email_id", messageId)
+      .eq("user_id", user.id)
+      .single();
+
+    if (existingRevenue && !existingError) {
+      console.log(
+        "✅ Revenue already exists for this email:",
+        existingRevenue.id
+      );
+      return new Response(
+        JSON.stringify({
+          success: true,
+          revenueId: existingRevenue.id,
+          extractedData: {
+            source: existingRevenue.source,
+            amount: existingRevenue.amount,
+            currency: existingRevenue.currency,
+            category: existingRevenue.category,
+            date: existingRevenue.date,
+          },
+          message: "Revenue already processed for this email",
+          duplicate: true,
+        }),
+        {
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    console.log("🆕 No existing revenue found, processing new email...");
+
     // Extract revenue data using AI and patterns
-    const revenueData = await extractRevenueDataWithAI(subject, from, body);
+    const revenueData = await extractRevenueDataWithAI(
+      subject,
+      from,
+      emailBody
+    );
 
     console.log("💰 Extracted revenue data:", revenueData);
 
@@ -61,11 +140,17 @@ serve(async (req) => {
       );
     }
 
-    // Store in database using the user ID
+    console.log("🔄 Inserting revenue for user:", user.email);
+    console.log("🔍 User ID being used:", user.id);
+    console.log("🔍 Auth user ID:", user.auth_user_id);
+    console.log("🔍 Custom user ID:", user.custom_user_id);
+
+    // Store in database using the user ID (should be Supabase Auth ID after mapping)
+    // Use supabaseAdmin to bypass RLS policies
     const { data: storedData, error: storeError } = await supabaseAdmin
       .from("revenue")
       .insert({
-        user_id: user.id,
+        user_id: user.id, // This should now be the Supabase Auth user ID
         email_id: messageId,
         source: revenueData.source || "Unknown Source",
         amount: revenueData.amount || 0,
@@ -121,6 +206,80 @@ serve(async (req) => {
     });
   }
 });
+
+async function getUserByApiKey(apiKey: string) {
+  try {
+    console.log(
+      "🔍 Starting user lookup with API key:",
+      apiKey.substring(0, 10) + "..."
+    );
+
+    // Use admin client for users table access (has service role permissions)
+    const { data, error } = await supabaseAdmin
+      .from("users")
+      .select("*")
+      .eq("api_key", apiKey)
+      .eq("is_active", true)
+      .single();
+
+    if (error) {
+      console.log("❌ User lookup error:", error.message);
+      console.log("❌ Error details:", JSON.stringify(error, null, 2));
+      return null;
+    }
+
+    if (!data) {
+      console.log("❌ No user data returned");
+      return null;
+    }
+
+    console.log("✅ Found custom user:", data.email, "with ID:", data.id);
+
+    // If we found a custom user, try to find the corresponding Supabase Auth user by email
+    console.log("🔍 Looking up Supabase Auth user for email:", data.email);
+
+    try {
+      // Use the correct method to get user by email
+      const { data: authUsers, error: authError } =
+        await supabaseAdmin.auth.admin.listUsers();
+
+      if (authError) {
+        console.log("⚠️ Auth users list error:", authError.message);
+        console.log("⚠️ Falling back to custom user ID:", data.id);
+        return data;
+      }
+
+      // Find user by email in the list
+      const authUser = authUsers.users?.find(
+        (user) => user.email === data.email
+      );
+
+      if (authUser?.id) {
+        console.log("✅ Found Supabase Auth user:", authUser.id);
+        // Return a modified user object with the Supabase Auth ID
+        const modifiedUser = {
+          ...data,
+          id: authUser.id, // Use Supabase Auth ID instead of custom user ID
+          auth_user_id: authUser.id,
+          custom_user_id: data.id,
+        };
+        console.log("✅ Using Supabase Auth user ID:", modifiedUser.id);
+        return modifiedUser;
+      } else {
+        console.log("⚠️ No Supabase Auth user found for email:", data.email);
+        console.log("⚠️ Falling back to custom user ID:", data.id);
+        return data;
+      }
+    } catch (authLookupError) {
+      console.error("❌ Error during auth user lookup:", authLookupError);
+      console.log("⚠️ Falling back to custom user ID:", data.id);
+      return data;
+    }
+  } catch (error) {
+    console.error("❌ Error validating API key:", error);
+    return null;
+  }
+}
 
 async function extractRevenueDataWithAI(
   subject: string,
@@ -226,11 +385,18 @@ async function extractRevenueDataWithAI(
       }
     }
 
+    // Enhanced currency detection
+    const detectedCurrency =
+      revenueData.currency ||
+      detectCurrencyFromText(`${subject} ${emailBody}`) ||
+      detectCurrencyFromSource(source) ||
+      "USD";
+
     return {
       source,
       amount:
         typeof revenueData.amount === "number" ? revenueData.amount : null,
-      currency: revenueData.currency || "USD",
+      currency: detectedCurrency,
       category: revenueData.category || "payment_received",
       revenue_type: revenueData.revenue_type || "other",
       description: revenueData.description || subject,
@@ -271,10 +437,13 @@ function fallbackRevenueExtraction(
     }
   }
 
+  const detectedCurrency =
+    detectCurrencyFromText(text) || detectCurrencyFromSource(source) || "USD";
+
   return {
     source,
     amount: extractAmountFromText(text),
-    currency: "USD",
+    currency: detectedCurrency,
     category: extractRevenueCategoryFromText(text),
     revenue_type: "other",
     description: subject,
@@ -322,21 +491,72 @@ function extractSourceFromText(text: string): string | null {
 
 function extractAmountFromText(text: string): number | null {
   const patterns = [
+    // USD patterns
     /\$(\d+\.?\d*)/g,
     /(\d+\.?\d*)\s*usd/gi,
     /received[:\s]*\$?(\d+\.?\d*)/gi,
     /amount[:\s]*\$?(\d+\.?\d*)/gi,
     /credited[:\s]*\$?(\d+\.?\d*)/gi,
     /deposited[:\s]*\$?(\d+\.?\d*)/gi,
+
+    // IDR (Indonesian Rupiah) patterns - most common for Pintu
+    /withdrawal.*rp\s*([\d,\.]+)/gi, // withdrawal of Rp 30.527.500
+    /withdrawn\s*rp\s*([\d,\.]+)/gi, // withdrawn Rp 30.527.500
+    /successfully.*withdrawn\s*rp\s*([\d,\.]+)/gi, // successfully withdrawn Rp 30.527.500
+    /rp\s*([\d,\.]+).*(?:withdrawn|transferred|deposited)/gi, // Rp 30.527.500 withdrawn
+    /rp\s*([\d,\.]+)/gi, // General Rp amounts
+
+    // Other international currency patterns
+    /€\s*([\d,\.]+)/gi, // Euro amounts
+    /£\s*([\d,\.]+)/gi, // Pound amounts
+    /¥\s*([\d,\.]+)/gi, // Yen amounts
+    /₹\s*([\d,\.]+)/gi, // Rupee amounts
+    /₱\s*([\d,\.]+)/gi, // Peso amounts
+    /rm\s*([\d,\.]+)/gi, // Malaysian Ringgit
+    /s\$\s*([\d,\.]+)/gi, // Singapore Dollar
+
+    // Generic amount patterns
+    /(\d+[,\.]\d+[,\.]\d+)/g, // Large numbers with separators like 16,550,500 or 16.550.500
+    /(\d{4,})/g, // Numbers with 4+ digits (for large amounts without separators)
   ];
 
   for (const pattern of patterns) {
     const matches = text.match(pattern);
     if (matches && matches.length > 0) {
-      const numericMatch = matches[0].match(/(\d+\.?\d*)/);
+      const numericMatch = matches[0].match(/([\d,\.]+)/);
       if (numericMatch) {
-        const amount = parseFloat(numericMatch[1]);
-        if (amount > 0 && amount < 100000) {
+        let amountStr = numericMatch[1];
+
+        // Handle different number formats
+        const currency = detectCurrencyFromText(text);
+
+        if (
+          currency === "IDR" &&
+          amountStr.includes(".") &&
+          !amountStr.includes(",")
+        ) {
+          // Indonesian format: dots as thousands separators, no decimal places
+          amountStr = amountStr.replace(/\./g, "");
+        } else if (amountStr.includes(",") && amountStr.includes(".")) {
+          // European format: 1.234.567,89 or US format: 1,234,567.89
+          const lastDotIndex = amountStr.lastIndexOf(".");
+          const lastCommaIndex = amountStr.lastIndexOf(",");
+
+          if (lastCommaIndex > lastDotIndex) {
+            // European format: remove dots, keep comma as decimal
+            amountStr = amountStr.replace(/\./g, "").replace(",", ".");
+          } else {
+            // US format: remove commas, keep dot as decimal
+            amountStr = amountStr.replace(/,/g, "");
+          }
+        } else {
+          // Simple format: just remove commas
+          amountStr = amountStr.replace(/,/g, "");
+        }
+
+        const amount = parseFloat(amountStr);
+        if (amount > 0 && amount < 100000000) {
+          // Increased upper limit for IDR
           return amount;
         }
       }
@@ -400,4 +620,87 @@ function validateDate(dateString: string): string | null {
   } catch {
     return null;
   }
+}
+
+function detectCurrencyFromText(text: string): string | null {
+  const lowerText = text.toLowerCase();
+
+  // Currency symbol patterns
+  const currencyPatterns = [
+    { pattern: /\$\d|usd|\busd\b/i, currency: "USD" },
+    { pattern: /€\d|eur|\beur\b/i, currency: "EUR" },
+    { pattern: /£\d|gbp|\bgbp\b/i, currency: "GBP" },
+    { pattern: /¥\d|jpy|\bjpy\b/i, currency: "JPY" },
+    { pattern: /₹\d|inr|\binr\b/i, currency: "INR" },
+    { pattern: /rp\s*\d|idr|\bidr\b|rupiah/i, currency: "IDR" },
+    { pattern: /s\$\d|sgd|\bsgd\b/i, currency: "SGD" },
+    { pattern: /rm\s*\d|myr|\bmyr\b/i, currency: "MYR" },
+    { pattern: /₿\d|btc|\bbtc\b|bitcoin/i, currency: "BTC" },
+    { pattern: /eth|\beth\b|ethereum/i, currency: "ETH" },
+    { pattern: /cad|\bcad\b/i, currency: "CAD" },
+    { pattern: /aud|\baud\b/i, currency: "AUD" },
+    { pattern: /chf|\bchf\b/i, currency: "CHF" },
+    { pattern: /cny|\bcny\b|yuan/i, currency: "CNY" },
+    { pattern: /krw|\bkrw\b|won/i, currency: "KRW" },
+    { pattern: /thb|\bthb\b|baht/i, currency: "THB" },
+    { pattern: /vnd|\bvnd\b|dong/i, currency: "VND" },
+    { pattern: /php|\bphp\b|peso/i, currency: "PHP" },
+  ];
+
+  for (const { pattern, currency } of currencyPatterns) {
+    if (pattern.test(lowerText)) {
+      return currency;
+    }
+  }
+
+  return null;
+}
+
+function detectCurrencyFromSource(source: string): string | null {
+  const lowerSource = source.toLowerCase();
+
+  // Country/region-based currency detection
+  const sourceCurrencyMap: Record<string, string> = {
+    // US companies
+    paypal: "USD",
+    stripe: "USD",
+    apple: "USD",
+    google: "USD",
+    amazon: "USD",
+    microsoft: "USD",
+    github: "USD",
+    vercel: "USD",
+    netlify: "USD",
+
+    // UK companies
+    revolut: "GBP",
+    monzo: "GBP",
+    starling: "GBP",
+
+    // European companies
+    wise: "EUR",
+    klarna: "EUR",
+    adyen: "EUR",
+
+    // Asian companies
+    grab: "SGD",
+    gojek: "IDR",
+    tokopedia: "IDR",
+    shopee: "SGD",
+    lazada: "SGD",
+
+    // Crypto exchanges
+    coinbase: "USD",
+    binance: "USD",
+    kraken: "USD",
+    gemini: "USD",
+  };
+
+  for (const [company, currency] of Object.entries(sourceCurrencyMap)) {
+    if (lowerSource.includes(company)) {
+      return currency;
+    }
+  }
+
+  return null;
 }

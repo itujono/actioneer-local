@@ -651,8 +651,22 @@ function onGmailMessage(e) {
         console.error("❌ Backend receipt processing failed:", error);
       }
       
-      const card = createReceiptProcessedCard(gmailMessage, emailData);
+      const card = createFinancialTransactionCard(gmailMessage, emailData, 'expense');
       console.log("🎨 Receipt processed card created successfully");
+      return [card];
+    } else if (classification.type === "revenue") {
+      console.log("💰 Revenue detected - auto-processing...");
+      
+      // Trigger backend revenue processing
+      try {
+        processRevenueInBackground(emailData, userApiKey);
+        console.log("✅ Backend revenue processing triggered");
+      } catch (error) {
+        console.error("❌ Backend revenue processing failed:", error);
+      }
+      
+      const card = createFinancialTransactionCard(gmailMessage, emailData, 'revenue');
+      console.log("🎨 Revenue processed card created successfully");
       return [card];
     } else if (classification.type === "travel") {
       console.log("✈️ Travel email detected - auto-processing...");
@@ -1504,6 +1518,67 @@ function processReceiptInBackground(emailData, userApiKey) {
 }
 
 /**
+ * Process revenue email in background
+ */
+function processRevenueInBackground(emailData, userApiKey) {
+  console.log("🔄 Starting background revenue processing...");
+  console.log("💰 DEBUG: Revenue processing called with messageId:", emailData.messageId);
+  console.log("💰 DEBUG: BACKEND_API_URL:", BACKEND_API_URL);
+  console.log("💰 DEBUG: User API key available:", !!userApiKey);
+
+  try {
+    const payload = {
+      messageId: emailData.messageId,
+      subject: emailData.subject,
+      from: emailData.from,
+      emailBody: emailData.body,
+    };
+
+    console.log("💰 DEBUG: Payload prepared:", JSON.stringify(payload, null, 2));
+
+    // Headers required for Supabase Edge Functions
+    const headers = {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      "x-user-api-key": userApiKey,
+    };
+
+    console.log("💰 DEBUG: Headers prepared (API keys hidden)");
+    
+    // Call the revenue processing Edge Function
+    const response = UrlFetchApp.fetch(
+      `${BACKEND_API_URL}/process-revenue`,
+      {
+      method: "POST",
+      headers: headers,
+      payload: JSON.stringify(payload),
+      muteHttpExceptions: true,
+      timeout: 30000, // 30 second timeout to prevent hanging
+    });
+
+    console.log("💰 DEBUG: Response received. Status code:", response.getResponseCode());
+    console.log("💰 DEBUG: Response content:", response.getContentText());
+
+    if (response.getResponseCode() === 200) {
+      const result = JSON.parse(response.getContentText());
+      console.log(
+        "✅ Revenue processed successfully:",
+        result.revenueId
+      );
+      console.log(
+        "📊 Extracted data:",
+        JSON.stringify(result.extractedData, null, 2)
+      );
+    } else {
+      console.error("❌ Revenue processing failed:", response.getContentText());
+    }
+  } catch (error) {
+    console.error("💥 Error in background revenue processing:", error);
+  }
+}
+
+/**
  * Check for pre-processed email data from auto-processing
  */
 function getPreProcessedEmailData(messageId, userApiKey) {
@@ -1682,6 +1757,204 @@ function extractExpenseFromEmail(message) {
   return expenseData;
 }
 
+/**
+ * Extract revenue data from email message
+ */
+function extractRevenueFromEmail(message) {
+  const subject = message.getSubject();
+  const body = message.getPlainBody() || message.getBody();
+  const from = message.getFrom();
+
+  let revenueData = {
+    amount: null,
+    currency: "$",
+    source: null,
+    date: message.getDate().toISOString(),
+    description: subject,
+    category: "payment_received",
+  };
+
+  // Detect currency from content based on supported countries
+  const textToSearch = subject + " " + body;
+  const textToSearchLower = textToSearch.toLowerCase();
+  
+  // Asia-Pacific currencies
+  if (textToSearchLower.includes("rp ") || textToSearchLower.includes("rupiah")) {
+    revenueData.currency = "IDR"; // Indonesia
+  } else if (textToSearchLower.includes("¥") || textToSearchLower.includes("yen")) {
+    revenueData.currency = "JPY"; // Japan
+  } else if (textToSearchLower.includes("₩") || textToSearchLower.includes("won")) {
+    revenueData.currency = "KRW"; // South Korea
+  } else if (textToSearchLower.includes("₹") || textToSearchLower.includes("rupee")) {
+    revenueData.currency = "INR"; // India
+  } else if (textToSearchLower.includes("s$") || textToSearchLower.includes("sgd")) {
+    revenueData.currency = "SGD"; // Singapore
+  } else if (textToSearchLower.includes("hk$") || textToSearchLower.includes("hkd")) {
+    revenueData.currency = "HKD"; // Hong Kong
+  } else if (textToSearchLower.includes("nt$") || textToSearchLower.includes("twd")) {
+    revenueData.currency = "TWD"; // Taiwan
+  } else if (textToSearchLower.includes("₱") || textToSearchLower.includes("peso") || textToSearchLower.includes("php")) {
+    revenueData.currency = "PHP"; // Philippines
+  } else if (textToSearchLower.includes("rm ") || textToSearchLower.includes("myr")) {
+    revenueData.currency = "MYR"; // Malaysia
+  } else if (textToSearchLower.includes("฿") || textToSearchLower.includes("baht")) {
+    revenueData.currency = "THB"; // Thailand
+  } else if (textToSearchLower.includes("₫") || textToSearchLower.includes("dong")) {
+    revenueData.currency = "VND"; // Vietnam
+  } 
+  // European currencies
+  else if (textToSearchLower.includes("€") || textToSearchLower.includes("euro")) {
+    revenueData.currency = "EUR"; // Germany, France, Netherlands, Italy, Spain
+  } else if (textToSearchLower.includes("£") || textToSearchLower.includes("pound")) {
+    revenueData.currency = "GBP"; // United Kingdom
+  } else if (textToSearchLower.includes("chf") || textToSearchLower.includes("franc")) {
+    revenueData.currency = "CHF"; // Switzerland
+  } else if (textToSearchLower.includes("kr ") || textToSearchLower.includes("sek")) {
+    revenueData.currency = "SEK"; // Sweden
+  }
+  // Americas currencies
+  else if (textToSearchLower.includes("c$") || textToSearchLower.includes("cad")) {
+    revenueData.currency = "CAD"; // Canada
+  } else if (textToSearchLower.includes("r$") || textToSearchLower.includes("brl") || textToSearchLower.includes("real")) {
+    revenueData.currency = "BRL"; // Brazil
+  } else if (textToSearchLower.includes("mxn") || textToSearchLower.includes("mx$")) {
+    revenueData.currency = "MXN"; // Mexico
+  }
+  // Oceania currencies
+  else if (textToSearchLower.includes("au$") || textToSearchLower.includes("aud")) {
+    revenueData.currency = "AUD"; // Australia
+  } else if (textToSearchLower.includes("nz$") || textToSearchLower.includes("nzd")) {
+    revenueData.currency = "NZD"; // New Zealand
+  }
+  // African currencies
+  else if (textToSearchLower.includes("zar") || textToSearchLower.includes("rand")) {
+    revenueData.currency = "ZAR"; // South Africa
+  } else if (textToSearchLower.includes("₦") || textToSearchLower.includes("naira")) {
+    revenueData.currency = "NGN"; // Nigeria
+  }
+
+  // Identify revenue sources
+  if (subject.toLowerCase().includes("withdrawal") || 
+      body.toLowerCase().includes("withdrawal") ||
+      body.toLowerCase().includes("withdrawn")) {
+    revenueData.category = "digital_platform";
+  } else if (subject.toLowerCase().includes("payment received") || 
+      body.toLowerCase().includes("payment received")) {
+    revenueData.category = "payment_received";
+  } else if (subject.toLowerCase().includes("refund") || 
+             body.toLowerCase().includes("refund")) {
+    revenueData.category = "refund";
+  } else if (subject.toLowerCase().includes("invoice") && 
+             (subject.toLowerCase().includes("paid") || 
+              body.toLowerCase().includes("payment received"))) {
+    revenueData.category = "business_income";
+  } else if (subject.toLowerCase().includes("dividend") || 
+             subject.toLowerCase().includes("investment")) {
+    revenueData.category = "investment";
+  } else if (from.toLowerCase().includes("gov") || 
+             from.toLowerCase().includes("irs") || 
+             from.toLowerCase().includes("tax")) {
+    revenueData.category = "government";
+  }
+
+  // Extract source/company name
+  if (subject.toLowerCase().includes("paypal")) {
+    revenueData.source = "PayPal";
+  } else if (subject.toLowerCase().includes("stripe")) {
+    revenueData.source = "Stripe";
+  } else if (subject.toLowerCase().includes("venmo")) {
+    revenueData.source = "Venmo";
+  } else if (subject.toLowerCase().includes("zelle")) {
+    revenueData.source = "Zelle";
+  } else if (subject.toLowerCase().includes("pintu")) {
+    revenueData.source = "Pintu";
+    revenueData.category = "digital_platform";
+  } else if (subject.toLowerCase().includes("tokocrypto")) {
+    revenueData.source = "TokoCrypto";
+    revenueData.category = "digital_platform";
+  } else if (subject.toLowerCase().includes("indodax")) {
+    revenueData.source = "Indodax";
+    revenueData.category = "digital_platform";
+  } else if (from.includes("@")) {
+    const domain = from.split("@")[1];
+    if (domain) {
+      const companyName = domain.split(".")[0];
+      revenueData.source = companyName.charAt(0).toUpperCase() + companyName.slice(1);
+    }
+  }
+
+  // Revenue amount patterns (look for positive indicators)
+  const revenuePatterns = [
+    /received[:\s]*\$?(\d+\.?\d*)/gi, // Received: $20.00
+    /payment[:\s]*\$?(\d+\.?\d*)/gi, // Payment: $20.00
+    /deposited[:\s]*\$?(\d+\.?\d*)/gi, // Deposited: $20.00
+    /credited[:\s]*\$?(\d+\.?\d*)/gi, // Credited: $20.00
+    /income[:\s]*\$?(\d+\.?\d*)/gi, // Income: $20.00
+    /\+\s*\$(\d+\.?\d*)/g, // +$20.00
+    /\$(\d+\.?\d*)\s*received/gi, // $20.00 received
+    /refund[:\s]*\$?(\d+\.?\d*)/gi, // Refund: $20.00
+    // Cryptocurrency and international currency patterns
+    /withdrawal.*Rp\s*([\d,\.]+)/gi, // withdrawal of Rp 30.527.500
+    /withdrawn\s*Rp\s*([\d,\.]+)/gi, // withdrawn Rp 30.527.500
+    /successfully.*withdrawn\s*Rp\s*([\d,\.]+)/gi, // successfully withdrawn Rp 30.527.500
+    /Rp\s*([\d,\.]+).*(?:withdrawn|transferred|deposited)/gi, // Rp 30.527.500 withdrawn
+    /€\s*([\d,\.]+).*(?:received|withdrawn|transferred)/gi, // Euro amounts
+    /£\s*([\d,\.]+).*(?:received|withdrawn|transferred)/gi, // Pound amounts
+  ];
+
+  for (const pattern of revenuePatterns) {
+    const matches = textToSearch.match(pattern);
+    if (matches && matches.length > 0) {
+      // Handle different number formats (US vs Indonesian/European)
+      const numericMatch = matches[0].match(/([\d,\.]+)/);
+      if (numericMatch) {
+        let amountStr = numericMatch[1];
+        // Handle Indonesian format (dots as thousands separators, no decimal)
+        if (revenueData.currency === "IDR" && amountStr.includes('.') && !amountStr.includes(',')) {
+          // Remove dots used as thousands separators in Indonesian format
+          amountStr = amountStr.replace(/\./g, '');
+        } else {
+          // Handle US/standard format (commas as thousands separators)
+          amountStr = amountStr.replace(/,/g, '');
+        }
+        revenueData.amount = parseFloat(amountStr);
+        console.log("💰 Found revenue amount:", revenueData.amount, revenueData.currency);
+        break;
+      }
+    }
+  }
+
+  // If no specific revenue pattern found, look for general positive amounts
+  if (!revenueData.amount) {
+    // Look for amounts in contexts that suggest income
+    const positiveContexts = [
+      /(?:you've received|received|earned|paid|credited|deposited).*\$?(\d+\.?\d*)/gi,
+      /\$(\d+\.?\d*).*(?:has been|was|were).*(?:received|credited|deposited)/gi,
+    ];
+
+    for (const pattern of positiveContexts) {
+      const matches = textToSearch.match(pattern);
+      if (matches && matches.length > 0) {
+        const numericMatch = matches[0].match(/(\d+\.?\d*)/);
+        if (numericMatch) {
+          revenueData.amount = parseFloat(numericMatch[1]);
+          console.log("💰 Found contextual revenue amount:", revenueData.amount);
+          break;
+        }
+      }
+    }
+  }
+
+  // Only return revenue data if we found a positive amount
+  if (revenueData.amount && revenueData.amount > 0) {
+    console.log("✅ Final revenue data:", JSON.stringify(revenueData, null, 2));
+    return revenueData;
+  } else {
+    console.log("📭 No revenue amount found in email");
+    return null;
+  }
+}
+
 function processExpense(expenseData, userApiKey) {
   try {
     const response = UrlFetchApp.fetch(`${BACKEND_API_URL}/expenses`, {
@@ -1714,6 +1987,30 @@ function getRecentExpenses() {
     }
   } catch (error) {
     console.error("Error fetching recent expenses:", error);
+    return [];
+  }
+}
+
+/**
+ * Get recent revenue transactions
+ */
+function getRecentRevenue() {
+  try {
+    const response = UrlFetchApp.fetch(`${BACKEND_API_URL}/revenue/recent`, {
+      method: "GET",
+      headers: getEdgeFunctionHeaders(),
+      muteHttpExceptions: true,
+    });
+
+    if (response.getResponseCode() === 200) {
+      const result = JSON.parse(response.getContentText());
+      return result.revenue || [];
+    } else {
+      console.log("No recent revenue found or endpoint not available");
+      return [];
+    }
+  } catch (error) {
+    console.error("Error fetching recent revenue:", error);
     return [];
   }
 }

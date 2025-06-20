@@ -1,7 +1,6 @@
-import { createRoute, useNavigate } from "@tanstack/react-router";
+import { createRoute } from "@tanstack/react-router";
 import { rootRoute } from "./root";
 import { useQuery } from "@tanstack/react-query";
-import { useState, useEffect } from "react";
 import {
   ReceiptIcon,
   PlaneIcon,
@@ -10,6 +9,7 @@ import {
   DollarSign,
 } from "lucide-react";
 import { supabase } from "../supabase/client";
+import { useAuth } from "../hooks/useAuth";
 import DashboardCard from "../components/dashboard/DashboardCard";
 import RecentActivityCard from "../components/dashboard/RecentActivityCard";
 import { formatDistanceToNow } from "date-fns";
@@ -21,68 +21,8 @@ export const dashboardRoute = createRoute({
 });
 
 function Dashboard() {
-  const navigate = useNavigate();
-  const [user, setUser] = useState<any>(null);
-  const [authLoading, setAuthLoading] = useState(true);
-
-  // Check authentication status
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        // Force refresh session to handle potential stale sessions
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession();
-
-        if (error) {
-          console.error("Session error:", error);
-          // If there's a session error, try to refresh
-          const { data: refreshData } = await supabase.auth.refreshSession();
-          setUser(refreshData?.session?.user || null);
-        } else {
-          setUser(session?.user || null);
-        }
-
-        console.log("🔍 Dashboard auth status:", {
-          authenticated: !!session?.user,
-          userId: session?.user?.id,
-          email: session?.user?.email,
-        });
-      } catch (error) {
-        console.error("Error checking auth:", error);
-        setUser(null);
-      } finally {
-        setAuthLoading(false);
-      }
-    };
-
-    checkAuth();
-
-    // Listen for auth state changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
-      console.log("🔄 Dashboard auth state changed:", {
-        authenticated: !!session?.user,
-        userId: session?.user?.id,
-        email: session?.user?.email,
-      });
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  // Redirect to login if not authenticated (after loading completes)
-  useEffect(() => {
-    if (!authLoading && !user) {
-      console.log("🔒 User not authenticated, redirecting to login...");
-      navigate({ to: "/auth" });
-    }
-  }, [authLoading, user, navigate]);
+  // Use TanStack Query for auth management
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
 
   // Fetch recent emails only when authenticated
   const { data: recentEmails, isLoading: emailsLoading } = useQuery({

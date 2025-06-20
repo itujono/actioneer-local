@@ -1,6 +1,6 @@
 import { createClient } from "npm:@supabase/supabase-js@2";
 import type { EmailData } from "./types.ts";
-import { classifyEmailWithOpenAI } from "./classifiers.ts";
+import { classifyEmail } from "./classifiers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
@@ -103,8 +103,8 @@ Deno.serve(async (req) => {
       date,
     };
 
-    // Classify email with OpenAI
-    const classification = await classifyEmailWithOpenAI(emailData);
+    // Classify email with comprehensive classification
+    const classification = await classifyEmail(emailData);
 
     console.log("✅ Email classified as:", classification.type);
 

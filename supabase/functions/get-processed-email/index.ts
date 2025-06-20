@@ -118,6 +118,31 @@ Deno.serve(async (req) => {
         }
         break;
 
+      case "revenue":
+        const revenueData = await getRevenueData(user.id, messageId);
+        if (revenueData) {
+          processedData.revenueData = {
+            source: revenueData.source,
+            amount: revenueData.amount,
+            currency: revenueData.currency,
+            date: revenueData.date,
+            category: revenueData.category,
+            revenue_type: revenueData.revenue_type,
+            description: revenueData.description,
+          };
+        } else {
+          // If no revenue data found, this email should be reprocessed
+          console.log("❌ No revenue data found, email should be reprocessed");
+          return new Response(
+            JSON.stringify({ error: "Revenue data not found" }),
+            {
+              status: 404,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+        break;
+
       case "job_application":
         const jobData = await getJobData(user.id, messageId);
         if (jobData) {
@@ -217,6 +242,27 @@ async function getReceiptData(userId: string, emailId: string) {
     return data;
   } catch (error) {
     console.error("Error getting receipt data:", error);
+    return null;
+  }
+}
+
+async function getRevenueData(userId: string, emailId: string) {
+  try {
+    const { data, error } = await supabase
+      .from("revenue")
+      .select("*")
+      .eq("user_id", userId)
+      .eq("email_id", emailId)
+      .single();
+
+    if (error) {
+      console.log("No revenue data found:", error.message);
+      return null;
+    }
+
+    return data;
+  } catch (error) {
+    console.error("Error getting revenue data:", error);
     return null;
   }
 }

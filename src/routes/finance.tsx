@@ -1,8 +1,16 @@
-import { createRoute, useNavigate } from "@tanstack/react-router";
+import { createRoute } from "@tanstack/react-router";
 import { rootRoute } from "./root";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useMemo, useEffect } from "react";
+import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../supabase/client";
+import {
+  currencyManager,
+  formatCurrency,
+  getCurrencyFlag,
+  getCurrencySymbol,
+  SUPPORTED_CURRENCIES,
+} from "../utils/currency";
 import {
   DollarSign,
   Calendar,
@@ -29,6 +37,8 @@ import {
   Building,
   Users,
   Landmark,
+  Globe,
+  RefreshCw,
 } from "lucide-react";
 
 export const financeRoute = createRoute({
@@ -108,69 +118,15 @@ const getAttachmentIcon = (mimeType: string) => {
 };
 
 function FinancialDashboard() {
-  const navigate = useNavigate();
   const [timeframe, setTimeframe] = useState("month");
   const [viewMode, setViewMode] = useState<"all" | "expenses" | "revenue">(
     "all"
   );
-  const [user, setUser] = useState<any>(null);
-  const [authLoading, setAuthLoading] = useState(true);
+  const [baseCurrency, setBaseCurrency] = useState("USD");
+  const [showCurrencyBreakdown, setShowCurrencyBreakdown] = useState(false);
 
-  // Check authentication status
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession();
-
-        if (error) {
-          console.error("Session error:", error);
-          const { data: refreshData } = await supabase.auth.refreshSession();
-          setUser(refreshData?.session?.user || null);
-        } else {
-          setUser(session?.user || null);
-        }
-
-        console.log("🔍 Auth status:", {
-          authenticated: !!session?.user,
-          userId: session?.user?.id,
-          email: session?.user?.email,
-        });
-      } catch (error) {
-        console.error("Error checking auth:", error);
-        setUser(null);
-      } finally {
-        setAuthLoading(false);
-      }
-    };
-
-    checkAuth();
-
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
-      console.log("🔄 Auth state changed:", {
-        authenticated: !!session?.user,
-        userId: session?.user?.id,
-        email: session?.user?.email,
-      });
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  // Redirect to login if not authenticated
-  useEffect(() => {
-    if (!authLoading && !user) {
-      console.log("🔒 User not authenticated, redirecting to login...");
-      navigate({ to: "/auth" });
-    }
-  }, [authLoading, user, navigate]);
+  // Use TanStack Query for auth management
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
 
   // Fetch expenses (receipts)
   const {
@@ -270,7 +226,7 @@ function FinancialDashboard() {
     enabled: !!user && !authLoading,
   });
 
-  // Calculate comprehensive financial metrics
+  // Calculate comprehensive financial metrics with multi-currency support
   const metrics = useMemo(() => {
     const defaultMetrics = {
       totalRevenue: 0,
@@ -284,6 +240,11 @@ function FinancialDashboard() {
       thisMonthNet: 0,
       lastMonthNet: 0,
       trend: 0,
+      currencyBreakdown: {} as Record<
+        string,
+        { revenue: number; expenses: number; net: number }
+      >,
+      uniqueCurrencies: [] as string[],
     };
 
     if (!receipts && !revenue) return defaultMetrics;
@@ -298,55 +259,93 @@ function FinancialDashboard() {
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
 
-    // Calculate revenue metrics
+    // Get all unique currencies
+    const allTransactions = [
+      ...(Array.isArray(revenue) ? revenue : []),
+      ...(Array.isArray(receipts) ? receipts : []),
+    ];
+    const uniqueCurrencies =
+      currencyManager.getUniqueCurrencies(allTransactions);
+
+    // Calculate currency breakdown
+    const currencyBreakdown: Record<
+      string,
+      { revenue: number; expenses: number; net: number }
+    > = {};
+    uniqueCurrencies.forEach((currency) => {
+      const currencyRevenue = Array.isArray(revenue)
+        ? revenue
+            .filter((item) => item.currency === currency)
+            .reduce((sum, item) => sum + item.amount, 0)
+        : 0;
+      const currencyExpenses = Array.isArray(receipts)
+        ? receipts
+            .filter((receipt) => receipt.currency === currency)
+            .reduce((sum, receipt) => sum + receipt.amount, 0)
+        : 0;
+
+      currencyBreakdown[currency] = {
+        revenue: currencyRevenue,
+        expenses: currencyExpenses,
+        net: currencyRevenue - currencyExpenses,
+      };
+    });
+
+    // Calculate revenue metrics (converted to base currency)
     const totalRevenue = Array.isArray(revenue)
-      ? revenue.reduce((sum, item) => sum + item.amount, 0)
+      ? currencyManager.calculateTotal(revenue, baseCurrency)
       : 0;
     const thisWeekRevenue = Array.isArray(revenue)
-      ? revenue
-          .filter((item) => new Date(item.date) >= startOfWeek)
-          .reduce((sum, item) => sum + item.amount, 0)
+      ? currencyManager.calculateTotal(
+          revenue.filter((item) => new Date(item.date) >= startOfWeek),
+          baseCurrency
+        )
       : 0;
     const thisMonthRevenue = Array.isArray(revenue)
-      ? revenue
-          .filter((item) => new Date(item.date) >= startOfMonth)
-          .reduce((sum, item) => sum + item.amount, 0)
+      ? currencyManager.calculateTotal(
+          revenue.filter((item) => new Date(item.date) >= startOfMonth),
+          baseCurrency
+        )
       : 0;
 
-    // Calculate expense metrics
+    // Calculate expense metrics (converted to base currency)
     const totalExpenses = Array.isArray(receipts)
-      ? receipts.reduce((sum, receipt) => sum + receipt.amount, 0)
+      ? currencyManager.calculateTotal(receipts, baseCurrency)
       : 0;
     const thisWeekExpenses = Array.isArray(receipts)
-      ? receipts
-          .filter((receipt) => new Date(receipt.date) >= startOfWeek)
-          .reduce((sum, receipt) => sum + receipt.amount, 0)
+      ? currencyManager.calculateTotal(
+          receipts.filter((receipt) => new Date(receipt.date) >= startOfWeek),
+          baseCurrency
+        )
       : 0;
     const thisMonthExpenses = Array.isArray(receipts)
-      ? receipts
-          .filter((receipt) => new Date(receipt.date) >= startOfMonth)
-          .reduce((sum, receipt) => sum + receipt.amount, 0)
+      ? currencyManager.calculateTotal(
+          receipts.filter((receipt) => new Date(receipt.date) >= startOfMonth),
+          baseCurrency
+        )
       : 0;
 
-    // Calculate last month for trend
+    // Calculate last month for trend (converted to base currency)
     const lastMonthRevenue = Array.isArray(revenue)
-      ? revenue
-          .filter((item) => {
+      ? currencyManager.calculateTotal(
+          revenue.filter((item) => {
             const itemDate = new Date(item.date);
             return itemDate >= startOfLastMonth && itemDate <= endOfLastMonth;
-          })
-          .reduce((sum, item) => sum + item.amount, 0)
+          }),
+          baseCurrency
+        )
       : 0;
 
     const lastMonthExpenses = Array.isArray(receipts)
-      ? receipts
-          .filter((receipt) => {
+      ? currencyManager.calculateTotal(
+          receipts.filter((receipt) => {
             const receiptDate = new Date(receipt.date);
             return (
               receiptDate >= startOfLastMonth && receiptDate <= endOfLastMonth
             );
-          })
-          .reduce((sum, receipt) => sum + receipt.amount, 0)
+          }),
+          baseCurrency
+        )
       : 0;
 
     const lastMonthNet = lastMonthRevenue - lastMonthExpenses;
@@ -365,8 +364,20 @@ function FinancialDashboard() {
       thisMonthNet,
       lastMonthNet,
       trend,
+      currencyBreakdown,
+      uniqueCurrencies,
     };
-  }, [receipts, revenue]);
+  }, [receipts, revenue, baseCurrency]);
+
+  // Auto-select the first available currency when data loads
+  useEffect(() => {
+    if (
+      metrics.uniqueCurrencies.length > 0 &&
+      !metrics.uniqueCurrencies.includes(baseCurrency)
+    ) {
+      setBaseCurrency(metrics.uniqueCurrencies[0]);
+    }
+  }, [metrics.uniqueCurrencies, baseCurrency]);
 
   // Combine and group financial transactions by date
   const groupedTransactions = useMemo(() => {
@@ -424,14 +435,19 @@ function FinancialDashboard() {
     }
   };
 
-  // Calculate daily totals
+  // Calculate daily totals with currency conversion
   const getDayTotal = (transactionsForDay: unknown) => {
     if (!Array.isArray(transactionsForDay)) return 0;
     return transactionsForDay.reduce((sum: number, transaction: any) => {
+      const convertedAmount = currencyManager.convert(
+        transaction.amount,
+        transaction.currency || "USD",
+        baseCurrency
+      );
       if (transaction.type === "revenue") {
-        return sum + transaction.amount; // Revenue adds to total
+        return sum + convertedAmount; // Revenue adds to total
       } else {
-        return sum - transaction.amount; // Expenses subtract from total
+        return sum - convertedAmount; // Expenses subtract from total
       }
     }, 0);
   };
@@ -440,14 +456,28 @@ function FinancialDashboard() {
     if (!Array.isArray(transactionsForDay)) return 0;
     return transactionsForDay
       .filter((t) => t.type === "revenue")
-      .reduce((sum: number, transaction: any) => sum + transaction.amount, 0);
+      .reduce((sum: number, transaction: any) => {
+        const convertedAmount = currencyManager.convert(
+          transaction.amount,
+          transaction.currency || "USD",
+          baseCurrency
+        );
+        return sum + convertedAmount;
+      }, 0);
   };
 
   const getDayExpenses = (transactionsForDay: unknown) => {
     if (!Array.isArray(transactionsForDay)) return 0;
     return transactionsForDay
       .filter((t) => t.type === "expense")
-      .reduce((sum: number, transaction: any) => sum + transaction.amount, 0);
+      .reduce((sum: number, transaction: any) => {
+        const convertedAmount = currencyManager.convert(
+          transaction.amount,
+          transaction.currency || "USD",
+          baseCurrency
+        );
+        return sum + convertedAmount;
+      }, 0);
   };
 
   // Show auth loading state
@@ -523,418 +553,563 @@ function FinancialDashboard() {
   return (
     <div className="min-h-screen bg-gray-50 py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        <div className="flex items-center justify-between">
-          <div>
-            <h1 className="text-3xl font-bold text-gray-900">
-              Financial Dashboard
-            </h1>
-            <p className="mt-2 text-lg text-gray-600">
-              Track your complete financial picture - income, expenses, and cash
-              flow
-            </p>
+        {/* Header Section */}
+        <div className="flex flex-col space-y-6">
+          <div className="flex items-center justify-between">
+            <div>
+              <h1 className="text-3xl font-bold text-gray-900">
+                Financial Dashboard
+              </h1>
+              <p className="mt-2 text-lg text-gray-600">
+                Track your complete financial picture across all currencies
+              </p>
+            </div>
           </div>
-          <div className="flex items-center space-x-2">
-            <span className="text-sm text-gray-500">View:</span>
-            <div className="flex bg-white rounded-lg shadow-sm border border-gray-200">
-              {["all", "revenue", "expenses"].map((mode) => (
+
+          {/* Controls Section */}
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white rounded-xl border border-gray-200 p-4">
+            <div className="flex flex-wrap items-center gap-4">
+              {/* View Mode Selector */}
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-gray-700">View:</span>
+                <div className="flex bg-gray-100 rounded-lg p-1">
+                  {["all", "revenue", "expenses"].map((mode) => (
+                    <button
+                      key={mode}
+                      onClick={() => setViewMode(mode as typeof viewMode)}
+                      className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
+                        viewMode === mode
+                          ? "bg-white text-blue-600 shadow-sm"
+                          : "text-gray-600 hover:text-gray-900"
+                      }`}
+                    >
+                      {mode === "all"
+                        ? "All"
+                        : mode === "revenue"
+                        ? "Income"
+                        : "Expenses"}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Time Period Filter */}
+              <div className="flex items-center space-x-2">
+                <span className="text-sm font-medium text-gray-700">
+                  Period:
+                </span>
+                <select
+                  value={timeframe}
+                  onChange={(e) => setTimeframe(e.target.value)}
+                  className="px-3 py-1.5 text-sm border border-gray-200 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  <option value="week">Last Week</option>
+                  <option value="month">Last Month</option>
+                  <option value="quarter">Last Quarter</option>
+                  <option value="year">Last Year</option>
+                  <option value="all">All Time</option>
+                </select>
+              </div>
+            </div>
+
+            <div className="flex flex-wrap items-center gap-3">
+              {/* Currency Selector */}
+              <div className="flex items-center space-x-2">
+                <Globe className="h-4 w-4 text-gray-500" />
+                <span className="text-sm font-medium text-gray-700">
+                  Currency:
+                </span>
+                <select
+                  value={baseCurrency}
+                  onChange={(e) => setBaseCurrency(e.target.value)}
+                  className="px-3 py-1.5 text-sm border border-gray-200 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
+                >
+                  {metrics.uniqueCurrencies.length > 0 ? (
+                    // Show only currencies that the user actually has data for
+                    metrics.uniqueCurrencies.map((currency) => {
+                      const currencyInfo = SUPPORTED_CURRENCIES[currency];
+                      return (
+                        <option key={currency} value={currency}>
+                          {currencyInfo?.flag || "🌍"} {currency}
+                        </option>
+                      );
+                    })
+                  ) : (
+                    // Fallback: if no data yet, show USD as default
+                    <option value="USD">🇺🇸 USD</option>
+                  )}
+                </select>
+              </div>
+
+              {/* Currency Breakdown Toggle */}
+              {metrics.uniqueCurrencies.length > 1 && (
                 <button
-                  key={mode}
-                  onClick={() => setViewMode(mode as typeof viewMode)}
-                  className={`px-3 py-1 text-sm font-medium rounded-md transition-colors ${
-                    viewMode === mode
-                      ? "bg-blue-500 text-white shadow-sm"
-                      : "text-gray-700 hover:bg-gray-100"
+                  onClick={() =>
+                    setShowCurrencyBreakdown(!showCurrencyBreakdown)
+                  }
+                  className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all border ${
+                    showCurrencyBreakdown
+                      ? "bg-blue-50 text-blue-700 border-blue-200"
+                      : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
                   }`}
                 >
-                  {mode === "all"
-                    ? "All"
-                    : mode === "revenue"
-                    ? "Income"
-                    : "Expenses"}
+                  <RefreshCw
+                    className={`h-4 w-4 inline mr-1 ${
+                      showCurrencyBreakdown ? "rotate-180" : ""
+                    } transition-transform`}
+                  />
+                  {metrics.uniqueCurrencies.length} Currencies
                 </button>
-              ))}
+              )}
             </div>
           </div>
         </div>
 
-        {/* Enhanced Metrics Section */}
-        <div className="mt-8 grid grid-cols-1 gap-6 sm:grid-cols-2 lg:grid-cols-5">
-          {/* Net Income Card */}
-          <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-200 sm:col-span-2 lg:col-span-1">
-            <div className="px-6 py-6">
-              <div className="flex items-center">
-                <div
-                  className={`flex-shrink-0 rounded-lg p-3 ${
-                    metrics.netIncome >= 0 ? "bg-emerald-500" : "bg-red-500"
-                  }`}
-                >
-                  <PiggyBank className="h-6 w-6 text-white" />
-                </div>
-                <div className="ml-4 flex-1">
-                  <dt className="text-sm font-medium text-gray-500 uppercase tracking-wide">
+        {/* Financial Overview */}
+        <div className="mt-8 space-y-6">
+          {/* Primary Metrics */}
+          <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+            {/* Net Income - Featured Card */}
+            <div className="md:col-span-1 bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-blue-200 rounded-xl p-6">
+              <div className="flex items-center justify-between">
+                <div>
+                  <p className="text-sm font-medium text-blue-600 uppercase tracking-wide">
                     Net Income
-                  </dt>
-                  <dd
-                    className={`text-2xl font-bold ${
+                  </p>
+                  <p
+                    className={`text-lg font-bold mt-2 ${
                       metrics.netIncome >= 0
                         ? "text-emerald-600"
                         : "text-red-600"
                     }`}
                   >
-                    {metrics.netIncome >= 0 ? "+" : ""}USD{" "}
-                    {metrics.netIncome.toFixed(2)}
-                  </dd>
+                    {metrics.netIncome >= 0 ? "+" : ""}
+                    {formatCurrency(Math.abs(metrics.netIncome), baseCurrency)}
+                  </p>
+                  <p className="text-sm text-blue-600 mt-1">
+                    {timeframe === "all" ? "All time" : `Last ${timeframe}`}
+                  </p>
                 </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Total Revenue */}
-          <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-200">
-            <div className="px-6 py-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 bg-emerald-500 rounded-lg p-3">
-                  <ArrowUpRight className="h-6 w-6 text-white" />
-                </div>
-                <div className="ml-4 flex-1">
-                  <dt className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-                    Total Income
-                  </dt>
-                  <dd className="text-2xl font-bold text-emerald-600">
-                    USD {metrics.totalRevenue.toFixed(2)}
-                  </dd>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Total Expenses */}
-          <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-200">
-            <div className="px-6 py-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 bg-red-500 rounded-lg p-3">
-                  <ArrowDownRight className="h-6 w-6 text-white" />
-                </div>
-                <div className="ml-4 flex-1">
-                  <dt className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-                    Total Expenses
-                  </dt>
-                  <dd className="text-2xl font-bold text-red-600">
-                    USD {metrics.totalExpenses.toFixed(2)}
-                  </dd>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* This Month Net */}
-          <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-200">
-            <div className="px-6 py-6">
-              <div className="flex items-center">
-                <div className="flex-shrink-0 bg-blue-500 rounded-lg p-3">
-                  <Calendar className="h-6 w-6 text-white" />
-                </div>
-                <div className="ml-4 flex-1">
-                  <dt className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-                    This Month
-                  </dt>
-                  <dd
-                    className={`text-2xl font-bold ${
-                      metrics.thisMonthNet >= 0
-                        ? "text-emerald-600"
-                        : "text-red-600"
-                    }`}
-                  >
-                    {metrics.thisMonthNet >= 0 ? "+" : ""}USD{" "}
-                    {metrics.thisMonthNet.toFixed(2)}
-                  </dd>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          {/* Trend vs Last Month */}
-          <div className="bg-white overflow-hidden shadow-lg rounded-xl border border-gray-200">
-            <div className="px-6 py-6">
-              <div className="flex items-center">
                 <div
-                  className={`flex-shrink-0 rounded-lg p-3 ${
-                    metrics.trend >= 0 ? "bg-emerald-500" : "bg-red-500"
+                  className={`p-3 rounded-full ${
+                    metrics.netIncome >= 0 ? "bg-emerald-500" : "bg-red-500"
                   }`}
                 >
-                  {metrics.trend >= 0 ? (
-                    <TrendingUp className="h-6 w-6 text-white" />
-                  ) : (
-                    <TrendingDown className="h-6 w-6 text-white" />
-                  )}
-                </div>
-                <div className="ml-4 flex-1">
-                  <dt className="text-sm font-medium text-gray-500 uppercase tracking-wide">
-                    vs Last Month
-                  </dt>
-                  <dd
-                    className={`text-2xl font-bold ${
-                      metrics.trend >= 0 ? "text-emerald-600" : "text-red-600"
-                    }`}
-                  >
-                    {metrics.trend >= 0 ? "+" : ""}USD{" "}
-                    {Math.abs(metrics.trend).toFixed(2)}
-                  </dd>
+                  <PiggyBank className="h-8 w-8 text-white" />
                 </div>
               </div>
             </div>
-          </div>
-        </div>
 
-        {/* Time Period Filter */}
-        <div className="mt-8 bg-white rounded-xl shadow-lg border border-gray-200 p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="text-xl font-semibold text-gray-900">
-              Financial Timeline
-            </h2>
-            <div className="flex space-x-2">
-              {["week", "month", "quarter", "year", "all"].map((period) => (
-                <button
-                  key={period}
-                  onClick={() => setTimeframe(period)}
-                  className={`px-4 py-2 rounded-lg text-sm font-medium transition-colors ${
-                    timeframe === period
-                      ? "bg-blue-500 text-white shadow-md"
-                      : "bg-gray-100 text-gray-700 hover:bg-gray-200"
-                  }`}
-                >
-                  {period === "all" ? "All Time" : `Last ${period}`}
-                </button>
-              ))}
-            </div>
-          </div>
-        </div>
-
-        {/* Financial Transactions Section */}
-        <div className="mt-8">
-          {isLoading ? (
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-12">
-              <div className="flex justify-center items-center">
-                <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-                <span className="ml-4 text-lg text-gray-600">
-                  Loading financial data...
-                </span>
-              </div>
-            </div>
-          ) : Object.keys(groupedTransactions).length === 0 ? (
-            <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-12 text-center">
-              <PiggyBank className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-              <h3 className="text-xl font-medium text-gray-900 mb-2">
-                No financial transactions found
+            {/* Income & Expenses Summary */}
+            <div className="md:col-span-2 bg-white rounded-xl border border-gray-200 p-6">
+              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+                Financial Summary
               </h3>
-              <p className="text-gray-500">
-                Your {viewMode === "all" ? "financial transactions" : viewMode}{" "}
-                will appear here once processed.
-                {viewMode === "revenue" && " Time to make some money!"}
-                {viewMode === "expenses" &&
-                  " Your spending will be tracked here."}
-                {viewMode === "all" &&
-                  " Start by connecting your email for automatic tracking!"}
-              </p>
+              <div className="grid grid-cols-2 gap-6">
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-emerald-100 rounded-lg">
+                      <ArrowUpRight className="h-5 w-5 text-emerald-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">
+                        Total Income
+                      </p>
+                      <p className="font-bold text-emerald-600">
+                        {formatCurrency(metrics.totalRevenue, baseCurrency)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-blue-100 rounded-lg">
+                      <Calendar className="h-5 w-5 text-blue-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">
+                        This Month
+                      </p>
+                      <p
+                        className={`font-bold ${
+                          metrics.thisMonthNet >= 0
+                            ? "text-emerald-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {metrics.thisMonthNet >= 0 ? "+" : ""}
+                        {formatCurrency(
+                          Math.abs(metrics.thisMonthNet),
+                          baseCurrency
+                        )}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+
+                <div className="space-y-3">
+                  <div className="flex items-center space-x-3">
+                    <div className="p-2 bg-red-100 rounded-lg">
+                      <ArrowDownRight className="h-5 w-5 text-red-600" />
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">
+                        Total Expenses
+                      </p>
+                      <p className="font-bold text-red-600">
+                        {formatCurrency(metrics.totalExpenses, baseCurrency)}
+                      </p>
+                    </div>
+                  </div>
+
+                  <div className="flex items-center space-x-3">
+                    <div
+                      className={`p-2 rounded-lg ${
+                        metrics.trend >= 0 ? "bg-emerald-100" : "bg-red-100"
+                      }`}
+                    >
+                      {metrics.trend >= 0 ? (
+                        <TrendingUp className="h-5 w-5 text-emerald-600" />
+                      ) : (
+                        <TrendingDown className="h-5 w-5 text-red-600" />
+                      )}
+                    </div>
+                    <div>
+                      <p className="text-sm font-medium text-gray-600">
+                        vs Last Month
+                      </p>
+                      <p
+                        className={`font-bold ${
+                          metrics.trend >= 0
+                            ? "text-emerald-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        {metrics.trend >= 0 ? "+" : ""}
+                        {formatCurrency(Math.abs(metrics.trend), baseCurrency)}
+                      </p>
+                    </div>
+                  </div>
+                </div>
+              </div>
             </div>
-          ) : (
-            <div className="space-y-8">
-              {Object.entries(groupedTransactions).map(
-                ([dateString, transactionsForDay]) => (
-                  <div key={dateString} className="space-y-4">
-                    {/* Date Header with Daily Summary */}
-                    <div className="flex items-center justify-between">
-                      <h3 className="text-lg font-semibold text-gray-900">
-                        {formatDateLabel(dateString)}
-                      </h3>
-                      <div className="text-right space-y-1">
-                        <div className="flex items-center space-x-4 text-sm text-gray-500">
-                          {getDayRevenue(transactionsForDay) > 0 && (
-                            <span className="text-emerald-600">
-                              +USD{" "}
-                              {getDayRevenue(transactionsForDay).toFixed(2)}{" "}
-                              income
-                            </span>
-                          )}
-                          {getDayExpenses(transactionsForDay) > 0 && (
-                            <span className="text-red-600">
-                              -USD{" "}
-                              {getDayExpenses(transactionsForDay).toFixed(2)}{" "}
-                              expenses
-                            </span>
-                          )}
-                        </div>
-                        <div
-                          className={`text-lg font-bold ${
-                            getDayTotal(transactionsForDay) >= 0
+          </div>
+        </div>
+
+        {/* Currency Breakdown Section */}
+        {showCurrencyBreakdown && metrics.uniqueCurrencies.length > 1 && (
+          <div className="bg-white rounded-xl border border-gray-200 p-6">
+            <div className="flex items-center justify-between mb-6">
+              <h3 className="text-lg font-semibold text-gray-900">
+                Currency Breakdown
+              </h3>
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+                {metrics.uniqueCurrencies.length} currencies
+              </span>
+            </div>
+            <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
+              {metrics.uniqueCurrencies.map((currency) => {
+                const breakdown = metrics.currencyBreakdown[currency];
+                const currencyInfo = currencyManager.getCurrencyInfo(currency);
+                return (
+                  <div
+                    key={currency}
+                    className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow"
+                  >
+                    <div className="flex items-center justify-between mb-3">
+                      <div className="flex items-center space-x-2">
+                        <span className="text-xl">{currencyInfo.flag}</span>
+                        <span className="font-bold text-gray-900 text-lg">
+                          {currency}
+                        </span>
+                      </div>
+                      <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded">
+                        {currencyInfo.name}
+                      </span>
+                    </div>
+                    <div className="space-y-2">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Income:</span>
+                        <span className="text-emerald-600 font-semibold">
+                          +{formatCurrency(breakdown.revenue, currency)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm text-gray-600">Expenses:</span>
+                        <span className="text-red-600 font-semibold">
+                          -{formatCurrency(breakdown.expenses, currency)}
+                        </span>
+                      </div>
+                      <div className="flex justify-between items-center pt-2 border-t border-gray-300">
+                        <span className="text-sm font-medium text-gray-900">
+                          Net:
+                        </span>
+                        <span
+                          className={`font-bold ${
+                            breakdown.net >= 0
                               ? "text-emerald-600"
                               : "text-red-600"
                           }`}
                         >
-                          Net: {getDayTotal(transactionsForDay) >= 0 ? "+" : ""}
-                          USD {getDayTotal(transactionsForDay).toFixed(2)}
+                          {breakdown.net >= 0 ? "+" : ""}
+                          {formatCurrency(Math.abs(breakdown.net), currency)}
+                        </span>
+                      </div>
+                      {currency !== baseCurrency && (
+                        <div className="flex justify-between items-center text-xs text-gray-500 bg-white rounded px-2 py-1">
+                          <span>≈ {baseCurrency}:</span>
+                          <span className="font-medium">
+                            {formatCurrency(
+                              currencyManager.convert(
+                                breakdown.net,
+                                currency,
+                                baseCurrency
+                              ),
+                              baseCurrency
+                            )}
+                          </span>
                         </div>
+                      )}
+                    </div>
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+      </div>
+
+      {/* Financial Transactions Section */}
+      <div className="mt-8">
+        {isLoading ? (
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-12">
+            <div className="flex justify-center items-center">
+              <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+              <span className="ml-4 text-lg text-gray-600">
+                Loading financial data...
+              </span>
+            </div>
+          </div>
+        ) : Object.keys(groupedTransactions).length === 0 ? (
+          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-12 text-center">
+            <PiggyBank className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <h3 className="text-xl font-medium text-gray-900 mb-2">
+              No financial transactions found
+            </h3>
+            <p className="text-gray-500">
+              Your {viewMode === "all" ? "financial transactions" : viewMode}{" "}
+              will appear here once processed.
+              {viewMode === "revenue" && " Time to make some money!"}
+              {viewMode === "expenses" &&
+                " Your spending will be tracked here."}
+              {viewMode === "all" &&
+                " Start by connecting your email for automatic tracking!"}
+            </p>
+          </div>
+        ) : (
+          <div className="space-y-8">
+            {Object.entries(groupedTransactions).map(
+              ([dateString, transactionsForDay]) => (
+                <div key={dateString} className="space-y-4 px-8">
+                  {/* Date Header with Daily Summary */}
+                  <div className="flex items-center justify-between">
+                    <h3 className="text-lg font-semibold text-gray-900">
+                      {formatDateLabel(dateString)}
+                    </h3>
+                    <div className="text-right space-y-1">
+                      <div className="flex items-center space-x-4 text-sm text-gray-500">
+                        {getDayRevenue(transactionsForDay) > 0 && (
+                          <span className="text-emerald-600">
+                            +
+                            {formatCurrency(
+                              getDayRevenue(transactionsForDay),
+                              baseCurrency
+                            )}{" "}
+                            income
+                          </span>
+                        )}
+                        {getDayExpenses(transactionsForDay) > 0 && (
+                          <span className="text-red-600">
+                            -
+                            {formatCurrency(
+                              getDayExpenses(transactionsForDay),
+                              baseCurrency
+                            )}{" "}
+                            expenses
+                          </span>
+                        )}
+                      </div>
+                      <div
+                        className={`font-bold ${
+                          getDayTotal(transactionsForDay) >= 0
+                            ? "text-emerald-600"
+                            : "text-red-600"
+                        }`}
+                      >
+                        Net: {getDayTotal(transactionsForDay) >= 0 ? "+" : ""}
+                        {formatCurrency(
+                          Math.abs(getDayTotal(transactionsForDay)),
+                          baseCurrency
+                        )}
                       </div>
                     </div>
+                  </div>
 
-                    {/* Transaction Cards Grid */}
-                    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-4">
-                      {(transactionsForDay as any[]).map((transaction: any) => (
-                        <div
-                          key={`${transaction.type}-${transaction.id}`}
-                          className={`bg-white rounded-xl shadow-md border-2 p-6 hover:shadow-lg transition-all duration-200 ${
-                            transaction.type === "revenue"
-                              ? "border-emerald-200 hover:border-emerald-300"
-                              : "border-red-200 hover:border-red-300"
-                          }`}
-                        >
-                          {/* Transaction Header */}
-                          <div className="flex items-start justify-between mb-4">
-                            <div className="flex items-center space-x-3">
-                              <div
-                                className={`flex-shrink-0 p-2 rounded-lg ${
+                  {/* Transaction Cards Grid */}
+                  <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
+                    {(transactionsForDay as any[]).map((transaction: any) => (
+                      <div
+                        key={`${transaction.type}-${transaction.id}`}
+                        className={`bg-white rounded-xl shadow-md border-2 p-6 hover:shadow-lg transition-all duration-200 relative ${
+                          transaction.type === "revenue"
+                            ? "border-emerald-200 hover:border-emerald-300"
+                            : "border-red-200 hover:border-red-300"
+                        }`}
+                      >
+                        {/* Transaction Header */}
+                        <div className="flex items-start justify-between mb-4">
+                          <div className="flex items-center space-x-3">
+                            <div
+                              className={`flex-shrink-0 p-2 rounded-lg ${
+                                transaction.type === "revenue"
+                                  ? "bg-emerald-100"
+                                  : "bg-red-100"
+                              }`}
+                            >
+                              {transaction.type === "revenue"
+                                ? revenueIcons[
+                                    transaction.category as keyof typeof revenueIcons
+                                  ] || revenueIcons.default
+                                : categoryIcons[
+                                    transaction.category as keyof typeof categoryIcons
+                                  ] || categoryIcons.default}
+                            </div>
+                            <div className="flex-1 min-w-0">
+                              <h4 className="text-lg font-semibold text-gray-900 truncate">
+                                {transaction.type === "revenue"
+                                  ? "Income"
+                                  : "Expense"}{" "}
+                                #{transaction.id.slice(-4)}
+                              </h4>
+                              <p
+                                className={`text-xs font-medium ${
                                   transaction.type === "revenue"
-                                    ? "bg-emerald-100"
-                                    : "bg-red-100"
+                                    ? "text-emerald-600"
+                                    : "text-red-600"
                                 }`}
                               >
                                 {transaction.type === "revenue"
-                                  ? revenueIcons[
-                                      transaction.category as keyof typeof revenueIcons
-                                    ] || revenueIcons.default
-                                  : categoryIcons[
-                                      transaction.category as keyof typeof categoryIcons
-                                    ] || categoryIcons.default}
-                              </div>
-                              <div className="flex-1 min-w-0">
-                                <h4 className="text-lg font-semibold text-gray-900 truncate">
-                                  {transaction.type === "revenue"
-                                    ? "Income"
-                                    : "Expense"}{" "}
-                                  #{transaction.id.slice(-4)}
-                                </h4>
-                                <p
-                                  className={`text-xs font-medium ${
-                                    transaction.type === "revenue"
-                                      ? "text-emerald-600"
-                                      : "text-red-600"
-                                  }`}
-                                >
-                                  {transaction.type === "revenue"
-                                    ? "↗ Money In"
-                                    : "↘ Money Out"}
-                                </p>
-                              </div>
-                            </div>
-                          </div>
-
-                          {/* Transaction Content */}
-                          <div className="space-y-3">
-                            <div>
-                              <p className="text-sm font-medium text-gray-900 truncate">
-                                {transaction.merchant ||
-                                  transaction.source ||
-                                  "Unknown"}
-                              </p>
-                              <p className="text-xs text-gray-500 mt-1">
-                                {transaction.description ||
-                                  transaction.merchant ||
-                                  transaction.source ||
-                                  "No description"}
+                                  ? "↗ Money In"
+                                  : "↘ Money Out"}
                               </p>
                             </div>
-
-                            <div className="flex items-center justify-between">
-                              <span
-                                className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium ${
-                                  transaction.type === "revenue"
-                                    ? revenueColors[
-                                        transaction.category as keyof typeof revenueColors
-                                      ] || revenueColors.default
-                                    : categoryColors[
-                                        transaction.category as keyof typeof categoryColors
-                                      ] || categoryColors.default
-                                }`}
-                              >
-                                {transaction.category}
-                              </span>
-                              <div className="text-right">
-                                <div
-                                  className={`text-lg font-bold ${
-                                    transaction.type === "revenue"
-                                      ? "text-emerald-600"
-                                      : "text-red-600"
-                                  }`}
-                                >
-                                  {transaction.type === "revenue" ? "+" : "-"}
-                                  {transaction.currency}{" "}
-                                  {transaction.amount.toFixed(2)}
-                                </div>
-                              </div>
-                            </div>
                           </div>
+                          {/* Category tag moved to top-right */}
+                          <span
+                            className={`inline-flex items-center px-2.5 py-0.5 rounded-full text-xs font-medium absolute -top-3 right-4 ${
+                              transaction.type === "revenue"
+                                ? revenueColors[
+                                    transaction.category as keyof typeof revenueColors
+                                  ] || revenueColors.default
+                                : categoryColors[
+                                    transaction.category as keyof typeof categoryColors
+                                  ] || categoryColors.default
+                            }`}
+                          >
+                            {transaction.category}
+                          </span>
+                        </div>
 
-                          {/* Attachments Section */}
-                          {transaction.attachments &&
-                            transaction.attachments.length > 0 && (
-                              <div className="mt-4 pt-3 border-t border-gray-100">
-                                <div className="flex items-center justify-between">
-                                  <div className="flex items-center space-x-2">
-                                    <Paperclip className="h-4 w-4 text-gray-400" />
-                                    <span className="text-sm text-gray-600">
-                                      {transaction.attachment_count} attachment
-                                      {transaction.attachment_count > 1
-                                        ? "s"
-                                        : ""}
-                                    </span>
-                                  </div>
-                                  <div className="flex space-x-1">
-                                    {transaction.attachments
-                                      .slice(0, 3)
-                                      .map((attachment: any, index: number) => (
-                                        <div
-                                          key={index}
-                                          className="flex items-center p-1 rounded hover:bg-gray-100 cursor-pointer"
-                                          title={`${attachment.filename} (${attachment.mimeType})`}
-                                        >
-                                          {getAttachmentIcon(
-                                            attachment.mimeType
-                                          )}
-                                        </div>
-                                      ))}
-                                    {transaction.attachments.length > 3 && (
-                                      <div className="flex items-center justify-center w-6 h-6 text-xs text-gray-500 bg-gray-100 rounded">
-                                        +{transaction.attachments.length - 3}
-                                      </div>
-                                    )}
-                                  </div>
-                                </div>
-                              </div>
-                            )}
-
-                          {/* Transaction Footer */}
-                          <div className="mt-4 pt-4 border-t border-gray-100">
-                            <p className="text-xs text-gray-500 text-center">
-                              {transaction.type === "revenue"
-                                ? "Income"
-                                : "Expense"}{" "}
-                              from email
-                              {transaction.reference_number && (
-                                <span className="ml-1">
-                                  • Ref: {transaction.reference_number}
-                                </span>
-                              )}
+                        {/* Transaction Content */}
+                        <div className="space-y-3">
+                          <div>
+                            <p className="text-sm font-medium text-gray-900 truncate">
+                              {transaction.merchant ||
+                                transaction.source ||
+                                "Unknown"}
+                            </p>
+                            <p className="text-xs text-gray-500 mt-1">
+                              {transaction.description ||
+                                transaction.merchant ||
+                                transaction.source ||
+                                "No description"}
                             </p>
                           </div>
+
+                          {/* Amount section - now takes full width */}
+                          <div>
+                            <div
+                              className={`font-bold ${
+                                transaction.type === "revenue"
+                                  ? "text-emerald-600"
+                                  : "text-red-600"
+                              }`}
+                            >
+                              {transaction.type === "revenue" ? "+" : "-"}
+                              {formatCurrency(
+                                transaction.amount,
+                                transaction.currency
+                              )}
+                            </div>
+                            {transaction.currency !== baseCurrency && (
+                              <div className="text-xs text-gray-500 mt-1">
+                                ≈ {getCurrencySymbol(baseCurrency)}
+                                {currencyManager
+                                  .convert(
+                                    transaction.amount,
+                                    transaction.currency,
+                                    baseCurrency
+                                  )
+                                  .toFixed(2)}
+                              </div>
+                            )}
+                          </div>
                         </div>
-                      ))}
-                    </div>
+
+                        {/* Attachments Section */}
+                        {transaction.attachments &&
+                          transaction.attachments.length > 0 && (
+                            <div className="mt-4 pt-3 border-t border-gray-100">
+                              <div className="flex items-center justify-between">
+                                <div className="flex items-center space-x-2">
+                                  <Paperclip className="h-4 w-4 text-gray-400" />
+                                  <span className="text-sm text-gray-600">
+                                    {transaction.attachment_count} attachment
+                                    {transaction.attachment_count > 1
+                                      ? "s"
+                                      : ""}
+                                  </span>
+                                </div>
+                                <div className="flex space-x-1">
+                                  {transaction.attachments
+                                    .slice(0, 3)
+                                    .map((attachment: any, index: number) => (
+                                      <div
+                                        key={index}
+                                        className="flex items-center p-1 rounded hover:bg-gray-100 cursor-pointer"
+                                        title={`${attachment.filename} (${attachment.mimeType})`}
+                                      >
+                                        {getAttachmentIcon(attachment.mimeType)}
+                                      </div>
+                                    ))}
+                                  {transaction.attachments.length > 3 && (
+                                    <div className="flex items-center justify-center w-6 h-6 text-xs text-gray-500 bg-gray-100 rounded">
+                                      +{transaction.attachments.length - 3}
+                                    </div>
+                                  )}
+                                </div>
+                              </div>
+                            </div>
+                          )}
+
+                        {/* Transaction Footer - Commented out for now */}
+                      </div>
+                    ))}
                   </div>
-                )
-              )}
-            </div>
-          )}
-        </div>
+                </div>
+              )
+            )}
+          </div>
+        )}
       </div>
     </div>
   );

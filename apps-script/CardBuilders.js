@@ -3,7 +3,7 @@
 // 
 // IMPORTANT: This file now delegates to specialized card builder files:
 // - CardCommon.js    - Debug utilities and smart actions (shared components)
-// - CardExpenses.js  - Expense and receipt related cards
+// - CardFinancial.js  - Financial transaction (expense and revenue) related cards
 // - CardTravel.js    - Travel comparison and booking related cards
 // - CardJobs.js      - Job application and career related cards
 // - CardPreProcessed.js - Pre-processed email cards and caching
@@ -22,8 +22,10 @@
  */
 
 /**
- * CardExpenses.js - Contains:
- * - createReceiptProcessedCard()
+ * CardFinancial.js - Contains:
+* - createFinancialTransactionCard() (handles both expenses and revenue)
+* - createReceiptProcessedCard() (legacy compatibility)
+* - createRevenueReceivedCard() (new revenue tracking)
  * - addReceiptPreProcessedSection()
  */
 
@@ -80,7 +82,7 @@ OLD STRUCTURE (CardBuilders.js - 1159 lines):
 
 NEW STRUCTURE (Split into 5 files):
 ├── CardCommon.js (94 lines) - Shared components
-├── CardExpenses.js (105 lines) - Expense tracking
+├── CardFinancial.js (~350 lines) - Complete financial tracking (expenses + revenue)
 ├── CardTravel.js (768 lines) - Travel comparisons
 ├── CardJobs.js (76 lines) - Job applications
 └── CardPreProcessed.js (87 lines) - Pre-processed emails

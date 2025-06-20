@@ -1,7 +1,8 @@
-import { createRoute, useNavigate } from "@tanstack/react-router";
+import { createRoute } from "@tanstack/react-router";
 import { rootRoute } from "./root";
 import { useQuery } from "@tanstack/react-query";
-import React, { useState, useMemo, useEffect } from "react";
+import React, { useState, useMemo } from "react";
+import { useAuth } from "../hooks/useAuth";
 import {
   BriefcaseIcon,
   Search,
@@ -173,16 +174,16 @@ const openGmailUrl = (emailId: string, application?: JobApplication) => {
 };
 
 function JobsDashboard() {
-  const navigate = useNavigate();
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("all");
   const [sortConfig, setSortConfig] = useState<SortConfig>({
     key: "applied_date",
     direction: "desc",
   });
-  const [user, setUser] = useState<any>(null);
-  const [authLoading, setAuthLoading] = useState(true);
   const [showCustomFieldsManager, setShowCustomFieldsManager] = useState(false);
+
+  // Use TanStack Query for auth management
+  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
 
   // Custom fields hook
   const { customFields, getCustomFieldValue, setCustomFieldValue } =
@@ -300,65 +301,6 @@ function JobsDashboard() {
       });
     },
   });
-
-  // Check authentication status
-  useEffect(() => {
-    const checkAuth = async () => {
-      try {
-        // Force refresh session to handle potential stale sessions
-        const {
-          data: { session },
-          error,
-        } = await supabase.auth.getSession();
-
-        if (error) {
-          console.error("Session error:", error);
-          // If there's a session error, try to refresh
-          const { data: refreshData } = await supabase.auth.refreshSession();
-          setUser(refreshData?.session?.user || null);
-        } else {
-          setUser(session?.user || null);
-        }
-
-        console.log("🔍 Auth status:", {
-          authenticated: !!session?.user,
-          userId: session?.user?.id,
-          email: session?.user?.email,
-        });
-      } catch (error) {
-        console.error("Error checking auth:", error);
-        setUser(null);
-      } finally {
-        setAuthLoading(false);
-      }
-    };
-
-    checkAuth();
-
-    // Listen for auth state changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setUser(session?.user || null);
-      console.log("🔄 Auth state changed:", {
-        authenticated: !!session?.user,
-        userId: session?.user?.id,
-        email: session?.user?.email,
-      });
-    });
-
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
-
-  // Redirect to login if not authenticated (after loading completes)
-  useEffect(() => {
-    if (!authLoading && !user) {
-      console.log("🔒 User not authenticated, redirecting to login...");
-      navigate({ to: "/auth" });
-    }
-  }, [authLoading, user, navigate]);
 
   // Fetch job applications only when authenticated
   const {

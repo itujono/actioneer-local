@@ -5,9 +5,28 @@ export function buildClassificationPrompt(emailData: EmailData): string {
   return `
     Analyze this email and classify it into one of these categories:
     - receipt (for purchase receipts or invoices)
+    - revenue (for incoming money, payments received, refunds, crypto withdrawals to bank)
     - travel (for flight, hotel, or travel-related emails)
     - job_application (ONLY for emails directly related to actual job applications you submitted)
     - other (for emails that don't fit the above categories)
+    
+    CRITERIA for revenue classification:
+    Revenue emails include:
+    - Payment received confirmations (PayPal, Stripe, bank transfers)
+    - Refunds from merchants or service providers
+    - Cryptocurrency withdrawal confirmations to bank accounts
+    - Business income (invoices paid, freelance payments)
+    - Investment income (dividends, interest, trading profits)
+    - Government payments (tax refunds, benefits)
+    - Digital platform income (sales, marketplace earnings)
+    - Insurance payouts and settlements
+    
+    DO NOT classify as revenue:
+    - Payment requests or invoices due
+    - Account maintenance fees
+    - Failed payment notifications
+    - Marketing emails about earning potential
+    - Investment loss notifications
     
     STRICT CRITERIA for job_application classification:
     The email MUST be:
