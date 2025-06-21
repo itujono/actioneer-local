@@ -148,7 +148,7 @@ function Auth() {
       <div className="min-h-screen flex justify-center items-center bg-gray-50">
         <div className="text-center">
           <svg
-            className="animate-spin h-8 w-8 text-blue-500 mx-auto"
+            className="animate-spin h-8 w-8 text-heliotrope mx-auto"
             xmlns="http://www.w3.org/2000/svg"
             fill="none"
             viewBox="0 0 24 24"
@@ -207,7 +207,7 @@ function Auth() {
     <div className="min-h-screen flex flex-col justify-center py-12 sm:px-6 lg:px-8 bg-gray-50">
       <div className="sm:mx-auto sm:w-full sm:max-w-md">
         <div className="flex justify-center">
-          <Mail className="h-12 w-12 text-blue-500" />
+          <Mail className="h-12 w-12 text-heliotrope" />
         </div>
         <h2 className="mt-6 text-center text-3xl font-extrabold text-gray-900">
           Sign in to Actioneer
@@ -227,7 +227,7 @@ function Auth() {
                 disabled={
                   googleSignInMutation.isPending || createUserMutation.isPending
                 }
-                className="w-full flex justify-center items-center px-4 py-3 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
+                className="w-full flex justify-center items-center px-4 py-3 border border-gray-300 rounded-md shadow-sm bg-white text-sm font-medium text-gray-700 hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-heliotrope disabled:opacity-50 disabled:cursor-not-allowed transition-colors duration-200"
               >
                 {googleSignInMutation.isPending ||
                 createUserMutation.isPending ? (
@@ -288,14 +288,14 @@ function Auth() {
                 By signing in, you agree to our{" "}
                 <a
                   href="#"
-                  className="font-medium text-blue-600 hover:text-blue-500"
+                  className="font-medium text-heliotrope hover:text-heliotrope/80"
                 >
                   Terms of Service
                 </a>{" "}
                 and{" "}
                 <a
                   href="#"
-                  className="font-medium text-blue-600 hover:text-blue-500"
+                  className="font-medium text-heliotrope hover:text-heliotrope/80"
                 >
                   Privacy Policy
                 </a>
@@ -305,16 +305,16 @@ function Auth() {
         </div>
 
         <div className="mt-8">
-          <div className="bg-blue-50 border border-blue-200 rounded-md p-4">
+          <div className="bg-heliotrope/10 border border-heliotrope/20 rounded-md p-4">
             <div className="flex">
               <div className="flex-shrink-0">
-                <Mail className="h-5 w-5 text-blue-400" />
+                <Mail className="h-5 w-5 text-heliotrope" />
               </div>
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-blue-800">
+                <h3 className="text-sm font-medium text-heliotrope">
                   What happens next?
                 </h3>
-                <div className="mt-2 text-sm text-blue-700">
+                <div className="mt-2 text-sm text-heliotrope/80">
                   <p>
                     After signing in, Actioneer will analyze your emails to help
                     you:

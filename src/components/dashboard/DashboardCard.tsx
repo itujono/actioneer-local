@@ -1,6 +1,6 @@
-import React from 'react';
-import { Link } from '@tanstack/react-router';
-import { ChevronRight } from 'lucide-react';
+import React from "react";
+import { Link } from "@tanstack/react-router";
+import { ChevronRight } from "lucide-react";
 
 interface DashboardCardProps {
   title: string;
@@ -25,12 +25,14 @@ export default function DashboardCard({
         <div className="flex items-center">
           <div className={`flex-shrink-0 rounded-md p-3 ${iconBackground}`}>
             {React.cloneElement(icon as React.ReactElement, {
-              className: 'h-6 w-6 text-white',
+              className: "h-6 w-6 text-white",
             })}
           </div>
           <div className="ml-5 w-0 flex-1">
             <dl>
-              <dt className="text-sm font-medium text-gray-500 truncate">{title}</dt>
+              <dt className="text-sm font-medium text-gray-500 truncate">
+                {title}
+              </dt>
               <dd>
                 <div className="text-lg font-medium text-gray-900">{value}</div>
               </dd>
@@ -42,7 +44,7 @@ export default function DashboardCard({
         <div className="text-sm">
           <Link
             to={link}
-            className="font-medium text-blue-700 hover:text-blue-900 flex items-center"
+            className="font-medium text-heliotrope hover:text-heliotrope/80 flex items-center"
           >
             <span className="flex-1">{description}</span>
             <ChevronRight className="h-5 w-5" />

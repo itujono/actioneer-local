@@ -17,7 +17,7 @@ export default {
       jade: '#03c159',
       lavender: '#fe92ed',
       bittersweet: '#ff7765',
-      daisy: '#5a2898', // Using same as heliotrope for consistency
+      daisy: '#5a2898',
       sandy: '#feeac8',
       concrete: '#f1f1f1',
       thunder: '#383639',

@@ -208,7 +208,7 @@ function TravelDashboard() {
       <div className="py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="py-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-jade"></div>
             <p className="mt-2 text-sm text-gray-500">
               Loading travel dashboard...
             </p>
@@ -259,7 +259,7 @@ function TravelDashboard() {
                     destination: e.target.value,
                   }))
                 }
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-jade focus:border-jade"
                 placeholder="e.g., Kyoto, Paris, Tokyo"
               />
             </div>
@@ -275,7 +275,7 @@ function TravelDashboard() {
                     travelers: parseInt(e.target.value),
                   }))
                 }
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500"
+                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-jade focus:border-jade"
               >
                 {[1, 2, 3, 4, 5, 6].map((num) => (
                   <option key={num} value={num}>
@@ -288,7 +288,7 @@ function TravelDashboard() {
               <button
                 onClick={() => refetchTravel()}
                 disabled={travelLoading}
-                className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 disabled:opacity-50"
+                className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-jade hover:bg-jade/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-jade disabled:opacity-50"
               >
                 {travelLoading ? (
                   <RefreshCwIcon className="h-4 w-4 mr-2 animate-spin" />
@@ -375,8 +375,8 @@ function TravelDashboard() {
                     <div className="flex items-center justify-between">
                       <div className="flex items-center">
                         <div className="flex-shrink-0">
-                          <div className="h-10 w-10 rounded-full bg-blue-100 flex items-center justify-center">
-                            <PlaneIcon className="h-6 w-6 text-blue-600" />
+                          <div className="h-10 w-10 rounded-full bg-jade/10 flex items-center justify-center">
+                            <PlaneIcon className="h-6 w-6 text-jade" />
                           </div>
                         </div>
                         <div className="ml-4">
@@ -524,7 +524,7 @@ function TravelCard({
       </div>
 
       <div className="flex items-center justify-between">
-        <div className="text-lg font-bold text-blue-600">
+        <div className="text-lg font-bold text-jade">
           {getBestPrice()}
           {type === "hotel" && "/night"}
         </div>
@@ -532,7 +532,7 @@ function TravelCard({
           href={getBestBookingUrl()}
           target="_blank"
           rel="noopener noreferrer"
-          className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+          className="px-3 py-1 bg-jade text-white text-sm rounded hover:bg-jade/90 transition-colors"
           onClick={handleBookingClick}
         >
           Book Now

@@ -46,8 +46,12 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
               <div className="flex">
                 <div className="flex-shrink-0 flex items-center">
                   <Link to="/" className="flex items-center">
-                    <Mail className="h-8 w-8 text-blue-600" />
-                    <span className="ml-2 text-xl font-bold text-gray-900">
+                    <img
+                      src="/logo.png"
+                      alt="Actioneer"
+                      className="h-8 w-8 text-heliotrope"
+                    />
+                    <span className="ml-2 text-xl font-bold text-thunder">
                       Actioneer
                     </span>
                   </Link>
@@ -58,14 +62,14 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                   <>
                     <Link
                       to="/dashboard"
-                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-blue-700 bg-blue-100 hover:bg-blue-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-heliotrope bg-heliotrope/10 hover:bg-heliotrope/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-heliotrope transition-colors duration-200"
                     >
                       Dashboard
                     </Link>
                     <button
                       type="button"
                       onClick={handleSignOut}
-                      className="ml-4 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                      className="ml-4 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-heliotrope transition-colors duration-200"
                     >
                       Sign out
                     </button>
@@ -73,7 +77,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 ) : (
                   <Link
                     to="/auth"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition-colors duration-200"
+                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-heliotrope hover:bg-heliotrope/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-heliotrope transition-colors duration-200"
                   >
                     Sign in with Google
                   </Link>
@@ -89,7 +93,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
 
   // Dashboard layout with sidebar
   return (
-    <div className="min-h-screen bg-gray-100">
+    <div className="min-h-screen bg-concrete/10">
       {/* Mobile sidebar */}
       <div
         className={`fixed inset-0 flex z-40 md:hidden ${
@@ -118,8 +122,8 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
 
           <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
             <div className="flex-shrink-0 flex items-center px-4">
-              <Mail className="h-8 w-8 text-blue-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">
+              <img src="/logo.png" alt="Actioneer" className="h-8 w-8" />
+              <span className="ml-2 text-xl font-bold text-thunder">
                 Actioneer
               </span>
             </div>
@@ -128,11 +132,11 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 to="/dashboard"
                 className={`group flex items-center px-2 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/dashboard"
-                    ? "bg-blue-100 text-blue-900"
+                    ? "bg-heliotrope/10 text-heliotrope"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
-                <LayoutDashboard className="mr-4 h-6 w-6 text-blue-600" />
+                <LayoutDashboard className="mr-4 h-6 w-6 text-heliotrope" />
                 Dashboard
               </Link>
 
@@ -140,11 +144,11 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 to="/finance"
                 className={`group flex items-center px-2 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/finance"
-                    ? "bg-blue-100 text-blue-900"
+                    ? "bg-gold/10 text-gold"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
-                <Receipt className="mr-4 h-6 w-6 text-blue-600" />
+                <Receipt className="mr-4 h-6 w-6 text-gold" />
                 Finance
               </Link>
 
@@ -152,11 +156,11 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 to="/travel"
                 className={`group flex items-center px-2 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/travel"
-                    ? "bg-blue-100 text-blue-900"
+                    ? "bg-jade/10 text-jade"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
-                <Plane className="mr-4 h-6 w-6 text-blue-600" />
+                <Plane className="mr-4 h-6 w-6 text-jade" />
                 Travel
               </Link>
 
@@ -164,11 +168,11 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 to="/jobs"
                 className={`group flex items-center px-2 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/jobs"
-                    ? "bg-blue-100 text-blue-900"
+                    ? "bg-bittersweet/10 text-bittersweet"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
-                <Briefcase className="mr-4 h-6 w-6 text-blue-600" />
+                <Briefcase className="mr-4 h-6 w-6 text-bittersweet" />
                 Job Applications
               </Link>
 
@@ -176,11 +180,11 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 to="/settings"
                 className={`group flex items-center px-2 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/settings"
-                    ? "bg-blue-100 text-blue-900"
+                    ? "bg-lavender/10 text-lavender"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
-                {/* <Settings className="mr-4 h-6 w-6 text-blue-600" /> */}
+                {/* <Settings className="mr-4 h-6 w-6 text-lavender" /> */}
                 Settings
               </Link>
             </nav>
@@ -208,8 +212,8 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
         <div className="flex-1 flex flex-col min-h-0 border-r border-gray-200 bg-white">
           <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
             <div className="flex items-center flex-shrink-0 px-4">
-              <Mail className="h-8 w-8 text-blue-600" />
-              <span className="ml-2 text-xl font-bold text-gray-900">
+              <img src="/logo.png" alt="Actioneer" className="h-8 w-8" />
+              <span className="ml-2 text-xl font-bold text-black">
                 Actioneer
               </span>
             </div>
@@ -218,11 +222,11 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 to="/dashboard"
                 className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/dashboard"
-                    ? "bg-blue-100 text-blue-900"
+                    ? "bg-heliotrope/10 text-heliotrope"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
-                <LayoutDashboard className="mr-3 h-6 w-6 text-blue-600" />
+                <LayoutDashboard className="mr-3 h-6 w-6 text-heliotrope" />
                 Dashboard
               </Link>
 
@@ -230,11 +234,11 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 to="/finance"
                 className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/finance"
-                    ? "bg-blue-100 text-blue-900"
+                    ? "bg-gold/10 text-gold"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
-                <Receipt className="mr-3 h-6 w-6 text-blue-600" />
+                <Receipt className="mr-3 h-6 w-6 text-gold" />
                 Finance
               </Link>
 
@@ -242,11 +246,11 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 to="/travel"
                 className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/travel"
-                    ? "bg-blue-100 text-blue-900"
+                    ? "bg-jade/10 text-jade"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
-                <Plane className="mr-3 h-6 w-6 text-blue-600" />
+                <Plane className="mr-3 h-6 w-6 text-jade" />
                 Travel
               </Link>
 
@@ -254,23 +258,23 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 to="/jobs"
                 className={`group flex items-center px-2 py-2 pb-4 mb-2 text-sm font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/jobs"
-                    ? "bg-blue-100 text-blue-900"
+                    ? "bg-bittersweet/10 text-bittersweet"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
-                <Briefcase className="mr-3 h-6 w-6 text-blue-600" />
+                <Briefcase className="mr-3 h-6 w-6 text-bittersweet" />
                 Job Applications
               </Link>
 
               <Link
                 to="/settings"
-                className={`group flex items-center px-2 py-4 mt-4 text-sm font-medium rounded-md transition-colors duration-200 border-t ${
+                className={`group flex items-center px-2 py-4 mt-4 text-sm font-medium transition-colors duration-200 border-t ${
                   location.pathname === "/settings"
-                    ? "bg-blue-100 text-blue-900"
+                    ? "bg-lavender/10 text-lavender"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
-                {/* <Settings className="mr-3 h-6 w-6 text-blue-600" /> */}
+                {/* <Settings className="mr-3 h-6 w-6 text-lavender" /> */}
                 Settings
               </Link>
             </nav>
@@ -292,7 +296,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
         <div className="sticky top-0 z-10 md:hidden pl-1 pt-1 sm:pl-3 sm:pt-3 bg-gray-100">
           <button
             type="button"
-            className="-ml-0.5 -mt-0.5 h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-blue-500"
+            className="-ml-0.5 -mt-0.5 h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-heliotrope"
             onClick={() => setSidebarOpen(true)}
           >
             <span className="sr-only">Open sidebar</span>

@@ -44,6 +44,7 @@ import {
   ChevronDown,
   Loader2,
 } from "lucide-react";
+import { Select } from "../components/ui";
 
 export const financeRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -82,42 +83,42 @@ const revenueIcons = {
 
 // Category colors for visual distinction
 const categoryColors = {
-  // Expense colors (red/orange tones)
-  software: "bg-blue-100 text-blue-800",
-  office_supplies: "bg-green-100 text-green-800",
-  utilities: "bg-yellow-100 text-yellow-800",
-  travel: "bg-purple-100 text-purple-800",
-  entertainment: "bg-pink-100 text-pink-800",
-  food: "bg-orange-100 text-orange-800",
-  coffee: "bg-amber-100 text-amber-800",
-  shopping: "bg-indigo-100 text-indigo-800",
-  groceries: "bg-emerald-100 text-emerald-800",
-  housing: "bg-gray-100 text-gray-800",
-  transport: "bg-cyan-100 text-cyan-800",
-  other: "bg-slate-100 text-slate-800",
-  default: "bg-gray-100 text-gray-800",
+  // Expense colors using our vibrant palette
+  software: "bg-heliotrope text-white",
+  office_supplies: "bg-jade/10 text-jade",
+  utilities: "bg-gold/10 text-gold",
+  travel: "bg-lavender/10 text-lavender",
+  entertainment: "bg-bittersweet/10 text-bittersweet",
+  food: "bg-lime/10 text-lime",
+  coffee: "bg-sandy/10 text-thunder",
+  shopping: "bg-heliotrope/10 text-heliotrope",
+  groceries: "bg-jade/10 text-jade",
+  housing: "bg-concrete/20 text-thunder",
+  transport: "bg-gold/10 text-gold",
+  other: "bg-concrete text-white",
+  default: "bg-concrete text-black",
 };
 
-// Revenue colors (green/blue tones)
+// Revenue colors using our vibrant palette
 const revenueColors = {
-  payment_received: "bg-emerald-100 text-emerald-800",
-  refund: "bg-teal-100 text-teal-800",
-  business_income: "bg-green-100 text-green-800",
-  investment: "bg-lime-100 text-lime-800",
-  government: "bg-blue-100 text-blue-800",
-  digital_platform: "bg-cyan-100 text-cyan-800",
-  sales: "bg-mint-100 text-mint-800",
-  default: "bg-green-100 text-green-800",
+  payment_received: "bg-jade text-white",
+  refund: "bg-lime/10 text-lime",
+  business_income: "bg-gold/10 text-gold",
+  investment: "bg-heliotrope/10 text-heliotrope",
+  government: "bg-lavender/10 text-lavender",
+  digital_platform: "bg-bittersweet/10 text-bittersweet",
+  sales: "bg-jade/10 text-jade",
+  default: "bg-jade/10 text-jade",
 };
 
 // Attachment icon mapping
 const getAttachmentIcon = (mimeType: string) => {
   if (mimeType.includes("pdf")) {
-    return <FileText className="h-4 w-4 text-red-600" />;
+    return <FileText className="h-4 w-4 text-bittersweet" />;
   } else if (mimeType.includes("image")) {
-    return <Image className="h-4 w-4 text-green-600" />;
+    return <Image className="h-4 w-4 text-jade" />;
   } else {
-    return <Paperclip className="h-4 w-4 text-gray-600" />;
+    return <Paperclip className="h-4 w-4 text-black" />;
   }
 };
 
@@ -538,8 +539,8 @@ function FinancialDashboard() {
       <div className="py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="py-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-2 text-sm text-gray-500">
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-heliotrope"></div>
+            <p className="mt-2 text-sm text-black">
               Checking authentication...
             </p>
           </div>
@@ -553,10 +554,8 @@ function FinancialDashboard() {
       <div className="py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="py-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-2 text-sm text-gray-500">
-              Redirecting to login...
-            </p>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-heliotrope"></div>
+            <p className="mt-2 text-sm text-black">Redirecting to login...</p>
           </div>
         </div>
       </div>
@@ -567,18 +566,18 @@ function FinancialDashboard() {
     return (
       <div className="py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-          <div className="bg-red-50 border border-red-200 rounded-lg p-6">
+          <div className="bg-bittersweet/10 border border-bittersweet rounded-lg p-6">
             <div className="flex">
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">
+                <h3 className="text-sm font-medium text-bittersweet">
                   Error loading financial data
                 </h3>
-                <p className="mt-1 text-sm text-red-700">
+                <p className="mt-1 text-sm text-bittersweet">
                   {receiptsError?.message ||
                     revenueError?.message ||
                     "An unexpected error occurred"}
                 </p>
-                <div className="mt-2 text-xs text-red-600">
+                <div className="mt-2 text-xs text-bittersweet">
                   User ID: {user?.id || "Not authenticated"}
                   <br />
                   Email: {user?.email || "Not authenticated"}
@@ -588,7 +587,7 @@ function FinancialDashboard() {
                     refetchReceipts();
                     refetchRevenue();
                   }}
-                  className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
+                  className="mt-2 text-sm text-bittersweet hover:text-bittersweet underline"
                 >
                   Try again
                 </button>
@@ -603,36 +602,36 @@ function FinancialDashboard() {
   const isLoading = receiptsLoading || revenueLoading;
 
   return (
-    <div className="min-h-screen bg-gray-50 py-6 pb-12">
+    <div className="min-h-screen bg-concrete/10 py-6 pb-12">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
         {/* Header Section */}
         <div className="flex flex-col space-y-6">
           <div className="flex items-center justify-between">
             <div>
-              <h1 className="text-2xl font-bold text-gray-900">
+              <h1 className="text-2xl font-bold text-black">
                 Financial Dashboard
               </h1>
-              <p className="mt-2 text-lg text-gray-600">
+              <p className="mt-2 text-lg text-black">
                 Track your complete financial picture across all currencies
               </p>
             </div>
           </div>
 
           {/* Controls Section */}
-          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white rounded-xl border border-gray-200 p-4">
+          <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white rounded-xl border border-thunder/30 p-4">
             <div className="flex flex-wrap items-center gap-4">
               {/* View Mode Selector */}
               <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-gray-700">View:</span>
-                <div className="flex bg-gray-100 rounded-lg p-1">
+                <span className="text-sm font-medium text-black">View:</span>
+                <div className="flex bg-concrete/20 rounded-lg p-1">
                   {["all", "revenue", "expenses"].map((mode) => (
                     <button
                       key={mode}
                       onClick={() => setViewMode(mode as typeof viewMode)}
                       className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all ${
                         viewMode === mode
-                          ? "bg-white text-blue-600 shadow-sm"
-                          : "text-gray-600 hover:text-gray-900"
+                          ? "bg-white text-heliotrope shadow-sm"
+                          : "text-thunder/50 hover:text-black"
                       }`}
                     >
                       {mode === "all"
@@ -647,33 +646,34 @@ function FinancialDashboard() {
 
               {/* Time Period Filter */}
               <div className="flex items-center space-x-2">
-                <span className="text-sm font-medium text-gray-700">
-                  Period:
-                </span>
-                <select
+                <span className="text-sm font-medium text-black">Period:</span>
+                <Select
                   value={timeframe}
-                  onChange={(e) => setTimeframe(e.target.value)}
-                  className="px-3 py-1.5 text-sm border border-gray-200 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  <option value="week">Last Week</option>
-                  <option value="month">Last Month</option>
-                  <option value="quarter">Last Quarter</option>
-                  <option value="year">Last Year</option>
-                  <option value="all">All Time</option>
-                </select>
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    setTimeframe(e.target.value)
+                  }
+                  size="sm"
+                  options={[
+                    { value: "week", label: "Last Week" },
+                    { value: "month", label: "Last Month" },
+                    { value: "quarter", label: "Last Quarter" },
+                    { value: "year", label: "Last Year" },
+                    { value: "all", label: "All Time" },
+                  ]}
+                />
               </div>
             </div>
 
             <div className="flex flex-wrap items-center gap-6">
               {/* Display Mode Toggle */}
               <div className="flex items-center space-x-2">
-                <div className="flex bg-gray-100 rounded-lg p-1">
+                <div className="flex bg-concrete/20 rounded-lg p-1">
                   <button
                     onClick={() => setDisplayMode("cards")}
                     className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all flex items-center space-x-1 ${
                       displayMode === "cards"
-                        ? "bg-white text-blue-600 shadow-sm"
-                        : "text-gray-600 hover:text-gray-900"
+                        ? "bg-white text-heliotrope shadow-sm"
+                        : "text-black hover:text-black"
                     }`}
                   >
                     <Grid3X3 className="h-4 w-4" />
@@ -683,8 +683,8 @@ function FinancialDashboard() {
                     onClick={() => setDisplayMode("list")}
                     className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all flex items-center space-x-1 ${
                       displayMode === "list"
-                        ? "bg-white text-blue-600 shadow-sm"
-                        : "text-gray-600 hover:text-gray-900"
+                        ? "bg-white text-heliotrope shadow-sm"
+                        : "text-black hover:text-black"
                     }`}
                   >
                     <List className="h-4 w-4" />
@@ -695,26 +695,24 @@ function FinancialDashboard() {
 
               {/* Currency Selector */}
               <div className="flex items-center space-x-2">
-                <select
+                <Select
                   value={baseCurrency}
-                  onChange={(e) => setBaseCurrency(e.target.value)}
-                  className="px-3 py-1.5 text-sm border border-gray-200 rounded-md bg-white text-gray-700 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500"
-                >
-                  {metrics.uniqueCurrencies.length > 0 ? (
-                    // Show only currencies that the user actually has data for
-                    metrics.uniqueCurrencies.map((currency) => {
-                      const currencyInfo = SUPPORTED_CURRENCIES[currency];
-                      return (
-                        <option key={currency} value={currency}>
-                          {currencyInfo?.flag || "🌍"} {currency}
-                        </option>
-                      );
-                    })
-                  ) : (
-                    // Fallback: if no data yet, show USD as default
-                    <option value="USD">🇺🇸 USD</option>
-                  )}
-                </select>
+                  onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
+                    setBaseCurrency(e.target.value)
+                  }
+                  size="sm"
+                  options={
+                    metrics.uniqueCurrencies.length > 0
+                      ? metrics.uniqueCurrencies.map((currency) => {
+                          const currencyInfo = SUPPORTED_CURRENCIES[currency];
+                          return {
+                            value: currency,
+                            label: `${currencyInfo?.flag || "🌍"} ${currency}`,
+                          };
+                        })
+                      : [{ value: "USD", label: "🇺🇸 USD" }]
+                  }
+                />
               </div>
 
               {/* Currency Breakdown Toggle */}
@@ -725,8 +723,8 @@ function FinancialDashboard() {
                   }
                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all border ${
                     showCurrencyBreakdown
-                      ? "bg-blue-50 text-blue-700 border-blue-200"
-                      : "bg-white text-gray-700 border-gray-200 hover:bg-gray-50"
+                      ? "bg-heliotrope/10 text-heliotrope border-heliotrope/20"
+                      : "bg-white text-black border-gray-200 hover:bg-gray-50"
                   }`}
                 >
                   <RefreshCw
@@ -746,29 +744,27 @@ function FinancialDashboard() {
           {/* Primary Metrics */}
           <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
             {/* Net Income - Featured Card */}
-            <div className="md:col-span-1 bg-gradient-to-br from-blue-50 to-indigo-100 border-2 border-blue-200 rounded-xl p-6">
+            <div className="md:col-span-1 bg-heliotrope/10 border-2 border-heliotrope rounded-xl p-6">
               <div className="flex items-center justify-between">
                 <div>
-                  <p className="text-sm font-medium text-blue-600 uppercase tracking-wide">
+                  <p className="text-sm font-medium text-heliotrope uppercase tracking-wide">
                     Net Income
                   </p>
                   <p
                     className={`text-lg font-bold mt-2 ${
-                      metrics.netIncome >= 0
-                        ? "text-emerald-600"
-                        : "text-red-600"
+                      metrics.netIncome >= 0 ? "text-jade" : "text-black"
                     }`}
                   >
                     {metrics.netIncome >= 0 ? "+" : ""}
                     {formatCurrency(Math.abs(metrics.netIncome), baseCurrency)}
                   </p>
-                  <p className="text-sm text-blue-600 mt-1">
+                  <p className="text-sm text-heliotrope mt-1">
                     {timeframe === "all" ? "All time" : `Last ${timeframe}`}
                   </p>
                 </div>
                 <div
                   className={`p-3 rounded-full ${
-                    metrics.netIncome >= 0 ? "bg-emerald-500" : "bg-red-500"
+                    metrics.netIncome >= 0 ? "bg-daisy" : "bg-daisy"
                   }`}
                 >
                   <PiggyBank className="h-8 w-8 text-white" />
@@ -777,39 +773,39 @@ function FinancialDashboard() {
             </div>
 
             {/* Income & Expenses Summary */}
-            <div className="md:col-span-2 bg-white rounded-xl border border-gray-200 p-6">
-              <h3 className="text-lg font-semibold text-gray-900 mb-4">
+            <div className="md:col-span-2 bg-white rounded-xl border border-thunder/30 p-6">
+              <h3 className="text-lg font-semibold text-black mb-4">
                 Financial Summary
               </h3>
               <div className="grid grid-cols-2 gap-6">
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-emerald-100 rounded-lg">
-                      <ArrowUpRight className="h-5 w-5 text-emerald-600" />
+                    <div className="p-2 bg-jade/10 rounded-lg">
+                      <ArrowUpRight className="h-5 w-5 text-jade" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-sm font-medium text-black">
                         Total Income
                       </p>
-                      <p className="font-bold text-emerald-600">
+                      <p className="font-bold text-jade">
                         {formatCurrency(metrics.totalRevenue, baseCurrency)}
                       </p>
                     </div>
                   </div>
 
                   <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-blue-100 rounded-lg">
-                      <Calendar className="h-5 w-5 text-blue-600" />
+                    <div className="p-2 bg-heliotrope/10 rounded-lg">
+                      <Calendar className="h-5 w-5 text-heliotrope" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-sm font-medium text-black">
                         This Month
                       </p>
                       <p
                         className={`font-bold ${
                           metrics.thisMonthNet >= 0
-                            ? "text-emerald-600"
-                            : "text-red-600"
+                            ? "text-jade"
+                            : "text-bittersweet"
                         }`}
                       >
                         {metrics.thisMonthNet >= 0 ? "+" : ""}
@@ -824,14 +820,14 @@ function FinancialDashboard() {
 
                 <div className="space-y-3">
                   <div className="flex items-center space-x-3">
-                    <div className="p-2 bg-red-100 rounded-lg">
-                      <ArrowDownRight className="h-5 w-5 text-red-600" />
+                    <div className="p-2 bg-bittersweet/10 rounded-lg">
+                      <ArrowDownRight className="h-5 w-5 text-bittersweet" />
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-sm font-medium text-black">
                         Total Expenses
                       </p>
-                      <p className="font-bold text-red-600">
+                      <p className="font-bold text-bittersweet">
                         {formatCurrency(metrics.totalExpenses, baseCurrency)}
                       </p>
                     </div>
@@ -840,24 +836,22 @@ function FinancialDashboard() {
                   <div className="flex items-center space-x-3">
                     <div
                       className={`p-2 rounded-lg ${
-                        metrics.trend >= 0 ? "bg-emerald-100" : "bg-red-100"
+                        metrics.trend >= 0 ? "bg-jade/10" : "bg-bittersweet/10"
                       }`}
                     >
                       {metrics.trend >= 0 ? (
-                        <TrendingUp className="h-5 w-5 text-emerald-600" />
+                        <TrendingUp className="h-5 w-5 text-jade" />
                       ) : (
-                        <TrendingDown className="h-5 w-5 text-red-600" />
+                        <TrendingDown className="h-5 w-5 text-bittersweet" />
                       )}
                     </div>
                     <div>
-                      <p className="text-sm font-medium text-gray-600">
+                      <p className="text-sm font-medium text-black">
                         vs Last Month
                       </p>
                       <p
                         className={`font-bold ${
-                          metrics.trend >= 0
-                            ? "text-emerald-600"
-                            : "text-red-600"
+                          metrics.trend >= 0 ? "text-jade" : "text-bittersweet"
                         }`}
                       >
                         {metrics.trend >= 0 ? "+" : ""}
@@ -873,12 +867,12 @@ function FinancialDashboard() {
 
         {/* Currency Breakdown Section */}
         {showCurrencyBreakdown && metrics.uniqueCurrencies.length > 1 && (
-          <div className="bg-white rounded-xl border border-gray-200 p-6">
+          <div className="bg-white rounded-xl border border-thunder/30 p-6">
             <div className="flex items-center justify-between mb-6">
-              <h3 className="text-lg font-semibold text-gray-900">
+              <h3 className="text-lg font-semibold text-black">
                 Currency Breakdown
               </h3>
-              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-blue-100 text-blue-800">
+              <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-heliotrope/10 text-heliotrope">
                 {metrics.uniqueCurrencies.length} currencies
               </span>
             </div>
@@ -889,41 +883,41 @@ function FinancialDashboard() {
                 return (
                   <div
                     key={currency}
-                    className="bg-gradient-to-br from-gray-50 to-gray-100 rounded-lg p-4 border border-gray-200 hover:shadow-md transition-shadow"
+                    className="bg-concrete rounded-lg p-4 border border-thunder/30 hover:shadow-md transition-shadow"
                   >
                     <div className="flex items-center justify-between mb-3">
                       <div className="flex items-center space-x-2">
                         <span className="text-xl">{currencyInfo.flag}</span>
-                        <span className="font-bold text-gray-900 text-lg">
+                        <span className="font-bold text-black text-lg">
                           {currency}
                         </span>
                       </div>
-                      <span className="text-xs text-gray-500 bg-white px-2 py-1 rounded">
+                      <span className="text-xs text-black bg-white px-2 py-1 rounded">
                         {currencyInfo.name}
                       </span>
                     </div>
                     <div className="space-y-2">
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Income:</span>
-                        <span className="text-emerald-600 font-semibold">
+                        <span className="text-sm text-black">Income:</span>
+                        <span className="text-jade font-semibold">
                           +{formatCurrency(breakdown.revenue, currency)}
                         </span>
                       </div>
                       <div className="flex justify-between items-center">
-                        <span className="text-sm text-gray-600">Expenses:</span>
-                        <span className="text-red-600 font-semibold">
+                        <span className="text-sm text-black">Expenses:</span>
+                        <span className="text-bittersweet font-semibold">
                           -{formatCurrency(breakdown.expenses, currency)}
                         </span>
                       </div>
-                      <div className="flex justify-between items-center pt-2 border-t border-gray-300">
-                        <span className="text-sm font-medium text-gray-900">
+                      <div className="flex justify-between items-center pt-2 border-t border-thunder/30">
+                        <span className="text-sm font-medium text-black">
                           Net:
                         </span>
                         <span
                           className={`font-bold ${
                             breakdown.net >= 0
-                              ? "text-emerald-600"
-                              : "text-red-600"
+                              ? "text-jade"
+                              : "text-bittersweet"
                           }`}
                         >
                           {breakdown.net >= 0 ? "+" : ""}
@@ -931,7 +925,7 @@ function FinancialDashboard() {
                         </span>
                       </div>
                       {currency !== baseCurrency && (
-                        <div className="flex justify-between items-center text-xs text-gray-500 bg-white rounded px-2 py-1">
+                        <div className="flex justify-between items-center text-xs text-black bg-white rounded px-2 py-1">
                           <span>≈ {baseCurrency}:</span>
                           <span className="font-medium">
                             {formatCurrency(
@@ -957,7 +951,7 @@ function FinancialDashboard() {
       {/* Financial Transactions Section */}
       <div className="mt-8">
         {isLoading ? (
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-12">
+          <div className="bg-white rounded-xl shadow-lg border border-thunder/30 p-12">
             <div className="flex justify-center items-center">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
               <span className="ml-4 text-lg text-gray-600">
@@ -966,12 +960,12 @@ function FinancialDashboard() {
             </div>
           </div>
         ) : Object.keys(groupedTransactions).length === 0 ? (
-          <div className="bg-white rounded-xl shadow-lg border border-gray-200 p-12 text-center">
+          <div className="bg-white rounded-xl shadow-lg border border-thunder/30 p-12 text-center">
             <PiggyBank className="h-16 w-16 text-gray-300 mx-auto mb-4" />
-            <h3 className="text-xl font-medium text-gray-900 mb-2">
+            <h3 className="text-xl font-medium text-black mb-2">
               No financial transactions found
             </h3>
-            <p className="text-gray-500">
+            <p className="text-black">
               Your {viewMode === "all" ? "financial transactions" : viewMode}{" "}
               will appear here once processed.
               {viewMode === "revenue" && " Time to make some money!"}
@@ -988,13 +982,13 @@ function FinancialDashboard() {
                 <div key={dateString} className="space-y-2 px-8">
                   {/* Date Header with Daily Summary */}
                   <div className="flex items-center justify-between">
-                    <h3 className="text-lg font-semibold text-gray-900">
+                    <h3 className="text-lg font-semibold text-black">
                       {formatDateLabel(dateString)}
                     </h3>
                     <div className="text-right">
-                      <div className="flex items-center space-x-4 text-sm text-gray-500">
+                      <div className="flex items-center space-x-4 text-sm text-black">
                         {getDayRevenue(transactionsForDay) > 0 && (
-                          <span className="text-emerald-600">
+                          <span className="text-jade">
                             +
                             {formatCurrency(
                               getDayRevenue(transactionsForDay),
@@ -1004,7 +998,7 @@ function FinancialDashboard() {
                           </span>
                         )}
                         {getDayExpenses(transactionsForDay) > 0 && (
-                          <span className="text-red-600">
+                          <span className="text-bittersweet">
                             -
                             {formatCurrency(
                               getDayExpenses(transactionsForDay),
@@ -1017,8 +1011,8 @@ function FinancialDashboard() {
                       <div
                         className={`font-bold text-sm ${
                           getDayTotal(transactionsForDay) >= 0
-                            ? "text-emerald-600"
-                            : "text-red-600"
+                            ? "text-jade"
+                            : "text-bittersweet"
                         }`}
                       >
                         Net: {getDayTotal(transactionsForDay) >= 0 ? "+" : ""}
@@ -1039,8 +1033,8 @@ function FinancialDashboard() {
                           key={`${transaction.type}-${transaction.id}`}
                           className={`bg-white rounded-xl shadow-md border-2 p-6 hover:shadow-lg transition-all duration-200 relative ${
                             transaction.type === "revenue"
-                              ? "border-emerald-200 hover:border-emerald-300"
-                              : "border-red-200 hover:border-red-300"
+                              ? "border-jade hover:border-jade"
+                              : "border-bittersweet hover:border-bittersweet"
                           }`}
                         >
                           {/* Transaction Header */}
@@ -1062,7 +1056,7 @@ function FinancialDashboard() {
                                     ] || categoryIcons.default}
                               </div>
                               <div className="flex-1 min-w-0">
-                                <h4 className="font-semibold text-gray-900 truncate">
+                                <h4 className="font-semibold text-black truncate">
                                   {transaction.type === "revenue"
                                     ? "Income"
                                     : "Expense"}{" "}
@@ -1071,8 +1065,8 @@ function FinancialDashboard() {
                                 <p
                                   className={`text-xs font-medium ${
                                     transaction.type === "revenue"
-                                      ? "text-emerald-600"
-                                      : "text-red-600"
+                                      ? "text-jade"
+                                      : "text-bittersweet"
                                   }`}
                                 >
                                   {transaction.type === "revenue"
@@ -1100,12 +1094,12 @@ function FinancialDashboard() {
                           {/* Transaction Content */}
                           <div className="space-y-3">
                             <div>
-                              <p className="text-sm font-medium text-gray-900 truncate">
+                              <p className="text-sm font-medium text-black truncate">
                                 {transaction.merchant ||
                                   transaction.source ||
                                   "Unknown"}
                               </p>
-                              <p className="text-xs text-gray-500 mt-1">
+                              <p className="text-xs text-black mt-1">
                                 {transaction.description ||
                                   transaction.merchant ||
                                   transaction.source ||
@@ -1118,8 +1112,8 @@ function FinancialDashboard() {
                               <div
                                 className={`font-bold ${
                                   transaction.type === "revenue"
-                                    ? "text-emerald-600"
-                                    : "text-red-600"
+                                    ? "text-jade"
+                                    : "text-bittersweet"
                                 }`}
                               >
                                 {transaction.type === "revenue" ? "+" : "-"}
@@ -1129,7 +1123,7 @@ function FinancialDashboard() {
                                 )}
                               </div>
                               {transaction.currency !== baseCurrency && (
-                                <div className="text-xs text-gray-500 mt-1">
+                                <div className="text-xs text-black mt-1">
                                   ≈ {getCurrencySymbol(baseCurrency)}
                                   {currencyManager
                                     .convert(
@@ -1146,11 +1140,11 @@ function FinancialDashboard() {
                           {/* Attachments Section */}
                           {transaction.attachments &&
                             transaction.attachments.length > 0 && (
-                              <div className="mt-4 pt-3 border-t border-gray-100">
+                              <div className="mt-4 pt-3 border-t border-thunder/30">
                                 <div className="flex items-center justify-between">
                                   <div className="flex items-center space-x-2">
-                                    <Paperclip className="h-4 w-4 text-gray-400" />
-                                    <span className="text-sm text-gray-600">
+                                    <Paperclip className="h-4 w-4 text-black" />
+                                    <span className="text-sm text-black">
                                       {transaction.attachment_count} attachment
                                       {transaction.attachment_count > 1
                                         ? "s"
@@ -1163,7 +1157,7 @@ function FinancialDashboard() {
                                       .map((attachment: any, index: number) => (
                                         <div
                                           key={index}
-                                          className="flex items-center p-1 rounded hover:bg-gray-100 cursor-pointer"
+                                          className="flex items-center p-1 rounded hover:bg-concrete"
                                           title={`${attachment.filename} (${attachment.mimeType})`}
                                         >
                                           {getAttachmentIcon(
@@ -1172,7 +1166,7 @@ function FinancialDashboard() {
                                         </div>
                                       ))}
                                     {transaction.attachments.length > 3 && (
-                                      <div className="flex items-center justify-center w-6 h-6 text-xs text-gray-500 bg-gray-100 rounded">
+                                      <div className="flex items-center justify-center w-6 h-6 text-xs text-black bg-concrete rounded">
                                         +{transaction.attachments.length - 3}
                                       </div>
                                     )}
@@ -1187,13 +1181,13 @@ function FinancialDashboard() {
                     </div>
                   ) : (
                     /* Transaction List View */
-                    <div className="bg-white rounded-xl shadow-md border border-gray-200 overflow-hidden">
-                      <div className="divide-y divide-gray-200">
+                    <div className="bg-white rounded-xl shadow-md border border-thunder/30 overflow-hidden">
+                      <div className="divide-y divide-thunder/30">
                         {(transactionsForDay as any[]).map(
                           (transaction: any) => (
                             <div
                               key={`${transaction.type}-${transaction.id}`}
-                              className="p-4 hover:bg-gray-50 transition-colors duration-150"
+                              className="p-4 hover:bg-concrete transition-colors duration-150"
                             >
                               <div className="flex items-center justify-between">
                                 {/* Left side: Icon, merchant, and description */}
@@ -1215,7 +1209,7 @@ function FinancialDashboard() {
                                   </div>
                                   <div className="flex-1 min-w-0">
                                     <div className="flex items-center space-x-2">
-                                      <p className="text-sm font-medium text-gray-900 truncate">
+                                      <p className="text-sm font-medium text-black truncate">
                                         {transaction.merchant ||
                                           transaction.source ||
                                           "Unknown"}
@@ -1236,28 +1230,28 @@ function FinancialDashboard() {
                                       <span
                                         className={`text-xs font-medium ${
                                           transaction.type === "revenue"
-                                            ? "text-emerald-600"
-                                            : "text-red-600"
+                                            ? "text-jade"
+                                            : "text-bittersweet"
                                         }`}
                                       >
                                         {transaction.type === "revenue"
                                           ? "↗ Income"
                                           : "↘ Expense"}
                                       </span>
-                                      <span className="text-xs text-gray-400">
+                                      <span className="text-xs text-black">
                                         #{transaction.id.slice(-4)}
                                       </span>
                                       {transaction.attachments &&
                                         transaction.attachments.length > 0 && (
                                           <div className="flex items-center space-x-1">
-                                            <Paperclip className="h-3 w-3 text-gray-400" />
-                                            <span className="text-xs text-gray-400">
+                                            <Paperclip className="h-3 w-3 text-black" />
+                                            <span className="text-xs text-black">
                                               {transaction.attachment_count}
                                             </span>
                                           </div>
                                         )}
                                     </div>
-                                    <p className="text-xs text-gray-500 mt-1 truncate">
+                                    <p className="text-xs text-black mt-1 truncate">
                                       {transaction.description ||
                                         transaction.merchant ||
                                         transaction.source ||
@@ -1274,8 +1268,8 @@ function FinancialDashboard() {
                                   <div
                                     className={`text-sm font-semibold ${
                                       transaction.type === "revenue"
-                                        ? "text-emerald-600"
-                                        : "text-red-600"
+                                        ? "text-jade"
+                                        : "text-bittersweet"
                                     }`}
                                   >
                                     {transaction.type === "revenue" ? "+" : "-"}
@@ -1285,7 +1279,7 @@ function FinancialDashboard() {
                                     )}
                                   </div>
                                   {transaction.currency !== baseCurrency && (
-                                    <div className="text-xs text-gray-500 mt-1">
+                                    <div className="text-xs text-black mt-1">
                                       ≈ {getCurrencySymbol(baseCurrency)}
                                       {currencyManager
                                         .convert(
@@ -1319,7 +1313,7 @@ function FinancialDashboard() {
                 if (hasNextRevenuePage) fetchNextRevenue();
               }}
               disabled={isFetchingNextReceipts || isFetchingNextRevenue}
-              className="inline-flex items-center px-6 py-3 border border-gray-300 rounded-lg text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center px-6 py-3 border border-gray-300 rounded-lg text-sm font-medium text-black bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isFetchingNextReceipts || isFetchingNextRevenue ? (
                 <>

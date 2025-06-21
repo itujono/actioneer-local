@@ -16,7 +16,7 @@ export function CustomFieldInput({
   error,
   disabled,
 }: CustomFieldInputProps) {
-  const baseInputClasses = `w-full px-3 py-2 border rounded-md focus:ring-blue-500 focus:border-blue-500 disabled:bg-gray-50 disabled:text-gray-500 ${
+  const baseInputClasses = `w-full px-3 py-2 border rounded-md focus:ring-heliotrope focus:border-heliotrope disabled:bg-gray-50 disabled:text-gray-500 ${
     error ? "border-red-300" : "border-gray-300"
   }`;
 
@@ -111,7 +111,7 @@ export function CustomFieldInput({
               checked={value === true}
               onChange={(e) => handleChange(e.target.checked)}
               disabled={disabled}
-              className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded disabled:opacity-50"
+              className="h-4 w-4 text-heliotrope focus:ring-heliotrope border-gray-300 rounded disabled:opacity-50"
             />
             <span className="text-sm text-gray-700">
               {value === true ? "Yes" : "No"}
@@ -286,7 +286,7 @@ export function EditableCustomFieldCell({
   };
 
   const renderEditInput = () => {
-    const baseInputClasses = `w-full px-2 py-1 text-sm border rounded focus:ring-blue-500 focus:border-blue-500 bg-white min-h-[28px] ${
+    const baseInputClasses = `w-full px-2 py-1 text-sm border rounded focus:ring-heliotrope focus:border-heliotrope bg-white min-h-[28px] ${
       error ? "border-red-300" : "border-gray-300"
     }`;
 

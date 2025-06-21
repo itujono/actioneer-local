@@ -25,15 +25,15 @@ export default function RecentActivityCard({
   const getIcon = () => {
     switch (type) {
       case "receipt":
-        return <ReceiptIcon className="h-5 w-5 text-indigo-600" />;
+        return <ReceiptIcon className="h-5 w-5 text-daisy" />;
       case "revenue":
-        return <DollarSignIcon className="h-5 w-5 text-green-600" />;
+        return <DollarSignIcon className="h-5 w-5 text-jade" />;
       case "travel":
-        return <PlaneIcon className="h-5 w-5 text-teal-600" />;
+        return <PlaneIcon className="h-5 w-5 text-jade" />;
       case "job_application":
-        return <BriefcaseIcon className="h-5 w-5 text-amber-600" />;
+        return <BriefcaseIcon className="h-5 w-5 text-bittersweet" />;
       default:
-        return <MessageSquare className="h-5 w-5 text-gray-600" />;
+        return <MessageSquare className="h-5 w-5 text-black" />;
     }
   };
 
@@ -64,10 +64,10 @@ export default function RecentActivityCard({
               </div>
               <div className="min-w-0 flex-1 px-4">
                 <div>
-                  <p className="text-sm font-medium text-blue-600 truncate">
+                  <p className="text-sm font-medium text-heliotrope truncate">
                     {title}
                   </p>
-                  <p className="mt-1 flex items-center text-sm text-gray-500">
+                  <p className="mt-1 flex items-center text-sm text-black">
                     From&nbsp;{" "}
                     <span className="font-semibold">{description}</span>
                   </p>
@@ -75,8 +75,8 @@ export default function RecentActivityCard({
               </div>
             </div>
             <div className="flex items-center">
-              <p className="text-sm text-gray-500 mr-4">{date}</p>
-              <ChevronRight className="h-5 w-5 text-gray-400" />
+              <p className="text-sm text-black mr-4">{date}</p>
+              <ChevronRight className="h-5 w-5 text-concrete" />
             </div>
           </div>
         </div>

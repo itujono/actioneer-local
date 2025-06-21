@@ -131,7 +131,7 @@ function Dashboard() {
       <div className="py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="py-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-heliotrope"></div>
             <p className="mt-2 text-sm text-gray-500">Loading dashboard...</p>
           </div>
         </div>
@@ -146,10 +146,8 @@ function Dashboard() {
       <div className="py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="py-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-2 text-sm text-gray-500">
-              Redirecting to login...
-            </p>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-heliotrope"></div>
+            <p className="mt-2 text-gray-500">Redirecting to login...</p>
           </div>
         </div>
       </div>
@@ -159,27 +157,27 @@ function Dashboard() {
   return (
     <div className="py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        <h1 className="text-2xl font-bold text-gray-900">Dashboard</h1>
+        <h1 className="text-2xl font-bold text-black">Dashboard</h1>
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
         {/* Welcome Banner */}
-        <div className="bg-blue-600 rounded-lg shadow-md overflow-hidden mt-6">
-          <div className="px-6 py-5 sm:px-8 sm:py-6">
+        <div className="rounded-lg shadow-md overflow-hidden mt-6">
+          <div className="bg-heliotrope px-6 py-5 sm:px-8 sm:py-6">
             <div className="flex items-center justify-between">
               <div>
                 <h2 className="text-xl font-bold text-white">
                   Welcome back, {user?.email?.split("@")[0] || "User"}!
                 </h2>
-                <p className="mt-1 text-sm text-blue-100">
+                <p className="mt-1 text-sm text-white/80">
                   Your inbox is being monitored for actionable emails. Here's a
                   summary of your recent activity.
                 </p>
               </div>
             </div>
           </div>
-          <div className="border-t border-blue-500 bg-blue-500 px-6 py-2">
-            <div className="text-sm text-blue-100">
+          <div className="border-t border-heliotrope/20 bg-daisy px-6 py-2">
+            <div className="text-sm text-white/90">
               Pro tip: Use the Gmail add-on to see smart actions right in your
               inbox.
             </div>
@@ -229,13 +227,11 @@ function Dashboard() {
         </div>
 
         {/* Recent Activity */}
-        <h2 className="text-lg font-medium text-gray-900 mt-8">
-          Recent Activity
-        </h2>
+        <h2 className="text-lg font-medium text-black mt-8">Recent Activity</h2>
         <div className="mt-2 overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
           <div className="bg-white">
             {emailsLoading ? (
-              <div className="py-12 text-center text-gray-500">
+              <div className="py-12 text-center text-concrete">
                 Loading recent activity...
               </div>
             ) : recentEmails?.length ? (
@@ -253,7 +249,7 @@ function Dashboard() {
                 ))}
               </ul>
             ) : (
-              <div className="py-12 text-center text-gray-500">
+              <div className="py-12 text-center text-concrete">
                 No recent activity to show
               </div>
             )}
@@ -265,14 +261,14 @@ function Dashboard() {
           {/* Upcoming Events */}
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
-              <h3 className="text-lg font-medium text-gray-900">
+              <h3 className="text-lg font-medium text-black">
                 Upcoming Events
               </h3>
-              <Calendar className="h-5 w-5 text-gray-400" />
+              <Calendar className="h-5 w-5 text-concrete" />
             </div>
             <div className="border-t border-gray-200 px-4 py-5 sm:p-6">
               {travelLoading ? (
-                <div className="py-8 text-center text-gray-500">
+                <div className="py-8 text-center text-concrete">
                   Loading events...
                 </div>
               ) : travelData?.upcomingTrips.length ? (
@@ -281,15 +277,15 @@ function Dashboard() {
                     <li key={trip.id} className="py-4">
                       <div className="flex items-center space-x-4">
                         <div className="flex-shrink-0">
-                          <div className="h-10 w-10 rounded-full bg-teal-100 flex items-center justify-center">
-                            <PlaneIcon className="h-6 w-6 text-teal-600" />
+                          <div className="h-10 w-10 rounded-full bg-jade/10 flex items-center justify-center">
+                            <PlaneIcon className="h-6 w-6 text-jade" />
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
+                          <p className="text-sm font-medium text-black truncate">
                             {trip.type} to {trip.destination}
                           </p>
-                          <p className="text-sm text-gray-500 truncate">
+                          <p className="text-sm text-black truncate">
                             {new Date(trip.start_date).toLocaleDateString()} -{" "}
                             {new Date(trip.end_date).toLocaleDateString()}
                           </p>
@@ -297,7 +293,7 @@ function Dashboard() {
                         <div>
                           <a
                             href={`/travel/${trip.id}`}
-                            className="inline-flex items-center shadow-sm px-2.5 py-0.5 border border-gray-300 text-sm leading-5 font-medium rounded-full text-gray-700 bg-white hover:bg-gray-50"
+                            className="inline-flex items-center shadow-sm px-2.5 py-0.5 border border-concrete text-sm leading-5 font-medium rounded-full text-black bg-white hover:bg-concrete"
                           >
                             View
                           </a>
@@ -307,7 +303,7 @@ function Dashboard() {
                   ))}
                 </ul>
               ) : (
-                <div className="py-8 text-center text-gray-500">
+                <div className="py-8 text-center text-concrete">
                   No upcoming events
                 </div>
               )}
@@ -317,14 +313,14 @@ function Dashboard() {
           {/* Recent Expenses */}
           <div className="bg-white overflow-hidden shadow rounded-lg">
             <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
-              <h3 className="text-lg font-medium text-gray-900">
+              <h3 className="text-lg font-medium text-black">
                 Recent Expenses
               </h3>
-              <DollarSign className="h-5 w-5 text-gray-400" />
+              <DollarSign className="h-5 w-5 text-concrete" />
             </div>
             <div className="border-t border-gray-200 px-4 py-5 sm:p-6">
               {receiptsLoading ? (
-                <div className="py-8 text-center text-gray-500">
+                <div className="py-8 text-center text-concrete">
                   Loading expenses...
                 </div>
               ) : receiptsSummary?.recentReceipts.length ? (
@@ -333,20 +329,20 @@ function Dashboard() {
                     <li key={receipt.id} className="py-4">
                       <div className="flex items-center space-x-4">
                         <div className="flex-shrink-0">
-                          <div className="h-10 w-10 rounded-full bg-indigo-100 flex items-center justify-center">
-                            <ReceiptIcon className="h-6 w-6 text-indigo-600" />
+                          <div className="h-10 w-10 rounded-full bg-concrete/20 flex items-center justify-center">
+                            <ReceiptIcon className="h-6 w-6 text-daisy" />
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
-                          <p className="text-sm font-medium text-gray-900 truncate">
+                          <p className="text-sm font-medium text-black truncate">
                             {receipt.merchant}
                           </p>
-                          <p className="text-sm text-gray-500 truncate">
+                          <p className="text-sm text-black truncate">
                             {receipt.category} •{" "}
                             {new Date(receipt.date).toLocaleDateString()}
                           </p>
                         </div>
-                        <div className="text-sm font-medium text-indigo-600">
+                        <div className="text-sm font-medium text-daisy">
                           {receipt.currency} {receipt.amount.toFixed(2)}
                         </div>
                       </div>
@@ -354,7 +350,7 @@ function Dashboard() {
                   ))}
                 </ul>
               ) : (
-                <div className="py-8 text-center text-gray-500">
+                <div className="py-8 text-center text-concrete">
                   No recent expenses
                 </div>
               )}

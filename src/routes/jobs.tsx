@@ -495,7 +495,7 @@ function JobsDashboard() {
   const getStatusIcon = (status: string) => {
     switch (status.toLowerCase()) {
       case "applied":
-        return <Clock className="h-4 w-4 text-blue-500" />;
+        return <Clock className="h-4 w-4 text-bittersweet" />;
       case "next_step":
         return <AlertCircle className="h-4 w-4 text-purple-500" />;
       case "interview":
@@ -515,7 +515,7 @@ function JobsDashboard() {
   const getStatusBadgeColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "applied":
-        return "bg-blue-100 text-blue-800";
+        return "bg-bittersweet/10 text-bittersweet";
       case "next_step":
         return "bg-purple-100 text-purple-800";
       case "interview":
@@ -544,7 +544,7 @@ function JobsDashboard() {
       <div className="py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="py-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-bittersweet"></div>
             <p className="mt-2 text-sm text-gray-500">
               Checking authentication...
             </p>
@@ -561,7 +561,7 @@ function JobsDashboard() {
       <div className="py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="py-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-bittersweet"></div>
             <p className="mt-2 text-sm text-gray-500">
               Redirecting to login...
             </p>
@@ -623,7 +623,7 @@ function JobsDashboard() {
             <button
               onClick={() => setShowCustomFieldsManager(true)}
               type="button"
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bittersweet"
               title="Manage custom columns"
             >
               <Columns className="h-4 w-4 mr-2" />
@@ -632,14 +632,14 @@ function JobsDashboard() {
             <button
               onClick={resetColumnOrder}
               type="button"
-              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-600 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-600 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bittersweet"
               title="Reset column order to default"
             >
               <GripVertical className="h-4 w-4" />
             </button>
             <button
               type="button"
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bittersweet"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Application
@@ -653,7 +653,7 @@ function JobsDashboard() {
             <div className="p-5">
               <div className="flex items-center">
                 <div className="flex-shrink-0">
-                  <BriefcaseIcon className="h-6 w-6 text-blue-600" />
+                  <BriefcaseIcon className="h-6 w-6 text-bittersweet" />
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
