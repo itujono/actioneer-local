@@ -1,3 +1,155 @@
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
+
+@layer base {
+  html {
+    font-family: 'Outfit', sans-serif;
+  }
+  
+  body {
+    @apply antialiased;
+    font-family: 'Outfit', sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 400;
+    font-style: normal;
+  }
+}
+
+@layer components {
+  .btn-primary {
+    @apply px-6 py-3 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 ease-out;
+    background: linear-gradient(135deg, #9d6bff 0%, #7c2df7 100%);
+  }
+  
+  .btn-secondary {
+    @apply px-6 py-3 bg-white text-heliotrope font-semibold rounded-2xl border-2 border-gray-light hover:border-heliotrope hover:bg-gray-light transform hover:scale-105 transition-all duration-300 ease-out;
+  }
+  
+  .card-playful {
+    @apply bg-white rounded-3xl shadow-lg p-8 border border-gray-light;
+  }
+  
+  .gradient-text {
+    background: linear-gradient(45deg, #f493ff 0%, #9d6bff 25%, #34d399 50%, #fdb91e 75%, #fb823c 100%);
+    background-clip: text;
+    -webkit-background-clip: text;
+    color: transparent;
+  }
+  
+  .blob-animation {
+    animation: blob 7s infinite;
+  }
+  
+  .blob-animation-delay {
+    animation: blob 7s infinite;
+    animation-delay: 2s;
+  }
+  
+  .section-spacing {
+    @apply py-20 sm:py-32;
+  }
+}
+
+@layer utilities {
+  .text-balance {
+    text-wrap: balance;
+  }
+  
+  .perspective-1000 {
+    perspective: 1000px;
+  }
+  
+  .transform-style-3d {
+    transform-style: preserve-3d;
+  }
+  
+  .backface-hidden {
+    backface-visibility: hidden;
+  }
+  
+  /* Outfit variable font utilities */
+  .font-outfit-light {
+    font-family: "Outfit", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 300;
+    font-style: normal;
+  }
+  
+  .font-outfit-medium {
+    font-family: "Outfit", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 500;
+    font-style: normal;
+  }
+  
+  .font-outfit-semibold {
+    font-family: "Outfit", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 600;
+    font-style: normal;
+  }
+  
+  .font-outfit-bold {
+    font-family: "Outfit", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 700;
+    font-style: normal;
+  }
+  
+  .font-outfit-extrabold {
+    font-family: "Outfit", sans-serif;
+    font-optical-sizing: auto;
+    font-weight: 800;
+    font-style: normal;
+  }
+}
+
+@keyframes blob {
+  0% {
+    transform: translate(0px, 0px) scale(1);
+  }
+  33% {
+    transform: translate(30px, -50px) scale(1.1);
+  }
+  66% {
+    transform: translate(-20px, 20px) scale(0.9);
+  }
+  100% {
+    transform: translate(0px, 0px) scale(1);
+  }
+}
+
+/* Custom scrollbar */
+::-webkit-scrollbar {
+  width: 8px;
+}
+
+::-webkit-scrollbar-track {
+  @apply bg-gray-light;
+}
+
+::-webkit-scrollbar-thumb {
+  @apply bg-heliotrope rounded-full;
+}
+
+::-webkit-scrollbar-thumb:hover {
+  @apply bg-heliotrope;
+  opacity: 0.8;
+}
+
+/* Smooth focus rings */
+*:focus {
+  @apply outline-none ring-2 ring-heliotrope ring-offset-2 ring-offset-white;
+}
+
+/* Custom selection colors */
+::selection {
+  @apply bg-lavender text-white;
+}
+
+/* Improved button focus states */
+button:focus-visible,
+a:focus-visible {
+  @apply outline-none ring-2 ring-heliotrope ring-offset-2 ring-offset-white;
+}

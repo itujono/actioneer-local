@@ -30,28 +30,21 @@ function generateHotelBookingUrl(
     case "Booking.com":
       return `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(
         destination
-      )}&checkin=${formatDateForBooking(
-        checkInDate
-      )}&checkout=${formatDateForBooking(
-        checkOutDate
-      )}&group_adults=${adults}&no_rooms=1&group_children=0&selected_currency=USD`;
+      )}&checkin=${checkInDate}&checkout=${checkOutDate}&group_adults=${adults}&no_rooms=1&group_children=0`;
 
     case "Agoda":
-      return `https://www.agoda.com/search?city=${encodeURIComponent(
+      // Use the simpler search format that works more reliably
+      return `https://www.agoda.com/search?textToSearch=${encodeURIComponent(
         destination
-      )}&checkIn=${formatDateForAgoda(
-        checkInDate
-      )}&checkOut=${formatDateForAgoda(
-        checkOutDate
-      )}&rooms=1&adults=${adults}&children=0&cid=-1&tag=f79a6205-9329-4e77-8658-6eb0c5c0aa68`;
+      )}&checkIn=${checkInDate}&checkOut=${checkOutDate}&rooms=1&adults=${adults}&children=0`;
 
     case "Trip.com":
       // Trip.com uses different URL structure and date format
-      return `https://us.trip.com/hotels/list?city=${encodeURIComponent(
+      return `https://us.trip.com/hotels?query=${encodeURIComponent(
         destination
       )}&checkin=${formatDateForTrip(checkInDate)}&checkout=${formatDateForTrip(
         checkOutDate
-      )}&rooms=1&guests=${adults}&locale=en_US&curr=USD`;
+      )}&rooms=1&guests=${adults}`;
 
     case "Expedia":
       return `https://www.expedia.com/Hotel-Search?destination=${encodeURIComponent(
@@ -63,13 +56,9 @@ function generateHotelBookingUrl(
     case "Hotels.com":
     case "Amadeus Direct":
     default:
-      return `https://www.hotels.com/search.do?q-destination=${encodeURIComponent(
+      return `https://www.hotels.com/search?q-destination=${encodeURIComponent(
         destination
-      )}&q-check-in=${formatDateForBooking(
-        checkInDate
-      )}&q-check-out=${formatDateForBooking(
-        checkOutDate
-      )}&q-rooms=1&q-room-0-adults=${adults}&q-room-0-children=0`;
+      )}&q-check-in=${checkInDate}&q-check-out=${checkOutDate}&q-rooms=1&q-room-0-adults=${adults}&q-room-0-children=0`;
   }
 }
 

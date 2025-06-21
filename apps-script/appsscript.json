@@ -14,7 +14,7 @@
     "addOns": {
       "common": {
         "name": "Actioneer",
-        "logoUrl": "https://raw.githubusercontent.com/itujono/test-widget/refs/heads/main/assets/images/logo.png",
+        "logoUrl": "https://raw.githubusercontent.com/itujono/test-widget/refs/heads/main/assets/images/logo-addon.png",
         "useLocaleFromApp": true
       },
       "gmail": {

@@ -7,7 +7,6 @@ import {
   Receipt,
   Plane,
   Briefcase,
-  Settings,
   LogOut,
   Menu,
   X,
@@ -40,8 +39,8 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
 
   if (isPublicPage) {
     return (
-      <div className="min-h-screen bg-white">
-        <header className="bg-white shadow-sm">
+      <div className="min-h-screen bg-concrete/10">
+        <header className="shadow-sm">
           <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div className="flex justify-between h-16">
               <div className="flex">
@@ -181,7 +180,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
-                <Settings className="mr-4 h-6 w-6 text-blue-600" />
+                {/* <Settings className="mr-4 h-6 w-6 text-blue-600" /> */}
                 Settings
               </Link>
             </nav>
@@ -253,7 +252,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
 
               <Link
                 to="/jobs"
-                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
+                className={`group flex items-center px-2 py-2 pb-4 mb-2 text-sm font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/jobs"
                     ? "bg-blue-100 text-blue-900"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
@@ -265,13 +264,13 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
 
               <Link
                 to="/settings"
-                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
+                className={`group flex items-center px-2 py-4 mt-4 text-sm font-medium rounded-md transition-colors duration-200 border-t ${
                   location.pathname === "/settings"
                     ? "bg-blue-100 text-blue-900"
                     : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
                 }`}
               >
-                <Settings className="mr-3 h-6 w-6 text-blue-600" />
+                {/* <Settings className="mr-3 h-6 w-6 text-blue-600" /> */}
                 Settings
               </Link>
             </nav>

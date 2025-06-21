@@ -211,13 +211,20 @@ Deno.serve(async (req) => {
       )
     );
 
-    // Store travel data in database
-    try {
-      await storeTravelData(user.id, emailId, travelData, comparisonData);
-      console.log("✅ Travel data stored successfully");
-    } catch (storeError) {
-      console.error("⚠️ Failed to store travel data:", storeError);
-      // Continue anyway - don't fail the request for storage issues
+    // Store travel data in database (but not for dashboard requests)
+    const isDashboardRequest =
+      emailId.startsWith("dashboard-") || from === "dashboard@example.com";
+
+    if (!isDashboardRequest) {
+      try {
+        await storeTravelData(user.id, emailId, travelData, comparisonData);
+        console.log("✅ Travel data stored successfully");
+      } catch (storeError) {
+        console.error("⚠️ Failed to store travel data:", storeError);
+        // Continue anyway - don't fail the request for storage issues
+      }
+    } else {
+      console.log("🎛️ Dashboard request detected, skipping database storage");
     }
 
     // Return the travel data and comprehensive comparisons

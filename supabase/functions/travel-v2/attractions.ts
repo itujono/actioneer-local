@@ -26,10 +26,10 @@ function generateAttractionBookingUrl(
       )}`;
 
     case "TripAdvisor":
-      return `https://www.tripadvisor.com/Attractions-g1-Activities-${encodedDestination}.html`;
+      return `https://www.tripadvisor.com/Attractions?geo=1&q=${encodedDestination}`;
 
     case "Klook":
-      return `https://www.klook.com/en-US/search/N-${encodedDestination}/?aid=1807`;
+      return `https://www.klook.com/en-US/search/?query=${encodedDestination}`;
 
     case "Tiqets":
       return `https://www.tiqets.com/en/search?query=${encodedDestination}`;

@@ -2,14 +2,7 @@ import { createRoute } from "@tanstack/react-router";
 import { rootRoute } from "./root";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
-import {
-  PlaneIcon,
-  HotelIcon,
-  MapPinIcon,
-  CalendarIcon,
-  UsersIcon,
-  RefreshCwIcon,
-} from "lucide-react";
+import { PlaneIcon } from "lucide-react";
 import { supabase } from "../supabase/client";
 import { useAuth } from "../hooks/useAuth";
 
@@ -39,7 +32,6 @@ interface TravelData {
 
 function TravelDashboard() {
   const { user, isLoading: authLoading } = useAuth();
-  const [userLocation, setUserLocation] = useState<LocationInfo | null>(null);
   const [travelCriteria, setTravelCriteria] = useState<TravelData>({
     destination: "Kyoto",
     origin: "NYC",
@@ -65,73 +57,81 @@ function TravelDashboard() {
     enabled: !!user,
   });
 
-  // Detect user location on component mount
-  useEffect(() => {
-    detectUserLocation();
-  }, []);
+  // Get user coordinates using browser geolocation
+  const { data: coordinates } = useQuery({
+    queryKey: ["user-coordinates"],
+    queryFn: async (): Promise<{ latitude: number; longitude: number }> => {
+      return new Promise((resolve, reject) => {
+        if (!navigator.geolocation) {
+          reject(new Error("Geolocation not supported"));
+          return;
+        }
 
-  const detectUserLocation = async () => {
-    try {
-      // Try to get user's location using browser's geolocation API
-      if (navigator.geolocation) {
         navigator.geolocation.getCurrentPosition(
-          async (position) => {
-            const { latitude, longitude } = position.coords;
-
-            // Use a free reverse geocoding service
-            try {
-              const response = await fetch(
-                `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${latitude}&longitude=${longitude}&localityLanguage=en`
-              );
-              const data = await response.json();
-
-              const locationInfo: LocationInfo = {
-                city: data.city,
-                country: data.countryName,
-                countryCode: data.countryCode,
-                airport: getAirportFromCity(data.city) || "NYC",
-                currency: getCurrencyFromCountry(data.countryCode) || "USD",
-              };
-
-              setUserLocation(locationInfo);
-              setTravelCriteria((prev) => ({
-                ...prev,
-                origin: locationInfo.airport,
-              }));
-
-              console.log("📍 User location detected:", locationInfo);
-            } catch (error) {
-              console.log(
-                "⚠️ Reverse geocoding failed, using default location"
-              );
-              setDefaultLocation();
-            }
+          (position) => {
+            resolve({
+              latitude: position.coords.latitude,
+              longitude: position.coords.longitude,
+            });
           },
           (error) => {
-            console.log("⚠️ Geolocation failed:", error);
-            setDefaultLocation();
-          }
+            reject(new Error(`Geolocation failed: ${error.message}`));
+          },
+          { timeout: 10000, maximumAge: 300000 } // 5 minutes cache
         );
-      } else {
-        console.log("⚠️ Geolocation not supported");
-        setDefaultLocation();
+      });
+    },
+    retry: false, // Don't retry geolocation requests
+    staleTime: 1000 * 60 * 5, // 5 minutes
+  });
+
+  // Fetch location info based on coordinates
+  const { data: userLocation } = useQuery({
+    queryKey: ["user-location", coordinates?.latitude, coordinates?.longitude],
+    queryFn: async (): Promise<LocationInfo> => {
+      if (!coordinates) throw new Error("No coordinates available");
+
+      const response = await fetch(
+        `https://api.bigdatacloud.net/data/reverse-geocode-client?latitude=${coordinates.latitude}&longitude=${coordinates.longitude}&localityLanguage=en`
+      );
+
+      if (!response.ok) {
+        throw new Error("Reverse geocoding failed");
       }
-    } catch (error) {
-      console.log("⚠️ Location detection failed:", error);
-      setDefaultLocation();
-    }
+
+      const data = await response.json();
+
+      return {
+        city: data.city,
+        country: data.countryName,
+        countryCode: data.countryCode,
+        airport: getAirportFromCity(data.city) || "NYC",
+        currency: getCurrencyFromCountry(data.countryCode) || "USD",
+      };
+    },
+    enabled: !!coordinates,
+    staleTime: 1000 * 60 * 30, // 30 minutes
+  });
+
+  // Default location fallback
+  const defaultLocation: LocationInfo = {
+    city: "New York",
+    country: "United States",
+    countryCode: "US",
+    airport: "NYC",
+    currency: "USD",
   };
 
-  const setDefaultLocation = () => {
-    const defaultLocation: LocationInfo = {
-      city: "New York",
-      country: "United States",
-      countryCode: "US",
-      airport: "NYC",
-      currency: "USD",
-    };
-    setUserLocation(defaultLocation);
-  };
+  // Update travel criteria when user location changes
+  useEffect(() => {
+    if (userLocation) {
+      setTravelCriteria((prev) => ({
+        ...prev,
+        origin: userLocation.airport,
+      }));
+      console.log("📍 User location detected:", userLocation);
+    }
+  }, [userLocation]);
 
   // Fetch comprehensive travel data
   const {
@@ -153,8 +153,8 @@ function TravelDashboard() {
             "x-user-api-key": userProfile.api_key,
           },
           body: JSON.stringify({
-            emailId: `dashboard-${Date.now()}`,
-            messageId: `dashboard-${Date.now()}`,
+            emailId: `dashboard-request`,
+            messageId: `dashboard-request`,
             emailBody: `Travel planning for ${travelCriteria.destination}`,
             subject: `Trip to ${travelCriteria.destination}`,
             from: "dashboard@example.com",
@@ -191,6 +191,18 @@ function TravelDashboard() {
     enabled: !!user,
   });
 
+  // Debug saved travels data
+  if (savedTravels) {
+    console.log(
+      "📊 Saved travels data:",
+      savedTravels.map((t) => ({
+        id: t.id,
+        destination: t.destination,
+        created_at: t.created_at,
+      }))
+    );
+  }
+
   if (authLoading) {
     return (
       <div className="py-6">
@@ -219,14 +231,13 @@ function TravelDashboard() {
               Comprehensive travel recommendations powered by AI
             </p>
           </div>
-          {userLocation && (
-            <div className="text-right">
-              <p className="text-sm text-gray-600">Your location</p>
-              <p className="text-lg font-medium text-gray-900">
-                📍 {userLocation.city}, {userLocation.country}
-              </p>
-            </div>
-          )}
+          <div className="text-right">
+            <p className="text-sm text-gray-600">Your location</p>
+            <p className="text-lg font-medium text-gray-900">
+              📍 {(userLocation || defaultLocation).city},{" "}
+              {(userLocation || defaultLocation).country}
+            </p>
+          </div>
         </div>
 
         {/* Travel Search Form */}
@@ -290,13 +301,26 @@ function TravelDashboard() {
           </div>
         </div> */}
 
-        {/* Loading State */}
+        {/* Loading State with Skeleton */}
         {travelLoading && (
-          <div className="mt-8 text-center py-12">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-            <p className="mt-2 text-sm text-gray-500">
-              Searching for the best travel recommendations...
-            </p>
+          <div className="mt-8 space-y-8">
+            {/* Flights Skeleton */}
+            <TravelSectionSkeleton
+              title="✈️ Flights"
+              subtitle="From your location to destination"
+            />
+
+            {/* Hotels Skeleton */}
+            <TravelSectionSkeleton
+              title="🏨 Hotels"
+              subtitle="Accommodation in destination"
+            />
+
+            {/* Attractions Skeleton */}
+            <TravelSectionSkeleton
+              title="🎯 Attractions & Activities"
+              subtitle="Things to do in destination"
+            />
           </div>
         )}
 
@@ -307,12 +331,12 @@ function TravelDashboard() {
             {travelComparisons.comparisons?.flights?.length > 0 && (
               <TravelSection
                 title="✈️ Flights"
-                subtitle={`From ${userLocation?.city || "your location"} to ${
+                subtitle={`From ${(userLocation || defaultLocation).city} to ${
                   travelCriteria.destination
                 }`}
                 items={travelComparisons.comparisons.flights}
                 type="flight"
-                userLocation={userLocation}
+                userLocation={userLocation || defaultLocation}
               />
             )}
 
@@ -340,7 +364,7 @@ function TravelDashboard() {
 
         {/* Recent Travel History */}
         {savedTravels && savedTravels.length > 0 && (
-          <div className="mt-8">
+          <div className="mt-12">
             <h2 className="text-lg font-medium text-gray-900 mb-4">
               Recent Travel Plans
             </h2>
@@ -357,7 +381,10 @@ function TravelDashboard() {
                         </div>
                         <div className="ml-4">
                           <p className="text-sm font-medium text-gray-900">
-                            {travel.type} to {travel.destination}
+                            To{" "}
+                            <FormattedDestination
+                              destination={travel.destination}
+                            />
                           </p>
                           <p className="text-sm text-gray-500">
                             {travel.start_date &&
@@ -448,6 +475,18 @@ function TravelCard({
     return item.bookingUrl || "#";
   };
 
+  const handleBookingClick = () => {
+    // Add tracking or analytics here if needed
+    const url = getBestBookingUrl();
+
+    // If the URL seems problematic (too long or complex), show a warning
+    if (url.length > 200 || url.includes("%3A") || url.includes("%2C")) {
+      console.log(
+        "⚠️ Complex booking URL detected, may be stripped by external site"
+      );
+    }
+  };
+
   return (
     <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
       <div className="mb-3">
@@ -494,6 +533,7 @@ function TravelCard({
           target="_blank"
           rel="noopener noreferrer"
           className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 transition-colors"
+          onClick={handleBookingClick}
         >
           Book Now
         </a>
@@ -542,4 +582,260 @@ function getCurrencyFromCountry(countryCode: string): string {
   };
 
   return countryToCurrency[countryCode] || "USD";
+}
+
+// Fallback airport/city mappings for when API fails
+const fallbackAirportToCityMap: Record<string, string> = {
+  // Major airports that don't match country codes
+  NYC: "New York",
+  LAX: "Los Angeles",
+  CHI: "Chicago",
+  MIA: "Miami",
+  SFO: "San Francisco",
+  BOS: "Boston",
+  SEA: "Seattle",
+  DEN: "Denver",
+  ATL: "Atlanta",
+  DFW: "Dallas",
+  LAS: "Las Vegas",
+  PHX: "Phoenix",
+  LON: "London",
+  PAR: "Paris",
+  TYO: "Tokyo",
+  SYD: "Sydney",
+  YTO: "Toronto",
+  BKK: "Bangkok",
+  SIN: "Singapore",
+  HKG: "Hong Kong",
+  ICN: "Seoul",
+  NRT: "Tokyo",
+  KIX: "Osaka",
+  PVG: "Shanghai",
+  PEK: "Beijing",
+  DEL: "New Delhi",
+  BOM: "Mumbai",
+  KUL: "Kuala Lumpur",
+  CGK: "Jakarta",
+  MNL: "Manila",
+  // Additional airports that might not be in the API
+  IST: "Istanbul",
+  LHR: "London",
+  CDG: "Paris",
+  FRA: "Frankfurt",
+  AMS: "Amsterdam",
+  FCO: "Rome",
+  MAD: "Madrid",
+  BCN: "Barcelona",
+  ZUR: "Zurich",
+  VIE: "Vienna",
+};
+
+// Airport data interface
+interface AirportData {
+  iata: string;
+  icao: string;
+  name: string;
+  city: string;
+  country: string;
+}
+
+// Hook to get airport information from API
+function useAirportInfo(airportCode: string) {
+  return useQuery({
+    queryKey: ["airport-info", airportCode],
+    queryFn: async (): Promise<AirportData | null> => {
+      // API Ninjas requires an API key, but we can use a fallback approach
+      // For now, let's use a free alternative - the GitHub airports database
+      try {
+        const response = await fetch(
+          `https://raw.githubusercontent.com/lxndrblz/Airports/main/airports.csv`
+        );
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch airports database");
+        }
+
+        const csvData = await response.text();
+        const lines = csvData.split("\n");
+        const headers = lines[0].split(",");
+
+        // Find the airport by IATA code
+        for (let i = 1; i < lines.length; i++) {
+          const values = lines[i].split(",");
+          const airport: Record<string, string> = {};
+          headers.forEach((header, index) => {
+            airport[header.replace(/"/g, "")] =
+              values[index]?.replace(/"/g, "") || "";
+          });
+
+          if (airport["iata_code"] === airportCode.toUpperCase()) {
+            return {
+              iata: airport["iata_code"],
+              icao: airport["icao_code"],
+              name: airport["name"],
+              city: airport["municipality"] || airport["name"],
+              country: airport["iso_country"],
+            };
+          }
+        }
+
+        // If not found, return null to trigger fallback
+        return null;
+      } catch (error) {
+        console.log(
+          `⚠️ Failed to fetch airport info for ${airportCode}:`,
+          error
+        );
+        return null;
+      }
+    },
+    staleTime: 1000 * 60 * 60 * 24 * 7, // 7 days - airport data rarely changes
+    gcTime: 1000 * 60 * 60 * 24 * 30, // Keep in cache for 30 days
+    enabled: !!airportCode && airportCode.length === 3,
+    retry: false, // Don't retry on failure, use fallback instead
+  });
+}
+
+// TanStack Query hook to format destination names
+function useFormattedDestination(destination: string) {
+  console.log(`🔍 Starting format for: "${destination}"`);
+
+  // First try to get airport info if it looks like an airport code
+  const { data: airportInfo, isLoading: airportLoading } =
+    useAirportInfo(destination);
+
+  console.log(`✈️ Airport info for "${destination}":`, {
+    airportInfo,
+    airportLoading,
+  });
+
+  const { data: formattedName, isLoading: formatLoading } = useQuery({
+    queryKey: ["destination-format", destination],
+    queryFn: async () => {
+      console.log(`🏃 Running format query for: "${destination}"`);
+
+      // If it's already a proper city/country name (not a 3-letter code), return as-is
+      if (
+        destination.length > 3 ||
+        !/^[A-Z]{3}$/.test(destination.toUpperCase())
+      ) {
+        console.log(`📝 "${destination}" is already a proper name`);
+        return destination;
+      }
+
+      // If we have airport info, use the city from airport data
+      if (airportInfo?.city) {
+        console.log(`✈️ Using airport city: "${airportInfo.city}"`);
+        return airportInfo.city;
+      }
+
+      try {
+        // First, check if it's a known airport code in our fallback mapping
+        console.log(`🗺️ Trying fallback mapping for: "${destination}"`);
+        const cityName = fallbackAirportToCityMap[destination.toUpperCase()];
+        if (cityName) {
+          console.log(`🗺️ Found in fallback: "${cityName}"`);
+          return cityName;
+        }
+
+        // If not in airport mapping, try to get country name by alpha3 code
+        console.log(`🌍 Trying country API for: "${destination}"`);
+        const countryResponse = await fetch(
+          `https://restcountries.com/v3.1/alpha/${destination.toLowerCase()}`
+        );
+
+        if (countryResponse.ok) {
+          const countryData = await countryResponse.json();
+          if (
+            countryData &&
+            countryData[0] &&
+            countryData[0].name &&
+            countryData[0].name.common
+          ) {
+            console.log(`🌍 Found country: "${countryData[0].name.common}"`);
+            return countryData[0].name.common;
+          }
+        }
+
+        // If no mapping found, return original
+        console.log(`❌ No mapping found for: "${destination}"`);
+        return destination;
+      } catch (error) {
+        console.log(
+          `⚠️ Failed to resolve destination "${destination}":`,
+          error
+        );
+        // Fallback to original destination on error
+        return destination;
+      }
+    },
+    staleTime: 1000 * 60 * 60 * 24, // 24 hours - destination names don't change often
+    gcTime: 1000 * 60 * 60 * 24 * 7, // Keep in cache for 7 days
+    enabled: !!destination && !airportInfo?.city, // Only run if destination exists and we don't have airport info
+  });
+
+  const result = airportInfo?.city || formattedName || destination;
+  console.log(`🎯 Final result for "${destination}": "${result}"`);
+
+  // Return airport city if available, otherwise formatted name, otherwise original
+  return result;
+}
+
+// Component to display formatted destination
+function FormattedDestination({ destination }: { destination: string }) {
+  const formattedName = useFormattedDestination(destination);
+
+  // Debug formatting
+  if (destination !== formattedName) {
+    console.log(`🗺️ Formatted "${destination}" → "${formattedName}"`);
+  }
+
+  return <>{formattedName}</>;
+}
+
+// Skeleton loading components
+function TravelSectionSkeleton({
+  title,
+  subtitle,
+}: {
+  title: string;
+  subtitle: string;
+}) {
+  return (
+    <div className="bg-white rounded-lg shadow">
+      <div className="px-6 py-4 border-b border-gray-200">
+        <h3 className="text-lg font-medium text-gray-900">{title}</h3>
+        <div className="mt-1">
+          <div className="h-4 bg-gray-200 rounded animate-pulse w-48"></div>
+        </div>
+      </div>
+      <div className="p-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+          {[1, 2, 3].map((index) => (
+            <TravelCardSkeleton key={index} />
+          ))}
+        </div>
+      </div>
+    </div>
+  );
+}
+
+function TravelCardSkeleton() {
+  return (
+    <div className="border border-gray-200 rounded-lg p-4">
+      <div className="mb-3">
+        {/* Title skeleton */}
+        <div className="h-5 bg-gray-200 rounded animate-pulse w-3/4 mb-2"></div>
+        {/* Subtitle skeleton */}
+        <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2"></div>
+      </div>
+
+      <div className="flex items-center justify-between">
+        {/* Price skeleton */}
+        <div className="h-6 bg-gray-200 rounded animate-pulse w-20"></div>
+        {/* Button skeleton */}
+        <div className="h-8 bg-gray-200 rounded animate-pulse w-20"></div>
+      </div>
+    </div>
+  );
 }

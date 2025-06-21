@@ -16,13 +16,11 @@ function generateFlightBookingUrl(
 ): string {
   switch (provider) {
     case "Expedia":
-      const tripType = returnDate ? "roundtrip" : "oneway";
-      let expediaUrl = `https://www.expedia.com/Flights-Search?trip=${tripType}&leg1=from:${originCode},to:${destinationCode},departure:${departureDate}TANYT`;
       if (returnDate) {
-        expediaUrl += `&leg2=from:${destinationCode},to:${originCode},departure:${returnDate}TANYT`;
+        return `https://www.expedia.com/Flights-Search?trip=roundtrip&leg1=from:${originCode},to:${destinationCode},departure:${departureDate}&leg2=from:${destinationCode},to:${originCode},departure:${returnDate}&passengers=adults:${travelers}`;
+      } else {
+        return `https://www.expedia.com/Flights-Search?trip=oneway&leg1=from:${originCode},to:${destinationCode},departure:${departureDate}&passengers=adults:${travelers}`;
       }
-      expediaUrl += `&passengers=adults:${travelers}`;
-      return expediaUrl;
 
     case "Kayak":
       if (returnDate) {
@@ -32,24 +30,17 @@ function generateFlightBookingUrl(
       }
 
     case "Skyscanner":
+      const depDate = departureDate.replace(/-/g, "");
       if (returnDate) {
-        return `https://www.skyscanner.com/transport/flights/${originCode}/${destinationCode}/${departureDate.replace(
-          /-/g,
-          ""
-        )}/${returnDate.replace(
-          /-/g,
-          ""
-        )}/?adults=${travelers}&children=0&adultsv2=${travelers}&childrenv2=&infants=0&cabinclass=economy&rtn=1&preferdirects=false&outboundaltsenabled=false&inboundaltsenabled=false`;
+        const retDate = returnDate.replace(/-/g, "");
+        return `https://www.skyscanner.com/transport/flights/${originCode}/${destinationCode}/${depDate}/${retDate}/?adults=${travelers}&children=0&cabinclass=economy`;
       } else {
-        return `https://www.skyscanner.com/transport/flights/${originCode}/${destinationCode}/${departureDate.replace(
-          /-/g,
-          ""
-        )}/?adults=${travelers}&children=0&adultsv2=${travelers}&childrenv2=&infants=0&cabinclass=economy&rtn=0&preferdirects=false&outboundaltsenabled=false&inboundaltsenabled=false`;
+        return `https://www.skyscanner.com/transport/flights/${originCode}/${destinationCode}/${depDate}/?adults=${travelers}&children=0&cabinclass=economy`;
       }
 
     default:
       // Fallback to Google Flights
-      return `https://www.google.com/travel/flights/search`;
+      return `https://www.google.com/travel/flights?q=flights%20from%20${originCode}%20to%20${destinationCode}`;
   }
 }
 
