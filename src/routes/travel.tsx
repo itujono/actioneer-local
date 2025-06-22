@@ -10,6 +10,13 @@ export const travelRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/travel",
   component: TravelDashboard,
+  validateSearch: (search: Record<string, unknown>) => ({
+    destination: (search.destination as string) || undefined,
+    origin: (search.origin as string) || undefined,
+    travelers: search.travelers ? Number(search.travelers) : undefined,
+    messageId: (search.messageId as string) || undefined,
+    from: (search.from as string) || undefined,
+  }),
 });
 
 interface LocationInfo {
@@ -32,11 +39,17 @@ interface TravelData {
 
 function TravelDashboard() {
   const { user, isLoading: authLoading } = useAuth();
+  const searchParams = travelRoute.useSearch();
+
+  // Only set travel criteria if we have search params
   const [travelCriteria, setTravelCriteria] = useState<TravelData>({
-    destination: "Kyoto",
-    origin: "NYC",
-    travelers: 1,
+    destination: searchParams.destination || "",
+    origin: searchParams.origin || "NYC",
+    travelers: searchParams.travelers || 1,
   });
+
+  // Check if we have a destination to show recommendations
+  const hasDestination = Boolean(searchParams.destination);
 
   // Fetch user's full profile including API key
   const { data: userProfile } = useQuery({
@@ -133,7 +146,7 @@ function TravelDashboard() {
     }
   }, [userLocation]);
 
-  // Fetch comprehensive travel data
+  // Fetch comprehensive travel data - only when we have a destination
   const {
     data: travelComparisons,
     isLoading: travelLoading,
@@ -142,6 +155,8 @@ function TravelDashboard() {
     queryKey: ["travel-comparisons", travelCriteria],
     queryFn: async () => {
       if (!userProfile?.api_key) throw new Error("No API key available");
+      if (!travelCriteria.destination)
+        throw new Error("No destination specified");
 
       const response = await fetch(
         `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/travel-v2`,
@@ -153,11 +168,11 @@ function TravelDashboard() {
             "x-user-api-key": userProfile.api_key,
           },
           body: JSON.stringify({
-            emailId: `dashboard-request`,
-            messageId: `dashboard-request`,
+            emailId: searchParams.messageId || `dashboard-request`,
+            messageId: searchParams.messageId || `dashboard-request`,
             emailBody: `Travel planning for ${travelCriteria.destination}`,
             subject: `Trip to ${travelCriteria.destination}`,
-            from: "dashboard@example.com",
+            from: searchParams.from || "dashboard@example.com",
           }),
         }
       );
@@ -169,7 +184,8 @@ function TravelDashboard() {
       const data = await response.json();
       return data;
     },
-    enabled: !!userProfile?.api_key,
+    enabled:
+      !!userProfile?.api_key && hasDestination && !!travelCriteria.destination,
     staleTime: 1000 * 60 * 10, // 10 minutes
   });
 
@@ -224,11 +240,41 @@ function TravelDashboard() {
         {/* Header */}
         <div className="flex justify-between items-center">
           <div>
+            {/* Breadcrumb when viewing specific travel */}
+            {hasDestination && searchParams.from === "dashboard" && (
+              <nav className="flex mb-2" aria-label="Breadcrumb">
+                <ol className="inline-flex items-center space-x-1 md:space-x-3">
+                  <li className="inline-flex items-center">
+                    <button
+                      onClick={() => (window.location.href = "/travel")}
+                      className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-jade"
+                    >
+                      🏠 Travel Dashboard
+                    </button>
+                  </li>
+                  <li>
+                    <div className="flex items-center">
+                      <span className="text-gray-400 mx-2">/</span>
+                      <span className="text-sm font-medium text-gray-500">
+                        📧 Email Analysis
+                      </span>
+                    </div>
+                  </li>
+                </ol>
+              </nav>
+            )}
+
             <h1 className="text-2xl font-bold text-gray-900">
-              Travel Dashboard
+              {hasDestination
+                ? `Travel to ${travelCriteria.destination}`
+                : "Travel Dashboard"}
             </h1>
             <p className="mt-1 text-sm text-gray-500">
-              Comprehensive travel recommendations powered by AI
+              {hasDestination
+                ? searchParams.from === "dashboard"
+                  ? "Refreshed recommendations from your email analysis"
+                  : "Comprehensive travel recommendations powered by AI"
+                : "Your travel email history and planning hub"}
             </p>
           </div>
           <div className="text-right">
@@ -301,102 +347,145 @@ function TravelDashboard() {
           </div>
         </div> */}
 
-        {/* Loading State with Skeleton */}
-        {travelLoading && (
-          <div className="mt-8 space-y-8">
-            {/* Flights Skeleton */}
-            <TravelSectionSkeleton
-              title="✈️ Flights"
-              subtitle="From your location to destination"
-            />
+        {/* Only show travel recommendations when we have a destination */}
+        {hasDestination && (
+          <>
+            {/* Loading State with Skeleton */}
+            {travelLoading && (
+              <div className="mt-8 space-y-8">
+                {/* Flights Skeleton */}
+                <TravelSectionSkeleton
+                  title="✈️ Flights"
+                  subtitle="From your location to destination"
+                />
 
-            {/* Hotels Skeleton */}
-            <TravelSectionSkeleton
-              title="🏨 Hotels"
-              subtitle="Accommodation in destination"
-            />
+                {/* Hotels Skeleton */}
+                <TravelSectionSkeleton
+                  title="🏨 Hotels"
+                  subtitle="Accommodation in destination"
+                />
 
-            {/* Attractions Skeleton */}
-            <TravelSectionSkeleton
-              title="🎯 Attractions & Activities"
-              subtitle="Things to do in destination"
-            />
+                {/* Attractions Skeleton */}
+                <TravelSectionSkeleton
+                  title="🎯 Attractions & Activities"
+                  subtitle="Things to do in destination"
+                />
+              </div>
+            )}
+
+            {/* Travel Recommendations */}
+            {travelComparisons && !travelLoading && (
+              <div className="mt-8 space-y-8">
+                {/* Flights Section */}
+                {travelComparisons.comparisons?.flights?.length > 0 && (
+                  <TravelSection
+                    title="✈️ Flights"
+                    subtitle={`From ${
+                      (userLocation || defaultLocation).city
+                    } to ${travelCriteria.destination}`}
+                    items={travelComparisons.comparisons.flights}
+                    type="flight"
+                    userLocation={userLocation || defaultLocation}
+                  />
+                )}
+
+                {/* Hotels Section */}
+                {travelComparisons.comparisons?.hotels?.length > 0 && (
+                  <TravelSection
+                    title="🏨 Hotels"
+                    subtitle={`Accommodation in ${travelCriteria.destination}`}
+                    items={travelComparisons.comparisons.hotels}
+                    type="hotel"
+                  />
+                )}
+
+                {/* Attractions Section */}
+                {travelComparisons.comparisons?.attractions?.length > 0 && (
+                  <TravelSection
+                    title="🎯 Attractions & Activities"
+                    subtitle={`Things to do in ${travelCriteria.destination}`}
+                    items={travelComparisons.comparisons.attractions}
+                    type="attraction"
+                  />
+                )}
+              </div>
+            )}
+          </>
+        )}
+
+        {/* No destination message */}
+        {!hasDestination && (
+          <div className="mt-8 bg-gradient-to-r from-jade/5 to-emerald/5 rounded-lg p-8 text-center">
+            <div className="mx-auto w-16 h-16 bg-jade/10 rounded-full flex items-center justify-center mb-4">
+              <PlaneIcon className="h-8 w-8 text-jade" />
+            </div>
+            <h3 className="text-lg font-medium text-gray-900 mb-2">
+              Ready to Plan Your Next Adventure?
+            </h3>
+            <p className="text-gray-600 mb-6 max-w-md mx-auto">
+              Your travel recommendations will appear here when you analyze
+              travel emails in Gmail. Check your recent travel emails below or
+              head to Gmail to get started!
+            </p>
+            <div className="flex flex-col sm:flex-row gap-3 justify-center">
+              <a
+                href="https://mail.google.com"
+                target="_blank"
+                rel="noopener noreferrer"
+                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-jade hover:bg-jade/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-jade"
+              >
+                <PlaneIcon className="h-4 w-4 mr-2" />
+                Open Gmail
+              </a>
+              <button
+                onClick={() => window.location.reload()}
+                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-jade"
+              >
+                🔄 Refresh Page
+              </button>
+            </div>
           </div>
         )}
 
-        {/* Travel Recommendations */}
-        {travelComparisons && !travelLoading && (
-          <div className="mt-8 space-y-8">
-            {/* Flights Section */}
-            {travelComparisons.comparisons?.flights?.length > 0 && (
-              <TravelSection
-                title="✈️ Flights"
-                subtitle={`From ${(userLocation || defaultLocation).city} to ${
-                  travelCriteria.destination
-                }`}
-                items={travelComparisons.comparisons.flights}
-                type="flight"
-                userLocation={userLocation || defaultLocation}
-              />
-            )}
-
-            {/* Hotels Section */}
-            {travelComparisons.comparisons?.hotels?.length > 0 && (
-              <TravelSection
-                title="🏨 Hotels"
-                subtitle={`Accommodation in ${travelCriteria.destination}`}
-                items={travelComparisons.comparisons.hotels}
-                type="hotel"
-              />
-            )}
-
-            {/* Attractions Section */}
-            {travelComparisons.comparisons?.attractions?.length > 0 && (
-              <TravelSection
-                title="🎯 Attractions & Activities"
-                subtitle={`Things to do in ${travelCriteria.destination}`}
-                items={travelComparisons.comparisons.attractions}
-                type="attraction"
-              />
-            )}
-          </div>
-        )}
-
-        {/* Recent Travel History */}
+        {/* Recent Travel Emails */}
         {savedTravels && savedTravels.length > 0 && (
           <div className="mt-12">
             <h2 className="text-lg font-medium text-gray-900 mb-4">
-              Recent Travel Plans
+              Recent Travel Emails
             </h2>
             <div className="bg-white rounded-lg shadow overflow-hidden">
               <ul className="divide-y divide-gray-200">
                 {savedTravels.map((travel) => (
-                  <li key={travel.id} className="px-6 py-4 hover:bg-gray-50">
-                    <div className="flex items-center justify-between">
-                      <div className="flex items-center">
-                        <div className="flex-shrink-0">
-                          <div className="h-10 w-10 rounded-full bg-jade/10 flex items-center justify-center">
-                            <PlaneIcon className="h-6 w-6 text-jade" />
-                          </div>
-                        </div>
-                        <div className="ml-4">
-                          <p className="text-sm font-medium text-gray-900">
-                            To{" "}
-                            <FormattedDestination
-                              destination={travel.destination}
-                            />
-                          </p>
-                          <p className="text-sm text-gray-500">
-                            {travel.start_date &&
-                              new Date(travel.start_date).toLocaleDateString()}
-                          </p>
-                        </div>
-                      </div>
-                      <div className="text-sm text-gray-500">
-                        {new Date(travel.created_at).toLocaleDateString()}
-                      </div>
-                    </div>
-                  </li>
+                  <TravelEmailCard
+                    key={travel.id}
+                    travel={travel}
+                    isSelected={searchParams.messageId === travel.email_id}
+                    onSelect={(selectedTravel) => {
+                      // Update URL with travel parameters to show recommendations
+                      const searchParams = new URLSearchParams();
+                      searchParams.set(
+                        "destination",
+                        selectedTravel.destination
+                      );
+                      if (selectedTravel.details?.origin) {
+                        searchParams.set(
+                          "origin",
+                          selectedTravel.details.origin
+                        );
+                      }
+                      if (selectedTravel.details?.travelers) {
+                        searchParams.set(
+                          "travelers",
+                          selectedTravel.details.travelers.toString()
+                        );
+                      }
+                      searchParams.set("messageId", selectedTravel.email_id);
+                      searchParams.set("from", "dashboard");
+
+                      // Navigate to the same page with new search params
+                      window.location.href = `/travel?${searchParams.toString()}`;
+                    }}
+                  />
                 ))}
               </ul>
             </div>
@@ -539,6 +628,150 @@ function TravelCard({
         </a>
       </div>
     </div>
+  );
+}
+
+// Helper component for travel email cards
+interface TravelEmailCardProps {
+  travel: any; // Using any for now since we don't have full type definition
+  onSelect: (travel: any) => void;
+  isSelected?: boolean;
+}
+
+function TravelEmailCard({
+  travel,
+  onSelect,
+  isSelected = false,
+}: TravelEmailCardProps) {
+  const getTravelTypeIcon = (type: string) => {
+    const icons = {
+      flight: "✈️",
+      hotel: "🏨",
+      attraction: "🎯",
+      general: "🌍",
+    };
+    return icons[type as keyof typeof icons] || "🌍";
+  };
+
+  const getTravelTypeColor = (type: string) => {
+    const colors = {
+      flight: "bg-blue-50 text-blue-600",
+      hotel: "bg-purple-50 text-purple-600",
+      attraction: "bg-green-50 text-green-600",
+      general: "bg-gray-50 text-gray-600",
+    };
+    return colors[type as keyof typeof colors] || "bg-gray-50 text-gray-600";
+  };
+
+  const formatDateRange = () => {
+    if (!travel.start_date) return null;
+
+    const startDate = new Date(travel.start_date);
+    const endDate = travel.end_date ? new Date(travel.end_date) : null;
+
+    if (endDate && endDate.getTime() !== startDate.getTime()) {
+      return `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
+    }
+    return startDate.toLocaleDateString();
+  };
+
+  const getAdditionalInfo = () => {
+    const info = [];
+
+    // Add travelers count if available
+    if (travel.details?.travelers || travel.details?.guests) {
+      const count = travel.details.travelers || travel.details.guests;
+      info.push(`${count} ${count === 1 ? "traveler" : "travelers"}`);
+    }
+
+    // Add origin if available and different from destination
+    if (
+      travel.details?.origin &&
+      travel.details.origin !== travel.destination
+    ) {
+      info.push(`from ${travel.details.origin}`);
+    }
+
+    // Add flight details if available
+    if (travel.type === "flight" && travel.details?.airline) {
+      info.push(travel.details.airline);
+    }
+
+    // Add hotel details if available
+    if (travel.type === "hotel" && travel.details?.hotelName) {
+      info.push(travel.details.hotelName);
+    }
+
+    return info.length > 0 ? info.join(" • ") : null;
+  };
+
+  return (
+    <li
+      className={`px-6 py-4 cursor-pointer transition-colors duration-200 border-l-4 ${
+        isSelected
+          ? "bg-jade/5 border-jade hover:bg-jade/10"
+          : "border-transparent hover:bg-gray-50 hover:border-jade"
+      }`}
+      onClick={() => onSelect(travel)}
+    >
+      <div className="flex items-center justify-between">
+        <div className="flex items-center flex-1 min-w-0">
+          <div className="flex-shrink-0">
+            <div
+              className={`h-12 w-12 rounded-full flex items-center justify-center ${getTravelTypeColor(
+                travel.type
+              )}`}
+            >
+              <span className="text-lg">{getTravelTypeIcon(travel.type)}</span>
+            </div>
+          </div>
+          <div className="ml-4 flex-1 min-w-0">
+            <div className="flex items-center gap-2 mb-1">
+              <p className="text-sm font-medium text-gray-900 truncate">
+                To <FormattedDestination destination={travel.destination} />
+              </p>
+              <span
+                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getTravelTypeColor(
+                  travel.type
+                )}`}
+              >
+                {travel.type}
+              </span>
+            </div>
+
+            {/* Date range */}
+            {formatDateRange() && (
+              <p className="text-sm text-gray-500 mb-1">
+                📅 {formatDateRange()}
+              </p>
+            )}
+
+            {/* Additional context info */}
+            {getAdditionalInfo() && (
+              <p className="text-xs text-gray-400 truncate">
+                {getAdditionalInfo()}
+              </p>
+            )}
+          </div>
+        </div>
+
+        <div className="flex flex-col items-end text-right ml-4">
+          <div className="text-xs text-gray-400 mb-1">Analyzed</div>
+          <div className="text-sm text-gray-500">
+            {new Date(travel.created_at).toLocaleDateString()}
+          </div>
+          <div className="mt-2">
+            <div
+              className={`inline-flex items-center text-xs font-medium ${
+                isSelected ? "text-jade" : "text-jade"
+              }`}
+            >
+              {isSelected ? "✓ Selected" : "View Details →"}
+            </div>
+          </div>
+        </div>
+      </div>
+    </li>
   );
 }
 

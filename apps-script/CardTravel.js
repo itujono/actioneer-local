@@ -2,6 +2,36 @@
 // All travel booking, price comparison, and travel analysis related cards
 
 // ============================================================================
+// DESIGN SYSTEM CONSTANTS
+// ============================================================================
+
+const TRAVEL_COLORS = {
+  PRIMARY: '#1a73e8',      // Google Blue - for primary actions and highlights
+  SUCCESS: '#34a853',      // Green - for positive states and best deals
+  WARNING: '#fbbc04',      // Yellow - for warnings and moderate deals
+  ERROR: '#ea4335',        // Red - for errors and expensive options
+  SECONDARY: '#5f6368',    // Gray - for secondary text and metadata
+  ACCENT: '#9334e6',       // Purple - for special highlights and AI features
+  MUTED: '#9aa0a6',        // Light gray - for very subtle text
+  PRICE: '#0d7377',        // Teal - for price highlights
+  SAVINGS: '#16a34a'       // Dark green - for savings and discounts
+};
+
+const TRAVEL_TYPE_EMOJIS = {
+  flight: '✈️',
+  hotel: '🏨',
+  attraction: '🎯',
+  general: '🌍'
+};
+
+const TRAVEL_TYPE_COLORS = {
+  flight: TRAVEL_COLORS.PRIMARY,
+  hotel: TRAVEL_COLORS.ACCENT,
+  attraction: TRAVEL_COLORS.SUCCESS,
+  general: TRAVEL_COLORS.SECONDARY
+};
+
+// ============================================================================
 // TRAVEL PROCESSING CARDS
 // ============================================================================
 
@@ -17,7 +47,7 @@ function createTravelProcessedCard(gmailMessage, emailData) {
   const card = CardService.newCardBuilder()
     .setHeader(
       CardService.newCardHeader()
-        .setTitle("🌍 Travel Assistant")
+        .setTitle("🌍 Travel Intelligence")
         .setSubtitle("AI-powered comprehensive analysis")
         .setImageUrl(ICON_URL)
     )
@@ -68,7 +98,7 @@ function createTravelProcessedCard(gmailMessage, emailData) {
     addTravelInsightsSection(card, travelComparison);
     
     // Enhanced action section
-    addTravelActionSection(card, emailData);
+    addTravelActionSection(card, emailData, travelComparison.travelData);
     
   } else {
     // Enhanced fallback with better messaging
@@ -120,8 +150,8 @@ function createCachedTravelCard(preProcessedData, gmailMessage, emailData) {
   const card = CardService.newCardBuilder()
     .setHeader(
       CardService.newCardHeader()
-        .setTitle("🌍 Travel Assistant")
-        .setSubtitle(hasUsefulData ? "Comprehensive travel recommendations" : "Analyzing prices...")
+        .setTitle("🌍 Travel Intelligence")
+        .setSubtitle(hasUsefulData ? "Smart travel recommendations" : "Analyzing your travel...")
         .setImageUrl(ICON_URL)
     )
     .setName("cached_travel_card");
@@ -156,14 +186,22 @@ function createTravelErrorCard(errorMessage) {
     .setHeader(
       CardService.newCardHeader()
         .setTitle("⚠️ Travel Analysis Error")
-        .setSubtitle("Unable to process travel data")
+        .setSubtitle("Temporary processing issue")
         .setImageUrl(ICON_URL)
     )
     .addSection(
       CardService.newCardSection()
+        .setHeader("🔧 What Happened?")
         .addWidget(
           CardService.newTextParagraph()
-            .setText(`<font color="#ea4335"><b>Error:</b> ${errorMessage}</font><br><br>Please try refreshing or contact support if the issue persists.`)
+            .setText(
+              `<font color="${TRAVEL_COLORS.ERROR}"><b>❌ Error Details:</b></font><br>` +
+              `<font color="${TRAVEL_COLORS.SECONDARY}">${errorMessage}</font><br><br>` +
+              `<font color="${TRAVEL_COLORS.SECONDARY}"><b>💡 Quick Fixes:</b></font><br>` +
+              `<font color="${TRAVEL_COLORS.SECONDARY}">• Try refreshing the analysis</font><br>` +
+              `<font color="${TRAVEL_COLORS.SECONDARY}">• Check your internet connection</font><br>` +
+              `<font color="${TRAVEL_COLORS.SECONDARY}">• Contact support if issue persists</font>`
+            )
         )
         .addWidget(
           CardService.newTextButton()
@@ -183,12 +221,14 @@ function createTravelErrorCard(errorMessage) {
 
 // Helper function for travel details with better formatting
 function addTravelDetailsSection(card, travelData) {
-  const section = CardService.newCardSection()
+  const section = CardService.newCardSection().setHeader(
+    "🎯 Trip Overview"
+  )
   
   const detailsWidget = createTravelDetailsWidget(travelData);
   section.addWidget(detailsWidget);
   
-  // Add travel type badge
+  // Add travel type badge with enhanced styling
   const typeBadge = createTravelTypeBadge(travelData.type);
   section.addWidget(typeBadge);
   
@@ -207,7 +247,7 @@ function addPriceComparisonSection(card, travelComparison) {
   const priceRange = getPriceRange(sortedComparisons);
   section.addWidget(
     CardService.newTextParagraph()
-      .setText(`<font color="#1a73e8"><b>${priceRange.min} - ${priceRange.max} ${priceRange.currency}</b></font>`)
+      .setText(`<font color="${TRAVEL_COLORS.PRICE}"><b>💵 ${priceRange.min} - ${priceRange.max} ${priceRange.currency}</b></font>`)
   );
   
   // Add each comparison with enhanced formatting
@@ -230,7 +270,7 @@ function addPriceComparisonSection(card, travelComparison) {
     
     if (index < Math.min(sortedComparisons.length - 1, 2)) {
       section.addWidget(
-        CardService.newTextParagraph().setText("<hr style='border-color: #e8eaed;'>")
+        CardService.newTextParagraph().setText(`<font color="${TRAVEL_COLORS.MUTED}">─────────────────────</font>`)
       );
     }
   });
@@ -243,12 +283,12 @@ function addTravelInsightsSection(card, travelComparison) {
   
   if (insights.length > 0) {
     const section = CardService.newCardSection()
-      .setHeader("💡 Smart Insights");
+      .setHeader("💡 Smart Travel Insights");
     
     insights.forEach(insight => {
       section.addWidget(
         CardService.newTextParagraph()
-          .setText(`<font color="#5f6368">${insight}</font>`)
+          .setText(`<font color="${TRAVEL_COLORS.SECONDARY}">• ${insight}</font>`)
       );
     });
     
@@ -258,17 +298,21 @@ function addTravelInsightsSection(card, travelComparison) {
 
 function addTravelFallbackSection(card, emailData) {
   const section = CardService.newCardSection()
-    .setHeader("🔍 Travel Email Detected");
+    .setHeader("🤖 AI Travel Analysis");
   
   section.addWidget(
     CardService.newTextParagraph().setText(
-      "🎯 <b>AI is analyzing your travel details...</b><br><br>" +
-      "We're extracting information about destinations, dates, and preferences to find the best deals.<br><br>" +
-      "<font color=\"#1a73e8\">⚡ This usually takes 10-30 seconds</font>"
+      `<font color="${TRAVEL_COLORS.ACCENT}"><b>🔍 Analyzing your travel details...</b></font><br><br>` +
+      `<font color="${TRAVEL_COLORS.SECONDARY}">Our AI is extracting:</font><br>` +
+      `<font color="${TRAVEL_COLORS.SECONDARY}">• Destination & travel dates</font><br>` +
+      `<font color="${TRAVEL_COLORS.SECONDARY}">• Best flight & hotel deals</font><br>` +
+      `<font color="${TRAVEL_COLORS.SECONDARY}">• Top attractions & activities</font><br>` +
+      `<font color="${TRAVEL_COLORS.SECONDARY}">• Personalized recommendations</font><br><br>` +
+      `<font color="${TRAVEL_COLORS.PRIMARY}">⚡ <b>Usually completes in 10-30 seconds</b></font>`
     )
   );
   
-  // Add refresh button
+  // Add refresh button with enhanced styling
   section.addWidget(
     CardService.newTextButton()
       .setText("🔄 Refresh Analysis")
@@ -282,16 +326,18 @@ function addTravelFallbackSection(card, emailData) {
   card.addSection(section);
 }
 
-function addTravelActionSection(card, emailData) {
-  const section = CardService.newCardSection();
+function addTravelActionSection(card, emailData, travelData) {
+  const section = CardService.newCardSection().setHeader(
+    "🚀 Travel Actions"
+  );
   
   // Primary action - Travel Dashboard
   section.addWidget(
     CardService.newTextButton()
-      .setText("📊 View Full Travel Dashboard")
+      .setText("📊 Open Travel Dashboard")
       .setOpenLink(
         CardService.newOpenLink()
-          .setUrl(`${BASE_URL}/travel?from=gmail&messageId=${emailData.messageId}&email=${encodeURIComponent(Session.getActiveUser().getEmail())}`)
+          .setUrl(buildTravelDashboardUrl(emailData, travelData))
           .setOpenAs(CardService.OpenAs.OVERLAY)
       )
   );
@@ -316,17 +362,17 @@ function addTravelActionSection(card, emailData) {
 /**
  * Action section for cached travel cards
  */
-function addCachedTravelActionSection(card, emailData, hasComparisons) {
+function addCachedTravelActionSection(card, emailData, travelData) {
   const section = CardService.newCardSection()
-    .setHeader("📊 Actions");
+    .setHeader("🎯 Quick Actions");
   
   // Primary action - Travel Dashboard
   section.addWidget(
     CardService.newTextButton()
-      .setText("📊 View Travel Dashboard")
+      .setText("📊 View Complete Travel Guide")
       .setOpenLink(
         CardService.newOpenLink()
-          .setUrl(`${BASE_URL}/travel?from=gmail&messageId=${emailData.messageId}&email=${encodeURIComponent(Session.getActiveUser().getEmail())}`)
+          .setUrl(buildTravelDashboardUrl(emailData, travelData))
           .setOpenAs(CardService.OpenAs.OVERLAY)
       )
   );
@@ -334,7 +380,7 @@ function addCachedTravelActionSection(card, emailData, hasComparisons) {
   // Secondary action - Refresh data
   section.addWidget(
     CardService.newTextButton()
-      .setText("🔄 Refresh Price Data")
+      .setText("🔄 Refresh Travel Data")
       .setOnClickAction(
         CardService.newAction()
           .setFunctionName("reprocessTravelEmail")
@@ -390,7 +436,7 @@ function addCompactHotelSection(card, hotels, travelData) {
     
     if (index < Math.min(hotels.length - 1, 1)) {
       section.addWidget(
-        CardService.newTextParagraph().setText("<hr style='border-color: #e8eaed;'>")
+        CardService.newTextParagraph().setText(`<font color="${TRAVEL_COLORS.MUTED}">─────────────────────</font>`)
       );
     }
   });
@@ -398,7 +444,7 @@ function addCompactHotelSection(card, hotels, travelData) {
   if (hotels.length > 2) {
     section.addWidget(
       CardService.newTextParagraph()
-        .setText(`<font color="#5f6368">+ ${hotels.length - 2} more hotels available on dashboard</font>`)
+        .setText(`<font color="${TRAVEL_COLORS.SECONDARY}">+ ${hotels.length - 2} more hotels available on dashboard</font>`)
     );
   }
   
@@ -432,7 +478,7 @@ function addCompactAttractionSection(card, attractions, travelData) {
     
     if (index < Math.min(attractions.length - 1, 1)) {
       section.addWidget(
-        CardService.newTextParagraph().setText("<hr style='border-color: #e8eaed;'>")
+        CardService.newTextParagraph().setText(`<font color="${TRAVEL_COLORS.MUTED}">─────────────────────</font>`)
       );
     }
   });
@@ -440,7 +486,7 @@ function addCompactAttractionSection(card, attractions, travelData) {
   if (attractions.length > 2) {
     section.addWidget(
       CardService.newTextParagraph()
-        .setText(`<font color="#5f6368">+ ${attractions.length - 2} more activities available on dashboard</font>`)
+        .setText(`<font color="${TRAVEL_COLORS.SECONDARY}">+ ${attractions.length - 2} more activities available on dashboard</font>`)
     );
   }
   
@@ -491,7 +537,7 @@ function addComprehensiveInsightsSection(card, comparisons, travelData) {
     insights.forEach(insight => {
       section.addWidget(
         CardService.newTextParagraph()
-          .setText(`<font color="#5f6368">${insight}</font>`)
+          .setText(`<font color="${TRAVEL_COLORS.SECONDARY}">• ${insight}</font>`)
       );
     });
     
@@ -503,28 +549,30 @@ function addComprehensiveInsightsSection(card, comparisons, travelData) {
  * Add comprehensive travel action section with enhanced CTA
  */
 function addComprehensiveTravelActionSection(card, emailData, travelData) {
-  const section = CardService.newCardSection();
+  const section = CardService.newCardSection().setHeader(
+    "🚀 Complete Travel Experience"
+  );
   
   // Create compelling CTA message
   const destination = travelData?.destination || 'your destination';
-  const ctaText = `🚀 Complete Travel Guide for ${destination}`;
+  const ctaText = `🌟 Complete Travel Guide for ${destination}`;
   const ctaSubtext = "Flight prices from your city • All hotels • Full activity list • Smart recommendations";
   
-  // Add CTA description
+  // Add CTA description with enhanced styling
   section.addWidget(
     CardService.newTextParagraph().setText(
-      `<b>${ctaText}</b><br>` +
-      `<font color="#5f6368">${ctaSubtext}</font>`
+      `<font color="${TRAVEL_COLORS.PRIMARY}"><b>${ctaText}</b></font><br>` +
+      `<font color="${TRAVEL_COLORS.SECONDARY}">${ctaSubtext}</font>`
     )
   );
   
   // Primary CTA button
   section.addWidget(
     CardService.newTextButton()
-      .setText("📊 Open Full Travel Dashboard")
+      .setText("📊 Open Complete Travel Dashboard")
       .setOpenLink(
         CardService.newOpenLink()
-          .setUrl(`${BASE_URL}/travel?from=gmail&messageId=${emailData.messageId}&email=${encodeURIComponent(Session.getActiveUser().getEmail())}`)
+          .setUrl(buildTravelDashboardUrl(emailData, travelData))
           .setOpenAs(CardService.OpenAs.OVERLAY)
       )
   );
@@ -555,19 +603,19 @@ function createTravelDetailsWidget(travelData) {
   
   // For flights, show origin-destination format
   if (travelData.type === 'flight' && travelData.origin && travelData.destination) {
-    summaryParts.push(`<strong>${travelData.origin}-${travelData.destination}</strong>`);
+    summaryParts.push(`<font color="${TRAVEL_COLORS.PRIMARY}"><b>${travelData.origin} → ${travelData.destination}</b></font>`);
   } else if (travelData.destination) {
-    summaryParts.push(`<strong>${travelData.destination}</strong>`);
+    summaryParts.push(`<font color="${TRAVEL_COLORS.PRIMARY}"><b>${travelData.destination}</b></font>`);
   }
   
   if (travelData.travelers || travelData.guests) {
     const count = travelData.travelers || travelData.guests;
     const travelerText = count === 1 ? "1 traveler" : `${count} travelers`;
-    summaryParts.push(travelerText);
+    summaryParts.push(`<font color="${TRAVEL_COLORS.SECONDARY}">${travelerText}</font>`);
   }
   
   if (summaryParts.length > 0) {
-    detailsHtml += summaryParts.join(" &middot; ");
+    detailsHtml += summaryParts.join(" • ");
   }
   
   if (travelData.departureDate || travelData.checkInDate) {
@@ -579,16 +627,16 @@ function createTravelDetailsWidget(travelData) {
         month: 'short', 
         day: 'numeric' 
       });
-      detailsHtml += `<br><font color="#5f6368">${formattedDate}</font>`;
+      detailsHtml += `<br><font color="${TRAVEL_COLORS.MUTED}">📅 ${formattedDate}</font>`;
     } catch (e) {
       // If date parsing fails, show the raw date
-      detailsHtml += `<br><font color="#5f6368">${date}</font>`;
+      detailsHtml += `<br><font color="${TRAVEL_COLORS.MUTED}">📅 ${date}</font>`;
     }
   }
   
   // Fallback if no data is available
   if (!detailsHtml) {
-    detailsHtml = "<font color=\"#5f6368\">Travel details being processed...</font>";
+    detailsHtml = `<font color="${TRAVEL_COLORS.ACCENT}">🤖 Analyzing travel details...</font>`;
   }
   
   return CardService.newTextParagraph().setText(detailsHtml);
@@ -603,9 +651,10 @@ function createTravelTypeBadge(type) {
   };
   
   const badgeText = badges[type] || "🌍 Travel";
+  const badgeColor = TRAVEL_TYPE_COLORS[type] || TRAVEL_COLORS.SECONDARY;
   
   return CardService.newTextParagraph()
-    .setText(`<font color="#1a73e8"><b>${badgeText}</b></font>`);
+    .setText(`<font color="${badgeColor}"><b>${badgeText}</b></font>`);
 }
 
 function createComparisonWidget(comparison, travelType, isBestDeal) {
@@ -613,7 +662,7 @@ function createComparisonWidget(comparison, travelType, isBestDeal) {
   
   // Add "Best Deal" badge for the first (cheapest) option
   if (isBestDeal) {
-    comparisonHtml += "<font color=\"#34a853\"><b>🏆 BEST DEAL</b></font><br>";
+    comparisonHtml += `<font color="${TRAVEL_COLORS.SUCCESS}"><b>🏆 BEST DEAL</b></font><br>`;
   }
   
   if (travelType === 'flight') {
@@ -630,23 +679,23 @@ function createComparisonWidget(comparison, travelType, isBestDeal) {
       const maxPrice = Math.max(...prices);
       const currency = comparison.otaOptions[0].currency || 'USD';
       
-      comparisonHtml += `<b>${airline}${flightNumber ? ' ' + flightNumber : ''}</b><br>`;
+      comparisonHtml += `<font color="${TRAVEL_COLORS.PRIMARY}"><b>${airline}${flightNumber ? ' ' + flightNumber : ''}</b></font><br>`;
       
       if (minPrice === maxPrice) {
-        comparisonHtml += `<font color="#1a73e8"><b>${currency} ${minPrice}</b></font><br>`;
+        comparisonHtml += `<font color="${TRAVEL_COLORS.PRICE}"><b>${currency} ${minPrice}</b></font><br>`;
       } else {
-        comparisonHtml += `<font color="#1a73e8"><b>${currency} ${minPrice} - ${currency} ${maxPrice}</b></font><br>`;
+        comparisonHtml += `<font color="${TRAVEL_COLORS.PRICE}"><b>${currency} ${minPrice} - ${currency} ${maxPrice}</b></font><br>`;
       }
       
-      comparisonHtml += `<font color="#5f6368">${duration} • ${stopsText}</font>`;
+      comparisonHtml += `<font color="${TRAVEL_COLORS.SECONDARY}">${duration} • ${stopsText}</font>`;
     } else {
       // Fallback for old structure
       const currency = comparison.currency || 'USD';
       const price = comparison.price || 'N/A';
       
-      comparisonHtml += `<b>${airline}${flightNumber ? ' ' + flightNumber : ''}</b><br>` +
-                       `<font color="#1a73e8"><b>${currency} ${price}</b></font><br>` +
-                       `<font color="#5f6368">${duration} • ${stopsText}</font>`;
+      comparisonHtml += `<font color="${TRAVEL_COLORS.PRIMARY}"><b>${airline}${flightNumber ? ' ' + flightNumber : ''}</b></font><br>` +
+                       `<font color="${TRAVEL_COLORS.PRICE}"><b>${currency} ${price}</b></font><br>` +
+                       `<font color="${TRAVEL_COLORS.SECONDARY}">${duration} • ${stopsText}</font>`;
     }
   } else if (travelType === 'hotel') {
     const hotelName = comparison.hotelName || comparison.name || 'Hotel';
@@ -660,23 +709,23 @@ function createComparisonWidget(comparison, travelType, isBestDeal) {
       const maxPrice = Math.max(...prices);
       const currency = comparison.otaOptions[0].currency || 'USD';
       
-      comparisonHtml += `<b>${hotelName}</b><br>`;
+      comparisonHtml += `<font color="${TRAVEL_COLORS.PRIMARY}"><b>${hotelName}</b></font><br>`;
       
       if (minPrice === maxPrice) {
-        comparisonHtml += `<font color="#1a73e8"><b>${currency} ${minPrice}/night</b></font><br>`;
+        comparisonHtml += `<font color="${TRAVEL_COLORS.PRICE}"><b>${currency} ${minPrice}/night</b></font><br>`;
       } else {
-        comparisonHtml += `<font color="#1a73e8"><b>${currency} ${minPrice} - ${currency} ${maxPrice}</b></font><br>`;
+        comparisonHtml += `<font color="${TRAVEL_COLORS.PRICE}"><b>${currency} ${minPrice} - ${currency} ${maxPrice}</b></font><br>`;
       }
       
-      comparisonHtml += `<font color="#5f6368">⭐ ${rating} • ${location}</font>`;
+      comparisonHtml += `<font color="${TRAVEL_COLORS.SECONDARY}">⭐ ${rating} • ${location}</font>`;
     } else {
       // Fallback for old structure
       const currency = comparison.currency || 'USD';
       const price = comparison.price || 'N/A';
       
-      comparisonHtml += `<b>${hotelName}</b><br>` +
-                       `<font color="#1a73e8"><b>${currency} ${price}/night</b></font><br>` +
-                       `<font color="#5f6368">⭐ ${rating} • ${location}</font>`;
+      comparisonHtml += `<font color="${TRAVEL_COLORS.PRIMARY}"><b>${hotelName}</b></font><br>` +
+                       `<font color="${TRAVEL_COLORS.PRICE}"><b>${currency} ${price}/night</b></font><br>` +
+                       `<font color="${TRAVEL_COLORS.SECONDARY}">⭐ ${rating} • ${location}</font>`;
     }
   } else {
     const name = comparison.name || 'Activity';
@@ -690,23 +739,23 @@ function createComparisonWidget(comparison, travelType, isBestDeal) {
       const maxPrice = Math.max(...prices);
       const currency = comparison.otaOptions[0].currency || 'USD';
       
-      comparisonHtml += `<b>${name}</b><br>`;
+      comparisonHtml += `<font color="${TRAVEL_COLORS.PRIMARY}"><b>${name}</b></font><br>`;
       
       if (minPrice === maxPrice) {
-        comparisonHtml += `<font color="#1a73e8"><b>${currency} ${minPrice}</b></font><br>`;
+        comparisonHtml += `<font color="${TRAVEL_COLORS.PRICE}"><b>${currency} ${minPrice}</b></font><br>`;
       } else {
-        comparisonHtml += `<font color="#1a73e8"><b>${currency} ${minPrice} - ${currency} ${maxPrice}</b></font><br>`;
+        comparisonHtml += `<font color="${TRAVEL_COLORS.PRICE}"><b>${currency} ${minPrice} - ${currency} ${maxPrice}</b></font><br>`;
       }
       
-      comparisonHtml += `<font color="#5f6368">⭐ ${rating} • ${category}</font>`;
+      comparisonHtml += `<font color="${TRAVEL_COLORS.SECONDARY}">⭐ ${rating} • ${category}</font>`;
     } else {
       // Fallback for old structure
       const currency = comparison.currency || '';
       const price = comparison.price || 'N/A';
       
-      comparisonHtml += `<b>${name}</b><br>` +
-                       `<font color="#1a73e8"><b>${currency ? currency + ' ' : ''}${price}</b></font><br>` +
-                       `<font color="#5f6368">⭐ ${rating} • ${category}</font>`;
+      comparisonHtml += `<font color="${TRAVEL_COLORS.PRIMARY}"><b>${name}</b></font><br>` +
+                       `<font color="${TRAVEL_COLORS.PRICE}"><b>${currency ? currency + ' ' : ''}${price}</b></font><br>` +
+                       `<font color="${TRAVEL_COLORS.SECONDARY}">⭐ ${rating} • ${category}</font>`;
     }
   }
   
@@ -746,7 +795,7 @@ function createCompactHotelWidget(hotel, isBestDeal) {
   
   // Add "Best Deal" badge for the first (cheapest) option
   if (isBestDeal) {
-    hotelHtml += "<font color=\"#34a853\"><b>🏆 BEST VALUE</b></font><br>";
+    hotelHtml += `<font color="${TRAVEL_COLORS.SUCCESS}"><b>🏆 BEST VALUE</b></font><br>`;
   }
   
   const hotelName = hotel.hotelName || hotel.name || 'Hotel';
@@ -759,17 +808,17 @@ function createCompactHotelWidget(hotel, isBestDeal) {
     const minPrice = Math.min(...prices);
     const currency = hotel.otaOptions[0].currency || 'USD';
     
-    hotelHtml += `<b>${hotelName}</b><br>` +
-                 `<font color="#1a73e8"><b>From ${currency} ${minPrice}/night</b></font><br>` +
-                 `<font color="#5f6368">⭐ ${rating} • ${location}</font>`;
+    hotelHtml += `<font color="${TRAVEL_COLORS.PRIMARY}"><b>${hotelName}</b></font><br>` +
+                 `<font color="${TRAVEL_COLORS.PRICE}"><b>From ${currency} ${minPrice}/night</b></font><br>` +
+                 `<font color="${TRAVEL_COLORS.SECONDARY}">⭐ ${rating} • ${location}</font>`;
   } else {
     // Fallback for old structure
     const currency = hotel.currency || 'USD';
     const price = hotel.price || 'N/A';
     
-    hotelHtml += `<b>${hotelName}</b><br>` +
-                 `<font color="#1a73e8"><b>${currency} ${price}/night</b></font><br>` +
-                 `<font color="#5f6368">⭐ ${rating} • ${location}</font>`;
+    hotelHtml += `<font color="${TRAVEL_COLORS.PRIMARY}"><b>${hotelName}</b></font><br>` +
+                 `<font color="${TRAVEL_COLORS.PRICE}"><b>${currency} ${price}/night</b></font><br>` +
+                 `<font color="${TRAVEL_COLORS.SECONDARY}">⭐ ${rating} • ${location}</font>`;
   }
   
   return CardService.newTextParagraph().setText(hotelHtml);
@@ -783,7 +832,7 @@ function createCompactAttractionWidget(attraction, isBestDeal) {
   
   // Add "Best Deal" badge for the first (cheapest) option
   if (isBestDeal) {
-    attractionHtml += "<font color=\"#34a853\"><b>🎯 TOP PICK</b></font><br>";
+    attractionHtml += `<font color="${TRAVEL_COLORS.SUCCESS}"><b>🎯 TOP PICK</b></font><br>`;
   }
   
   const name = attraction.name || 'Activity';
@@ -796,17 +845,17 @@ function createCompactAttractionWidget(attraction, isBestDeal) {
     const minPrice = Math.min(...prices);
     const currency = attraction.otaOptions[0].currency || 'USD';
     
-    attractionHtml += `<b>${name}</b><br>` +
-                      `<font color="#1a73e8"><b>From ${currency} ${minPrice}</b></font><br>` +
-                      `<font color="#5f6368">⭐ ${rating} • ${category}</font>`;
+    attractionHtml += `<font color="${TRAVEL_COLORS.PRIMARY}"><b>${name}</b></font><br>` +
+                      `<font color="${TRAVEL_COLORS.PRICE}"><b>From ${currency} ${minPrice}</b></font><br>` +
+                      `<font color="${TRAVEL_COLORS.SECONDARY}">⭐ ${rating} • ${category}</font>`;
   } else {
     // Fallback for old structure
     const currency = attraction.currency || '';
     const price = attraction.price || 'N/A';
     
-    attractionHtml += `<b>${name}</b><br>` +
-                      `<font color="#1a73e8"><b>${currency ? currency + ' ' : ''}${price}</b></font><br>` +
-                      `<font color="#5f6368">⭐ ${rating} • ${category}</font>`;
+    attractionHtml += `<font color="${TRAVEL_COLORS.PRIMARY}"><b>${name}</b></font><br>` +
+                      `<font color="${TRAVEL_COLORS.PRICE}"><b>${currency ? currency + ' ' : ''}${price}</b></font><br>` +
+                      `<font color="${TRAVEL_COLORS.SECONDARY}">⭐ ${rating} • ${category}</font>`;
   }
   
   return CardService.newTextParagraph().setText(attractionHtml);
@@ -906,6 +955,34 @@ function addAttractionBookingOptions(section, attractionComparison) {
 // ============================================================================
 // TRAVEL UTILITY FUNCTIONS
 // ============================================================================
+
+/**
+ * Build travel dashboard URL with proper search parameters
+ */
+function buildTravelDashboardUrl(emailData, travelData) {
+  const baseUrl = `${BASE_URL}/travel`;
+  const params = new URLSearchParams();
+  
+  // Always add basic params
+  params.append('from', 'gmail');
+  params.append('messageId', emailData.messageId);
+  params.append('email', Session.getActiveUser().getEmail());
+  
+  // Add travel-specific params if available
+  if (travelData) {
+    if (travelData.destination) {
+      params.append('destination', travelData.destination);
+    }
+    if (travelData.origin) {
+      params.append('origin', travelData.origin);
+    }
+    if (travelData.travelers || travelData.guests) {
+      params.append('travelers', (travelData.travelers || travelData.guests).toString());
+    }
+  }
+  
+  return `${baseUrl}?${params.toString()}`;
+}
 
 function sortComparisonsByPrice(comparisons) {
   return comparisons.sort((a, b) => {

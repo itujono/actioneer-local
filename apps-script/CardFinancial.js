@@ -2,6 +2,53 @@
 // All expense tracking, revenue tracking, and financial processing related cards
 
 // ============================================================================
+// DESIGN SYSTEM CONSTANTS
+// ============================================================================
+
+const FINANCIAL_COLORS = {
+  PRIMARY: '#1a73e8',      // Google Blue - for primary actions and highlights
+  SUCCESS: '#34a853',      // Green - for positive states and revenue
+  WARNING: '#fbbc04',      // Yellow - for warnings and moderate amounts
+  ERROR: '#ea4335',        // Red - for errors and high expenses
+  SECONDARY: '#5f6368',    // Gray - for secondary text and metadata
+  ACCENT: '#9334e6',       // Purple - for special highlights and AI features
+  MUTED: '#9aa0a6',        // Light gray - for very subtle text
+  REVENUE: '#16a34a',      // Dark green - for income and positive cash flow
+  EXPENSE: '#dc2626',      // Red - for expenses and negative cash flow
+  NEUTRAL: '#0d7377'       // Teal - for neutral financial data
+};
+
+const TRANSACTION_TYPE_EMOJIS = {
+  revenue: '💰',
+  expense: '🧾',
+  auto: '🤖'
+};
+
+const TRANSACTION_STATUS_COLORS = {
+  revenue: FINANCIAL_COLORS.REVENUE,
+  expense: FINANCIAL_COLORS.EXPENSE,
+  auto: FINANCIAL_COLORS.PRIMARY
+};
+
+const CATEGORY_EMOJIS = {
+  // Revenue categories
+  sales: '💵',
+  consulting: '🎯',
+  subscription: '🔄',
+  commission: '💼',
+  
+  // Expense categories
+  office: '🏢',
+  travel: '✈️',
+  food: '🍽️',
+  software: '💻',
+  marketing: '📢',
+  utilities: '⚡',
+  supplies: '📦',
+  uncategorized: '📋'
+};
+
+// ============================================================================
 // FINANCIAL TRANSACTION PROCESSING CARDS
 // ============================================================================
 
@@ -20,8 +67,8 @@ function createFinancialTransactionCard(gmailMessage, emailData, transactionType
     if (transactionData && transactionData.amount > 0) {
       transactionType = 'revenue';
       cardTitle = "💰 Income Received";
-      cardSubtitle = "Revenue automatically tracked";
-      sectionHeader = "📈 New Income";
+      cardSubtitle = "AI-powered revenue tracking";
+      sectionHeader = "📈 New Income Entry";
     }
   }
   
@@ -29,9 +76,9 @@ function createFinancialTransactionCard(gmailMessage, emailData, transactionType
     // Extract expense data if no revenue found or explicitly expense
     transactionData = extractExpenseFromEmail(gmailMessage);
     transactionType = 'expense';
-    cardTitle = "🧾 Receipt Parsed";
-    cardSubtitle = "Expense automatically tracked";
-    sectionHeader = "📄 New Expense";
+    cardTitle = "🧾 Receipt Processed";
+    cardSubtitle = "AI-powered expense tracking";
+    sectionHeader = "📄 New Expense Entry";
   }
   
   // Save to backend (optional - you can enable this when ready)
@@ -61,24 +108,26 @@ function createFinancialTransactionCard(gmailMessage, emailData, transactionType
   const date = new Date(transactionData.date).toLocaleDateString();
   const category = transactionData.category || "uncategorized";
   
-  // Color-code based on transaction type
-  const amountColor = transactionType === 'revenue' ? "#16a34a" : "#dc2626"; // green for revenue, red for expense
+  // Enhanced color-coding and emoji usage
+  const amountColor = transactionType === 'revenue' ? FINANCIAL_COLORS.REVENUE : FINANCIAL_COLORS.EXPENSE;
   const amountPrefix = transactionType === 'revenue' ? "+" : "-";
+  const categoryEmoji = CATEGORY_EMOJIS[category] || CATEGORY_EMOJIS.uncategorized;
+  const typeEmoji = TRANSACTION_TYPE_EMOJIS[transactionType] || '💼';
   
   currentTransactionSection.addWidget(
     CardService.newTextParagraph().setText(
-      `<b>${source}</b><br>` +
+      `<font color="${FINANCIAL_COLORS.PRIMARY}"><b>${typeEmoji} ${source}</b></font><br>` +
       `<font color="${amountColor}"><b>${amountPrefix}${currency}${amount}</b></font><br>` +
-      `<font color="#5f6368">${date} • ${category}</font>`
+      `<font color="${FINANCIAL_COLORS.SECONDARY}">${categoryEmoji} ${category} • 📅 ${date}</font>`
     )
   );
 
   card.addSection(currentTransactionSection);
 
-  // Show recent transactions of the same type
+  // Enhanced recent transactions section
   if (recentTransactions && recentTransactions.length > 0) {
     const recentSection = CardService.newCardSection()
-      .setHeader(`📊 Your ${transactionType === 'revenue' ? 'income' : 'expenses'} this month`);
+      .setHeader(`📊 Your ${transactionType === 'revenue' ? 'Income' : 'Expenses'} This Month`);
     
     const transactionsToShow = recentTransactions.slice(0, 5);
     let totalAmount = 0;
@@ -87,33 +136,39 @@ function createFinancialTransactionCard(gmailMessage, emailData, transactionType
       totalAmount += transaction.amount || 0;
       const transactionDate = new Date(transaction.date).toLocaleDateString();
       const displaySource = transaction.merchant || transaction.source || 'Unknown';
+      const transactionCategory = transaction.category || 'uncategorized';
+      const transactionEmoji = CATEGORY_EMOJIS[transactionCategory] || CATEGORY_EMOJIS.uncategorized;
+      
       recentSection.addWidget(
         CardService.newTextParagraph().setText(
-          `<b>${displaySource}</b> - ${currency}${transaction.amount || '0'}<br>` +
-          `<font color="#5f6368">${transactionDate}</font>`
+          `<font color="${FINANCIAL_COLORS.PRIMARY}"><b>${displaySource}</b></font> - <font color="${amountColor}">${currency}${transaction.amount || '0'}</font><br>` +
+          `<font color="${FINANCIAL_COLORS.MUTED}">${transactionEmoji} ${transactionCategory} • ${transactionDate}</font>`
         )
       );
     });
     
-    const totalColor = transactionType === 'revenue' ? "#16a34a" : "#dc2626";
+    const totalColor = transactionType === 'revenue' ? FINANCIAL_COLORS.REVENUE : FINANCIAL_COLORS.EXPENSE;
     const totalPrefix = transactionType === 'revenue' ? "+" : "";
+    const totalEmoji = transactionType === 'revenue' ? '📈' : '📉';
     
     recentSection.addWidget(
       CardService.newTextParagraph().setText(
-        `<br><b>Total this month: <font color="${totalColor}">${totalPrefix}${currency}${totalAmount.toFixed(2)}</font></b>`
+        `<br><font color="${totalColor}"><b>${totalEmoji} Monthly Total: ${totalPrefix}${currency}${totalAmount.toFixed(2)}</b></font>`
       )
     );
     
     card.addSection(recentSection);
   }
 
-  // Action buttons section
-  const actionSection = CardService.newCardSection();
+  // Enhanced action buttons section
+  const actionSection = CardService.newCardSection().setHeader(
+    "🚀 Financial Actions"
+  );
   
   // Primary action - view financial dashboard
   actionSection.addWidget(
     CardService.newTextButton()
-      .setText("💼 View Financial Dashboard")
+      .setText("💼 Open Financial Dashboard")
       .setOpenLink(
         CardService.newOpenLink()
           .setUrl(`${BASE_URL}/finance?from=gmail&messageId=${emailData.messageId}&email=${encodeURIComponent(Session.getActiveUser().getEmail())}`)
@@ -170,7 +225,7 @@ function createRevenueReceivedCard(gmailMessage, emailData) {
 function addFinancialPreProcessedSection(card, data, transactionType = 'expense') {
   const isRevenue = transactionType === 'revenue';
   const headerIcon = isRevenue ? "💰" : "🧾";
-  const headerText = isRevenue ? "Revenue Details Extracted" : "Receipt Details Extracted";
+  const headerText = isRevenue ? "Revenue Automatically Tracked" : "Expense Automatically Tracked";
   
   const section = CardService.newCardSection()
     .setHeader(`${headerIcon} ${headerText}`);
@@ -180,27 +235,31 @@ function addFinancialPreProcessedSection(card, data, transactionType = 'expense'
   if (transactionData) {
     let transactionInfo = "";
     
+    const amountColor = isRevenue ? FINANCIAL_COLORS.REVENUE : FINANCIAL_COLORS.EXPENSE;
+    const amountPrefix = isRevenue ? "+" : "";
+    const category = transactionData.category || "uncategorized";
+    const categoryEmoji = CATEGORY_EMOJIS[category] || CATEGORY_EMOJIS.uncategorized;
+    
     if (transactionData.source || transactionData.merchant) {
       const sourceLabel = isRevenue ? "Source" : "Merchant";
       const sourceValue = transactionData.source || transactionData.merchant;
-      transactionInfo += `<strong>${sourceLabel}:</strong> ${sourceValue}<br>`;
+      transactionInfo += `<font color="${FINANCIAL_COLORS.PRIMARY}"><b>${sourceLabel}:</b> ${sourceValue}</font><br>`;
     }
     
     if (transactionData.amount && transactionData.currency) {
-      const amountPrefix = isRevenue ? "+" : "";
-      transactionInfo += `<strong>Amount:</strong> ${amountPrefix}${transactionData.currency} ${transactionData.amount}<br>`;
+      transactionInfo += `<font color="${amountColor}"><b>Amount:</b> ${amountPrefix}${transactionData.currency} ${transactionData.amount}</font><br>`;
     }
     
     if (transactionData.date) {
-      transactionInfo += `<strong>Date:</strong> ${new Date(transactionData.date).toLocaleDateString()}<br>`;
+      transactionInfo += `<font color="${FINANCIAL_COLORS.SECONDARY}"><b>Date:</b> 📅 ${new Date(transactionData.date).toLocaleDateString()}</font><br>`;
     }
     
     if (transactionData.category) {
-      transactionInfo += `<strong>Category:</strong> ${transactionData.category}<br>`;
+      transactionInfo += `<font color="${FINANCIAL_COLORS.SECONDARY}"><b>Category:</b> ${categoryEmoji} ${transactionData.category}</font><br>`;
     }
     
     if (transactionData.description) {
-      transactionInfo += `<strong>Description:</strong> ${transactionData.description}<br>`;
+      transactionInfo += `<font color="${FINANCIAL_COLORS.MUTED}"><b>Description:</b> ${transactionData.description}</font><br>`;
     }
     
     section.addWidget(
@@ -209,11 +268,15 @@ function addFinancialPreProcessedSection(card, data, transactionType = 'expense'
   }
   
   const successMessage = isRevenue ? 
-    "✅ <strong>Revenue automatically tracked!</strong>" : 
-    "✅ <strong>Expense automatically tracked!</strong>";
+    `<font color="${FINANCIAL_COLORS.SUCCESS}">✅ <b>Revenue automatically tracked!</b></font>` : 
+    `<font color="${FINANCIAL_COLORS.SUCCESS}">✅ <b>Expense automatically tracked!</b></font>`;
+  
+  const helpText = isRevenue ?
+    `<font color="${FINANCIAL_COLORS.SECONDARY}">View detailed income analysis in your financial dashboard.</font>` :
+    `<font color="${FINANCIAL_COLORS.SECONDARY}">View detailed expense breakdown in your financial dashboard.</font>`;
   
   section.addWidget(
-    CardService.newTextParagraph().setText(`<br>${successMessage}`)
+    CardService.newTextParagraph().setText(`<br>${successMessage}<br>${helpText}`)
   );
   
   card.addSection(section);
@@ -249,38 +312,73 @@ function createFinancialSummaryCard(emailData) {
   const card = CardService.newCardBuilder()
     .setHeader(
       CardService.newCardHeader()
-        .setTitle("💼 Financial Overview")
-        .setSubtitle("Your money at a glance")
+        .setTitle("💼 Financial Intelligence")
+        .setSubtitle("AI-powered money management")
         .setImageUrl(ICON_URL)
     )
     .setName("financial_summary_card");
 
-  // Calculate totals
+  // Calculate totals with enhanced formatting
   const totalExpenses = recentExpenses ? recentExpenses.reduce((sum, exp) => sum + (exp.amount || 0), 0) : 0;
   const totalRevenue = recentRevenue ? recentRevenue.reduce((sum, rev) => sum + (rev.amount || 0), 0) : 0;
   const netIncome = totalRevenue - totalExpenses;
   
-  // Summary section
+  // Enhanced summary section
   const summarySection = CardService.newCardSection()
-    .setHeader("📈 This Month Summary");
+    .setHeader("📈 Monthly Financial Overview");
   
   summarySection.addWidget(
     CardService.newTextParagraph().setText(
-      `<font color="#16a34a"><b>Income: +$${totalRevenue.toFixed(2)}</b></font><br>` +
-      `<font color="#dc2626"><b>Expenses: -$${totalExpenses.toFixed(2)}</b></font><br>` +
-      `<font color="${netIncome >= 0 ? '#16a34a' : '#dc2626'}"><b>Net: ${netIncome >= 0 ? '+' : ''}$${netIncome.toFixed(2)}</b></font>`
+      `<font color="${FINANCIAL_COLORS.REVENUE}"><b>📈 Income: +$${totalRevenue.toFixed(2)}</b></font><br>` +
+      `<font color="${FINANCIAL_COLORS.EXPENSE}"><b>📉 Expenses: -$${totalExpenses.toFixed(2)}</b></font><br>` +
+      `<font color="${FINANCIAL_COLORS.MUTED}">─────────────────────</font><br>` +
+      `<font color="${netIncome >= 0 ? FINANCIAL_COLORS.SUCCESS : FINANCIAL_COLORS.ERROR}"><b>💰 Net Income: ${netIncome >= 0 ? '+' : ''}$${netIncome.toFixed(2)}</b></font>`
     )
   );
   
+  // Add financial insights
+  const insightsSection = CardService.newCardSection()
+    .setHeader("💡 Smart Financial Insights");
+  
+  const insights = [];
+  
+  if (totalRevenue > 0 && totalExpenses > 0) {
+    const profitMargin = ((netIncome / totalRevenue) * 100).toFixed(1);
+    insights.push(`📊 Profit margin: ${profitMargin}% this month`);
+  }
+  
+  if (totalExpenses > totalRevenue) {
+    insights.push(`⚠️ Expenses exceed income by $${(totalExpenses - totalRevenue).toFixed(2)}`);
+  } else if (netIncome > 0) {
+    insights.push(`🎉 Positive cash flow of $${netIncome.toFixed(2)} this month`);
+  }
+  
+  if (recentExpenses && recentExpenses.length > 0) {
+    const avgExpense = totalExpenses / recentExpenses.length;
+    insights.push(`📋 Average expense: $${avgExpense.toFixed(2)} per transaction`);
+  }
+  
+  insights.forEach(insight => {
+    insightsSection.addWidget(
+      CardService.newTextParagraph().setText(
+        `<font color="${FINANCIAL_COLORS.SECONDARY}">• ${insight}</font>`
+      )
+    );
+  });
+  
+  if (insights.length > 0) {
+    card.addSection(insightsSection);
+  }
+  
   card.addSection(summarySection);
   
-  // Quick actions
+  // Enhanced quick actions
   const actionSection = CardService.newCardSection()
-    .setHeader("🚀 Quick Actions");
+    .setHeader("🚀 Financial Actions");
   
   actionSection.addWidget(
     CardService.newTextButton()
-      .setText("💼 Open Financial Dashboard")
+      .setText("💼 Open Complete Financial Dashboard")
       .setOpenLink(
         CardService.newOpenLink()
           .setUrl(`${BASE_URL}/finance?from=gmail&email=${encodeURIComponent(Session.getActiveUser().getEmail())}`)
@@ -290,7 +388,7 @@ function createFinancialSummaryCard(emailData) {
   
   actionSection.addWidget(
     CardService.newTextButton()
-      .setText("📊 View Detailed Analysis")
+      .setText("📊 View Detailed Financial Analysis")
       .setOpenLink(
         CardService.newOpenLink()
           .setUrl(`${BASE_URL}/finance?view=all&timeframe=month&from=gmail&email=${encodeURIComponent(Session.getActiveUser().getEmail())}`)
@@ -308,7 +406,7 @@ function createFinancialSummaryCard(emailData) {
 // ============================================================================
 
 /**
- * Get recent financial transactions by type
+ * Get recent financial transactions by type with enhanced error handling
  */
 function getRecentFinancialTransactions(type = 'all') {
   console.log(`Getting recent ${type} transactions...`);
@@ -323,9 +421,17 @@ function getRecentFinancialTransactions(type = 'all') {
       const expenses = getRecentExpenses() || [];
       const revenue = getRecentRevenue() || [];
       
-      // Add type indicators
-      const expensesWithType = expenses.map(exp => ({ ...exp, type: 'expense' }));
-      const revenueWithType = revenue.map(rev => ({ ...rev, type: 'revenue' }));
+      // Add type indicators and enhanced metadata
+      const expensesWithType = expenses.map(exp => ({ 
+        ...exp, 
+        type: 'expense',
+        emoji: CATEGORY_EMOJIS[exp.category] || CATEGORY_EMOJIS.uncategorized
+      }));
+      const revenueWithType = revenue.map(rev => ({ 
+        ...rev, 
+        type: 'revenue',
+        emoji: CATEGORY_EMOJIS[rev.category] || CATEGORY_EMOJIS.sales
+      }));
       
       // Combine and sort by date
       const allTransactions = [...expensesWithType, ...revenueWithType];

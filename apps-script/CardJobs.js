@@ -2,6 +2,36 @@
 // All job tracking and career-related card functions
 
 // ============================================================================
+// DESIGN SYSTEM CONSTANTS
+// ============================================================================
+
+const CARD_COLORS = {
+  PRIMARY: '#1a73e8',      // Google Blue - for primary actions and highlights
+  SUCCESS: '#34a853',      // Green - for positive states and success
+  WARNING: '#fbbc04',      // Yellow - for warnings and pending states
+  ERROR: '#ea4335',        // Red - for errors and rejections
+  SECONDARY: '#5f6368',    // Gray - for secondary text and metadata
+  ACCENT: '#9334e6',       // Purple - for special highlights
+  MUTED: '#9aa0a6'         // Light gray - for very subtle text
+};
+
+const JOB_STATUS_COLORS = {
+  applied: CARD_COLORS.PRIMARY,
+  interview: CARD_COLORS.WARNING,
+  offer: CARD_COLORS.SUCCESS,
+  accepted: CARD_COLORS.SUCCESS,
+  rejected: CARD_COLORS.ERROR
+};
+
+const JOB_EMOJIS = {
+  applied: '📝',
+  interview: '🎯',
+  offer: '🎉',
+  accepted: '✅',
+  rejected: '❌'
+};
+
+// ============================================================================
 // JOB PROCESSING CARDS
 // ============================================================================
 
@@ -18,63 +48,73 @@ function createJobProcessedCard(gmailMessage, emailData) {
     .setHeader(
       CardService.newCardHeader()
         .setTitle("💼 Job Application Detected")
-        .setSubtitle("Adding to your job tracker")
+        .setSubtitle("AI-powered career tracking")
         .setImageUrl(ICON_URL)
     )
     .setName("job_processed_card");
 
-  // Show extracted job information
+  // Show extracted job information with enhanced styling
   const infoSection = CardService.newCardSection().setHeader(
-    "📋 Detected Information"
+    "🎯 Extracted Information"
   );
 
   if (jobData.company) {
+    const statusEmoji = JOB_EMOJIS[jobData.status] || '📝';
+    const statusColor = JOB_STATUS_COLORS[jobData.status] || CARD_COLORS.PRIMARY;
+    
     infoSection.addWidget(
       CardService.newTextParagraph().setText(
-        `<b>Company:</b> ${jobData.company}<br>` +
-          `<b>Position:</b> ${jobData.position || "Not specified"}<br>` +
-          `<b>Status:</b> ${jobData.status || "Applied"}<br>` +
-          `<b>Date:</b> ${
-            jobData.appliedDate
-              ? new Date(jobData.appliedDate).toLocaleDateString()
-              : "Today"
-          }`
+        `<b><font color="${CARD_COLORS.PRIMARY}">${jobData.company}</font></b><br>` +
+        `<font color="${CARD_COLORS.SECONDARY}"><b>Position:</b> ${jobData.position || "Not specified"}</font><br>` +
+        `<font color="${statusColor}"><b>Status:</b> ${statusEmoji} ${jobData.status || "Applied"}</font><br>` +
+        `<font color="${CARD_COLORS.MUTED}"><b>Applied:</b> ${
+          jobData.appliedDate
+            ? new Date(jobData.appliedDate).toLocaleDateString()
+            : "Today"
+        }</font>`
       )
     );
   } else {
     infoSection.addWidget(
       CardService.newTextParagraph().setText(
-        "🔍 <b>AI is analyzing this job-related email...</b><br><br>" +
-          "We're extracting company details, position information, and application status to add to your job tracker.<br><br>" +
-          '<font color="#1a73e8">⚡ This usually takes 10-30 seconds</font>'
+        `<font color="${CARD_COLORS.ACCENT}"><b>🤖 AI Analysis in Progress...</b></font><br><br>` +
+        `<font color="${CARD_COLORS.SECONDARY}">Our intelligent system is extracting:</font><br>` +
+        `<font color="${CARD_COLORS.SECONDARY}">• Company details & position info</font><br>` +
+        `<font color="${CARD_COLORS.SECONDARY}">• Application status & timeline</font><br>` +
+        `<font color="${CARD_COLORS.SECONDARY}">• Contact information & next steps</font><br><br>` +
+        `<font color="${CARD_COLORS.PRIMARY}">⚡ <b>Usually completes in 10-30 seconds</b></font>`
       )
     );
   }
 
   card.addSection(infoSection);
 
-  // Add status section
+  // Add enhanced status section
   const statusSection = CardService.newCardSection().setHeader(
-    "✅ Automatic Tracking"
+    "🚀 Automatic Tracking"
   );
 
   statusSection.addWidget(
     CardService.newTextParagraph().setText(
-      "This job application is being automatically added to your job tracker dashboard where you can:<br><br>" +
-        "• View all applications in one place<br>" +
-        "• Track status changes and updates<br>" +
-        "• Sort and filter by company, status, or date<br>" +
-        "• Monitor your application success rate"
+      `<font color="${CARD_COLORS.SUCCESS}"><b>✅ Successfully added to your job tracker!</b></font><br><br>` +
+      `<font color="${CARD_COLORS.SECONDARY}">Your comprehensive job dashboard now includes:</font><br>` +
+      `<font color="${CARD_COLORS.SECONDARY}">📊 <b>Application overview</b> - All applications in one place</font><br>` +
+      `<font color="${CARD_COLORS.SECONDARY}">📈 <b>Status tracking</b> - Real-time progress updates</font><br>` +
+      `<font color="${CARD_COLORS.SECONDARY}">🔍 <b>Smart filtering</b> - Sort by company, status, or date</font><br>` +
+      `<font color="${CARD_COLORS.SECONDARY}">📋 <b>Success metrics</b> - Track your application success rate</font>`
     )
   );
 
   card.addSection(statusSection);
 
-  // Add action buttons
-  const actionSection = CardService.newCardSection();
+  // Add enhanced action buttons
+  const actionSection = CardService.newCardSection().setHeader(
+    "🎯 Quick Actions"
+  );
+  
   actionSection.addWidget(
     CardService.newTextButton()
-      .setText("📊 View Job Tracker Dashboard")
+      .setText("📊 Open Job Tracker Dashboard")
       .setOpenLink(
         CardService.newOpenLink()
           .setUrl(
@@ -86,7 +126,7 @@ function createJobProcessedCard(gmailMessage, emailData) {
       )
   );
 
-  // Secondary action
+  // Secondary action with better styling
   actionSection.addWidget(
     CardService.newTextButton()
       .setText("🔄 Re-analyze Email")
@@ -106,7 +146,7 @@ function createJobProcessedCard(gmailMessage, emailData) {
 // ============================================================================
 
 /**
- * Extract job data from Gmail message
+ * Extract job data from Gmail message with enhanced patterns
  */
 function extractJobDataFromEmail(gmailMessage) {
   if (!gmailMessage) {
@@ -126,10 +166,10 @@ function extractJobDataFromEmail(gmailMessage) {
   console.log("Subject:", subject);
   console.log("From:", from);
 
-  // Extract company from subject first (more reliable for format like "Subject - Company")
+  // Enhanced company extraction with better patterns
   let company = null;
 
-  // Try to extract company from subject after dash
+  // Try to extract company from subject first (more reliable for format like "Subject - Company")
   const subjectCompanyMatch = subject.match(/-\s*([A-Za-z\s&]+)\s*$/);
   if (subjectCompanyMatch && subjectCompanyMatch[1]) {
     company = subjectCompanyMatch[1].trim();
@@ -142,12 +182,7 @@ function extractJobDataFromEmail(gmailMessage) {
       const domain = emailMatch[1];
       // Skip common email providers
       const commonProviders = [
-        "gmail",
-        "yahoo",
-        "outlook",
-        "hotmail",
-        "aol",
-        "icloud",
+        "gmail", "yahoo", "outlook", "hotmail", "aol", "icloud", "noreply", "no-reply"
       ];
       if (!commonProviders.includes(domain.toLowerCase())) {
         company = domain.charAt(0).toUpperCase() + domain.slice(1);
@@ -155,7 +190,7 @@ function extractJobDataFromEmail(gmailMessage) {
     }
   }
 
-  // Try to extract company from body content
+  // Enhanced company extraction from body content
   if (!company) {
     const bodyCompanyPatterns = [
       /to\s+the\s+([^,\n\.]+)\s+and\s+your\s+interest/i,
@@ -164,6 +199,8 @@ function extractJobDataFromEmail(gmailMessage) {
       /at\s+([A-Za-z\s&]+)(?:\s+team|\s+careers|\s+hr)/i,
       /([A-Za-z\s&]+)\s+team/i,
       /([A-Za-z\s&]+)\s+careers/i,
+      /([A-Za-z\s&]+)\s+hiring/i,
+      /([A-Za-z\s&]+)\s+talent/i,
     ];
 
     for (const pattern of bodyCompanyPatterns) {
@@ -172,15 +209,8 @@ function extractJobDataFromEmail(gmailMessage) {
         const companyCandidate = match[1].trim();
         // Filter out common non-company words
         const skipWords = [
-          "team",
-          "careers",
-          "hr",
-          "hiring",
-          "department",
-          "position",
-          "role",
-          "application",
-          "job",
+          "team", "careers", "hr", "hiring", "department", "position", 
+          "role", "application", "job", "talent", "recruiting"
         ];
         if (
           !skipWords.some((word) =>
@@ -194,7 +224,7 @@ function extractJobDataFromEmail(gmailMessage) {
     }
   }
 
-  // Extract position/role with improved patterns
+  // Enhanced position extraction with improved patterns
   let position = null;
   const positionPatterns = [
     // Match "Position (Details) - Company" format like "Senior Mobile Developer (React Native) - SmartEye"
@@ -209,6 +239,8 @@ function extractJobDataFromEmail(gmailMessage) {
     /applying\s+for\s+([^,\n\.]+)/i,
     // Match "application to the Position"
     /application\s+to\s+the\s+([^,\n\.]+)/i,
+    // Match "Position at Company"
+    /([^,\n\.]+)\s+at\s+[A-Za-z\s&]+/i,
   ];
 
   const textToSearch = subject + " " + body;
@@ -229,44 +261,29 @@ function extractJobDataFromEmail(gmailMessage) {
     }
   }
 
-  // Determine status from subject/body with improved patterns
+  // Enhanced status determination with better patterns
   let status = "applied";
   const statusKeywords = {
     rejected: [
-      "unfortunately",
-      "regret",
-      "not selected",
-      "not moving forward",
-      "decided not to",
-      "proceed with another candidate",
-      "decided to proceed with",
-      "not be moving forward",
-      "will not be proceeding",
+      "unfortunately", "regret", "not selected", "not moving forward", 
+      "decided not to", "proceed with another candidate", "decided to proceed with",
+      "not be moving forward", "will not be proceeding", "unable to move forward",
+      "have decided to", "will not be moving", "not the right fit"
     ],
     interview: [
-      "interview",
-      "scheduled",
-      "meeting",
-      "call",
-      "zoom",
-      "video call",
-      "phone screen",
-      "next round",
+      "interview", "scheduled", "meeting", "call", "zoom", "video call",
+      "phone screen", "next round", "would like to speak", "schedule a call",
+      "discuss further", "next step", "screening call", "technical interview"
     ],
     offer: [
-      "offer",
-      "pleased to extend",
-      "job offer",
-      "congratulations",
-      "excited to offer",
-      "happy to offer",
+      "offer", "pleased to extend", "job offer", "congratulations",
+      "excited to offer", "happy to offer", "formal offer", "extend an offer",
+      "offer letter", "compensation package"
     ],
     accepted: [
-      "welcome to",
-      "excited to have you",
-      "looking forward to working",
-      "onboarding",
-      "start date",
+      "welcome to", "excited to have you", "looking forward to working",
+      "onboarding", "start date", "first day", "welcome aboard",
+      "joining the team", "orientation"
     ],
   };
 
@@ -318,21 +335,27 @@ function reprocessJobEmail(e) {
 }
 
 /**
- * Create error card for job processing failures
+ * Create enhanced error card for job processing failures
  */
 function createJobErrorCard(errorMessage) {
   return CardService.newCardBuilder()
     .setHeader(
       CardService.newCardHeader()
         .setTitle("⚠️ Job Processing Error")
-        .setSubtitle("Unable to process job data")
+        .setSubtitle("Temporary analysis issue")
         .setImageUrl(ICON_URL)
     )
     .addSection(
       CardService.newCardSection()
+        .setHeader("🔧 What Happened?")
         .addWidget(
           CardService.newTextParagraph().setText(
-            `<font color="#ea4335"><b>Error:</b> ${errorMessage}</font><br><br>Please try refreshing or contact support if the issue persists.`
+            `<font color="${CARD_COLORS.ERROR}"><b>❌ Error Details:</b></font><br>` +
+            `<font color="${CARD_COLORS.SECONDARY}">${errorMessage}</font><br><br>` +
+            `<font color="${CARD_COLORS.SECONDARY}"><b>💡 Quick Fixes:</b></font><br>` +
+            `<font color="${CARD_COLORS.SECONDARY}">• Try refreshing the email</font><br>` +
+            `<font color="${CARD_COLORS.SECONDARY}">• Check your internet connection</font><br>` +
+            `<font color="${CARD_COLORS.SECONDARY}">• Contact support if issue persists</font>`
           )
         )
         .addWidget(
@@ -352,26 +375,29 @@ function createJobErrorCard(errorMessage) {
 
 function addJobPreProcessedSection(card, data) {
   const section = CardService.newCardSection().setHeader(
-    "💼 Job Details Extracted"
+    "💼 Job Application Tracked"
   );
 
   if (data.jobData) {
     let jobInfo = "";
     const jobData = data.jobData;
+    
+    const statusEmoji = JOB_EMOJIS[jobData.status] || '📝';
+    const statusColor = JOB_STATUS_COLORS[jobData.status] || CARD_COLORS.PRIMARY;
 
     if (jobData.company) {
-      jobInfo += `<strong>Company:</strong> ${jobData.company}<br>`;
+      jobInfo += `<font color="${CARD_COLORS.PRIMARY}"><b>Company:</b> ${jobData.company}</font><br>`;
     }
     if (jobData.position) {
-      jobInfo += `<strong>Position:</strong> ${jobData.position}<br>`;
+      jobInfo += `<font color="${CARD_COLORS.SECONDARY}"><b>Position:</b> ${jobData.position}</font><br>`;
     }
     if (jobData.status) {
-      jobInfo += `<strong>Status:</strong> ${jobData.status}<br>`;
+      jobInfo += `<font color="${statusColor}"><b>Status:</b> ${statusEmoji} ${jobData.status}</font><br>`;
     }
     if (jobData.appliedDate) {
-      jobInfo += `<strong>Applied:</strong> ${new Date(
+      jobInfo += `<font color="${CARD_COLORS.MUTED}"><b>Applied:</b> ${new Date(
         jobData.appliedDate
-      ).toLocaleDateString()}<br>`;
+      ).toLocaleDateString()}</font><br>`;
     }
 
     section.addWidget(CardService.newTextParagraph().setText(jobInfo));
@@ -379,7 +405,8 @@ function addJobPreProcessedSection(card, data) {
 
   section.addWidget(
     CardService.newTextParagraph().setText(
-      "<br>✅ <strong>Application automatically tracked!</strong>"
+      `<br><font color="${CARD_COLORS.SUCCESS}">✅ <b>Application automatically tracked!</b></font><br>` +
+      `<font color="${CARD_COLORS.SECONDARY}">View your complete job search progress in the dashboard.</font>`
     )
   );
 
