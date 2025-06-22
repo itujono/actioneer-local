@@ -131,6 +131,26 @@ const COLOR_MAPPINGS = {
 };
 
 // ============================================================================
+// LEGACY ALIASES FOR BACKWARD COMPATIBILITY
+// ============================================================================
+
+// Export constants for backward compatibility with existing code
+const CARD_COLORS = ACTIONEER_COLORS;
+const TRAVEL_COLORS = ACTIONEER_COLORS;
+const FINANCIAL_COLORS = ACTIONEER_COLORS;
+
+// Specific status color mappings for easy access
+const JOB_STATUS_COLORS = COLOR_MAPPINGS.JOB_STATUS;
+const TRAVEL_TYPE_COLORS = COLOR_MAPPINGS.TRAVEL_TYPES;
+const TRANSACTION_STATUS_COLORS = COLOR_MAPPINGS.TRANSACTIONS;
+
+// Legacy emoji mappings for backward compatibility
+const JOB_EMOJIS = ACTIONEER_EMOJIS.JOB_STATUS;
+const TRAVEL_TYPE_EMOJIS = ACTIONEER_EMOJIS.TRAVEL_TYPES;
+const TRANSACTION_TYPE_EMOJIS = ACTIONEER_EMOJIS.TRANSACTION_TYPES;
+const CATEGORY_EMOJIS = ACTIONEER_EMOJIS.CATEGORIES;
+
+// ============================================================================
 // COMMON CARD STYLING UTILITIES
 // ============================================================================
 
@@ -425,11 +445,7 @@ function sanitizeText(text, maxLength = 100) {
   return cleanText;
 }
 
-// Export constants for backward compatibility
-// (These can be used in the individual card files)
-const CARD_COLORS = ACTIONEER_COLORS;
-const TRAVEL_COLORS = ACTIONEER_COLORS;
-const FINANCIAL_COLORS = ACTIONEER_COLORS;
+// These constants are now defined above in the LEGACY ALIASES section
 
 // ============================================================================
 // DEBUG & UTILITY CARDS

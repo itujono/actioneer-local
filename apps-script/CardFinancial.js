@@ -2,51 +2,11 @@
 // All expense tracking, revenue tracking, and financial processing related cards
 
 // ============================================================================
-// DESIGN SYSTEM CONSTANTS
+// DESIGN SYSTEM CONSTANTS - Now imported from CardCommon.js
 // ============================================================================
 
-const FINANCIAL_COLORS = {
-  PRIMARY: '#1a73e8',      // Google Blue - for primary actions and highlights
-  SUCCESS: '#34a853',      // Green - for positive states and revenue
-  WARNING: '#fbbc04',      // Yellow - for warnings and moderate amounts
-  ERROR: '#ea4335',        // Red - for errors and high expenses
-  SECONDARY: '#5f6368',    // Gray - for secondary text and metadata
-  ACCENT: '#9334e6',       // Purple - for special highlights and AI features
-  MUTED: '#9aa0a6',        // Light gray - for very subtle text
-  REVENUE: '#16a34a',      // Dark green - for income and positive cash flow
-  EXPENSE: '#dc2626',      // Red - for expenses and negative cash flow
-  NEUTRAL: '#0d7377'       // Teal - for neutral financial data
-};
-
-const TRANSACTION_TYPE_EMOJIS = {
-  revenue: '💰',
-  expense: '🧾',
-  auto: '🤖'
-};
-
-const TRANSACTION_STATUS_COLORS = {
-  revenue: FINANCIAL_COLORS.REVENUE,
-  expense: FINANCIAL_COLORS.EXPENSE,
-  auto: FINANCIAL_COLORS.PRIMARY
-};
-
-const CATEGORY_EMOJIS = {
-  // Revenue categories
-  sales: '💵',
-  consulting: '🎯',
-  subscription: '🔄',
-  commission: '💼',
-  
-  // Expense categories
-  office: '🏢',
-  travel: '✈️',
-  food: '🍽️',
-  software: '💻',
-  marketing: '📢',
-  utilities: '⚡',
-  supplies: '📦',
-  uncategorized: '📋'
-};
+// All design constants are now centralized in CardCommon.js to avoid global scope conflicts
+// Available constants: FINANCIAL_COLORS, TRANSACTION_TYPE_EMOJIS, TRANSACTION_STATUS_COLORS, CATEGORY_EMOJIS
 
 // ============================================================================
 // FINANCIAL TRANSACTION PROCESSING CARDS

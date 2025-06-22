@@ -5,6 +5,7 @@
 @layer base {
   html {
     font-family: 'Outfit', sans-serif;
+    scroll-behavior: smooth;
   }
   
   body {
@@ -118,24 +119,6 @@
   100% {
     transform: translate(0px, 0px) scale(1);
   }
-}
-
-/* Custom scrollbar */
-::-webkit-scrollbar {
-  width: 8px;
-}
-
-::-webkit-scrollbar-track {
-  @apply bg-gray-light;
-}
-
-::-webkit-scrollbar-thumb {
-  @apply bg-heliotrope rounded-full;
-}
-
-::-webkit-scrollbar-thumb:hover {
-  @apply bg-heliotrope;
-  opacity: 0.8;
 }
 
 /* Smooth focus rings */

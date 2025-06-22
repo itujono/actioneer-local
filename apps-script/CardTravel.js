@@ -2,34 +2,11 @@
 // All travel booking, price comparison, and travel analysis related cards
 
 // ============================================================================
-// DESIGN SYSTEM CONSTANTS
+// DESIGN SYSTEM CONSTANTS - Now imported from CardCommon.js
 // ============================================================================
 
-const TRAVEL_COLORS = {
-  PRIMARY: '#1a73e8',      // Google Blue - for primary actions and highlights
-  SUCCESS: '#34a853',      // Green - for positive states and best deals
-  WARNING: '#fbbc04',      // Yellow - for warnings and moderate deals
-  ERROR: '#ea4335',        // Red - for errors and expensive options
-  SECONDARY: '#5f6368',    // Gray - for secondary text and metadata
-  ACCENT: '#9334e6',       // Purple - for special highlights and AI features
-  MUTED: '#9aa0a6',        // Light gray - for very subtle text
-  PRICE: '#0d7377',        // Teal - for price highlights
-  SAVINGS: '#16a34a'       // Dark green - for savings and discounts
-};
-
-const TRAVEL_TYPE_EMOJIS = {
-  flight: '✈️',
-  hotel: '🏨',
-  attraction: '🎯',
-  general: '🌍'
-};
-
-const TRAVEL_TYPE_COLORS = {
-  flight: TRAVEL_COLORS.PRIMARY,
-  hotel: TRAVEL_COLORS.ACCENT,
-  attraction: TRAVEL_COLORS.SUCCESS,
-  general: TRAVEL_COLORS.SECONDARY
-};
+// All design constants are now centralized in CardCommon.js to avoid global scope conflicts
+// Available constants: TRAVEL_COLORS, TRAVEL_TYPE_EMOJIS, TRAVEL_TYPE_COLORS
 
 // ============================================================================
 // TRAVEL PROCESSING CARDS
@@ -578,15 +555,15 @@ function addComprehensiveTravelActionSection(card, emailData, travelData) {
   );
   
   // Secondary action
-  section.addWidget(
-    CardService.newTextButton()
-      .setText("🔄 Refresh Recommendations")
-      .setOnClickAction(
-        CardService.newAction()
-          .setFunctionName("reprocessTravelEmail")
-          .setParameters({ messageId: emailData.messageId })
-      )
-  );
+  // section.addWidget(
+  //   CardService.newTextButton()
+  //     .setText("🔄 Refresh Recommendations")
+  //     .setOnClickAction(
+  //       CardService.newAction()
+  //         .setFunctionName("reprocessTravelEmail")
+  //         .setParameters({ messageId: emailData.messageId })
+  //     )
+  // );
   
   card.addSection(section);
 }
@@ -958,30 +935,31 @@ function addAttractionBookingOptions(section, attractionComparison) {
 
 /**
  * Build travel dashboard URL with proper search parameters
+ * Apps Script compatible version (no URLSearchParams)
  */
 function buildTravelDashboardUrl(emailData, travelData) {
   const baseUrl = `${BASE_URL}/travel`;
-  const params = new URLSearchParams();
+  const params = [];
   
   // Always add basic params
-  params.append('from', 'gmail');
-  params.append('messageId', emailData.messageId);
-  params.append('email', Session.getActiveUser().getEmail());
+  params.push(`from=gmail`);
+  params.push(`messageId=${encodeURIComponent(emailData.messageId)}`);
+  params.push(`email=${encodeURIComponent(Session.getActiveUser().getEmail())}`);
   
   // Add travel-specific params if available
   if (travelData) {
     if (travelData.destination) {
-      params.append('destination', travelData.destination);
+      params.push(`destination=${encodeURIComponent(travelData.destination)}`);
     }
     if (travelData.origin) {
-      params.append('origin', travelData.origin);
+      params.push(`origin=${encodeURIComponent(travelData.origin)}`);
     }
     if (travelData.travelers || travelData.guests) {
-      params.append('travelers', (travelData.travelers || travelData.guests).toString());
+      params.push(`travelers=${encodeURIComponent((travelData.travelers || travelData.guests).toString())}`);
     }
   }
   
-  return `${baseUrl}?${params.toString()}`;
+  return `${baseUrl}?${params.join('&')}`;
 }
 
 function sortComparisonsByPrice(comparisons) {

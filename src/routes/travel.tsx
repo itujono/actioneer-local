@@ -1,4 +1,4 @@
-import { createRoute } from "@tanstack/react-router";
+import { createRoute, useNavigate } from "@tanstack/react-router";
 import { rootRoute } from "./root";
 import { useQuery } from "@tanstack/react-query";
 import { useState, useEffect } from "react";
@@ -6,16 +6,42 @@ import { PlaneIcon } from "lucide-react";
 import { supabase } from "../supabase/client";
 import { useAuth } from "../hooks/useAuth";
 
+// Define search params schema for type safety and validation
+const travelSearchSchema = {
+  destination: {
+    parse: (value: string | undefined) => value,
+    stringify: (value: string | undefined) => value,
+  },
+  origin: {
+    parse: (value: string | undefined) => value,
+    stringify: (value: string | undefined) => value,
+  },
+  travelers: {
+    parse: (value: string | undefined) => (value ? Number(value) : undefined),
+    stringify: (value: number | undefined) => value?.toString(),
+  },
+  messageId: {
+    parse: (value: string | undefined) => value,
+    stringify: (value: string | undefined) => value,
+  },
+  from: {
+    parse: (value: string | undefined) => value,
+    stringify: (value: string | undefined) => value,
+  },
+};
+
 export const travelRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/travel",
   component: TravelDashboard,
-  validateSearch: (search: Record<string, unknown>) => ({
-    destination: (search.destination as string) || undefined,
-    origin: (search.origin as string) || undefined,
-    travelers: search.travelers ? Number(search.travelers) : undefined,
-    messageId: (search.messageId as string) || undefined,
-    from: (search.from as string) || undefined,
+  validateSearch: (search: Record<string, unknown>): TravelSearchParams => ({
+    destination: travelSearchSchema.destination.parse(
+      search.destination as string
+    ),
+    origin: travelSearchSchema.origin.parse(search.origin as string),
+    travelers: travelSearchSchema.travelers.parse(search.travelers as string),
+    messageId: travelSearchSchema.messageId.parse(search.messageId as string),
+    from: travelSearchSchema.from.parse(search.from as string),
   }),
 });
 
@@ -37,9 +63,18 @@ interface TravelData {
   checkOutDate?: string;
 }
 
+interface TravelSearchParams {
+  destination?: string;
+  origin?: string;
+  travelers?: number;
+  messageId?: string;
+  from?: string;
+}
+
 function TravelDashboard() {
   const { user, isLoading: authLoading } = useAuth();
   const searchParams = travelRoute.useSearch();
+  const navigate = useNavigate({ from: travelRoute.fullPath });
 
   // Only set travel criteria if we have search params
   const [travelCriteria, setTravelCriteria] = useState<TravelData>({
@@ -207,16 +242,23 @@ function TravelDashboard() {
     enabled: !!user,
   });
 
-  // Debug saved travels data
+  // Debug saved travels data and selection state
   if (savedTravels) {
     console.log(
       "📊 Saved travels data:",
       savedTravels.map((t) => ({
         id: t.id,
+        email_id: t.email_id,
         destination: t.destination,
         created_at: t.created_at,
+        isSelected: searchParams.messageId === t.email_id && hasDestination,
       }))
     );
+    console.log("🎯 Current selection state:", {
+      messageId: searchParams.messageId,
+      hasDestination,
+      from: searchParams.from,
+    });
   }
 
   if (authLoading) {
@@ -246,7 +288,17 @@ function TravelDashboard() {
                 <ol className="inline-flex items-center space-x-1 md:space-x-3">
                   <li className="inline-flex items-center">
                     <button
-                      onClick={() => (window.location.href = "/travel")}
+                      onClick={() =>
+                        navigate({
+                          search: () => ({
+                            destination: undefined,
+                            origin: undefined,
+                            travelers: undefined,
+                            messageId: undefined,
+                            from: undefined,
+                          }),
+                        })
+                      }
                       className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-jade"
                     >
                       🏠 Travel Dashboard
@@ -450,43 +502,57 @@ function TravelDashboard() {
         {/* Recent Travel Emails */}
         {savedTravels && savedTravels.length > 0 && (
           <div className="mt-12">
-            <h2 className="text-lg font-medium text-gray-900 mb-4">
-              Recent Travel Emails
-            </h2>
+            <div className="flex items-center justify-between mb-4">
+              <h2 className="text-lg font-medium text-gray-900">
+                Recent Travel Emails
+              </h2>
+              {hasDestination && searchParams.from === "dashboard" && (
+                <button
+                  onClick={() =>
+                    navigate({
+                      search: () => ({
+                        destination: undefined,
+                        origin: undefined,
+                        travelers: undefined,
+                        messageId: undefined,
+                        from: undefined,
+                      }),
+                    })
+                  }
+                  className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-jade transition-colors"
+                >
+                  ✕ Clear Selection
+                </button>
+              )}
+            </div>
             <div className="bg-white rounded-lg shadow overflow-hidden">
               <ul className="divide-y divide-gray-200">
-                {savedTravels.map((travel) => (
-                  <TravelEmailCard
-                    key={travel.id}
-                    travel={travel}
-                    isSelected={searchParams.messageId === travel.email_id}
-                    onSelect={(selectedTravel) => {
-                      // Update URL with travel parameters to show recommendations
-                      const searchParams = new URLSearchParams();
-                      searchParams.set(
-                        "destination",
-                        selectedTravel.destination
-                      );
-                      if (selectedTravel.details?.origin) {
-                        searchParams.set(
-                          "origin",
-                          selectedTravel.details.origin
-                        );
-                      }
-                      if (selectedTravel.details?.travelers) {
-                        searchParams.set(
-                          "travelers",
-                          selectedTravel.details.travelers.toString()
-                        );
-                      }
-                      searchParams.set("messageId", selectedTravel.email_id);
-                      searchParams.set("from", "dashboard");
+                {savedTravels.map((travel) => {
+                  // Ensure only one card is selected at a time
+                  const isCurrentlySelected =
+                    searchParams.messageId === travel.email_id &&
+                    hasDestination;
 
-                      // Navigate to the same page with new search params
-                      window.location.href = `/travel?${searchParams.toString()}`;
-                    }}
-                  />
-                ))}
+                  return (
+                    <TravelEmailCard
+                      key={travel.id}
+                      travel={travel}
+                      isSelected={isCurrentlySelected}
+                      onSelect={(selectedTravel) => {
+                        // Use TanStack Router's type-safe navigation
+                        navigate({
+                          search: () => ({
+                            destination: selectedTravel.destination,
+                            origin: selectedTravel.details?.origin,
+                            travelers: selectedTravel.details?.travelers,
+                            messageId: selectedTravel.email_id,
+                            from: "dashboard",
+                          }),
+                        });
+                      }}
+                    />
+                  );
+                })}
               </ul>
             </div>
           </div>
@@ -707,10 +773,10 @@ function TravelEmailCard({
 
   return (
     <li
-      className={`px-6 py-4 cursor-pointer transition-colors duration-200 border-l-4 ${
+      className={`px-6 py-4 cursor-pointer transition-all duration-200 border-l-4 ${
         isSelected
-          ? "bg-jade/5 border-jade hover:bg-jade/10"
-          : "border-transparent hover:bg-gray-50 hover:border-jade"
+          ? "bg-jade/10 border-jade shadow-sm ring-1 ring-jade/20 hover:bg-jade/15"
+          : "border-transparent hover:bg-gray-50 hover:border-jade/50"
       }`}
       onClick={() => onSelect(travel)}
     >
@@ -727,13 +793,17 @@ function TravelEmailCard({
           </div>
           <div className="ml-4 flex-1 min-w-0">
             <div className="flex items-center gap-2 mb-1">
-              <p className="text-sm font-medium text-gray-900 truncate">
+              <p
+                className={`text-sm font-medium truncate ${
+                  isSelected ? "text-gray-900" : "text-gray-900"
+                }`}
+              >
                 To <FormattedDestination destination={travel.destination} />
               </p>
               <span
                 className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getTravelTypeColor(
                   travel.type
-                )}`}
+                )} ${isSelected ? "ring-1 ring-current/20" : ""}`}
               >
                 {travel.type}
               </span>
@@ -761,11 +831,7 @@ function TravelEmailCard({
             {new Date(travel.created_at).toLocaleDateString()}
           </div>
           <div className="mt-2">
-            <div
-              className={`inline-flex items-center text-xs font-medium ${
-                isSelected ? "text-jade" : "text-jade"
-              }`}
-            >
+            <div className="inline-flex items-center text-xs font-medium text-jade">
               {isSelected ? "✓ Selected" : "View Details →"}
             </div>
           </div>

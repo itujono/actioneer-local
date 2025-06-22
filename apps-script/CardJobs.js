@@ -2,34 +2,11 @@
 // All job tracking and career-related card functions
 
 // ============================================================================
-// DESIGN SYSTEM CONSTANTS
+// DESIGN SYSTEM CONSTANTS - Now imported from CardCommon.js
 // ============================================================================
 
-const CARD_COLORS = {
-  PRIMARY: '#1a73e8',      // Google Blue - for primary actions and highlights
-  SUCCESS: '#34a853',      // Green - for positive states and success
-  WARNING: '#fbbc04',      // Yellow - for warnings and pending states
-  ERROR: '#ea4335',        // Red - for errors and rejections
-  SECONDARY: '#5f6368',    // Gray - for secondary text and metadata
-  ACCENT: '#9334e6',       // Purple - for special highlights
-  MUTED: '#9aa0a6'         // Light gray - for very subtle text
-};
-
-const JOB_STATUS_COLORS = {
-  applied: CARD_COLORS.PRIMARY,
-  interview: CARD_COLORS.WARNING,
-  offer: CARD_COLORS.SUCCESS,
-  accepted: CARD_COLORS.SUCCESS,
-  rejected: CARD_COLORS.ERROR
-};
-
-const JOB_EMOJIS = {
-  applied: '📝',
-  interview: '🎯',
-  offer: '🎉',
-  accepted: '✅',
-  rejected: '❌'
-};
+// All design constants are now centralized in CardCommon.js to avoid global scope conflicts
+// Available constants: CARD_COLORS, JOB_STATUS_COLORS, JOB_EMOJIS
 
 // ============================================================================
 // JOB PROCESSING CARDS
