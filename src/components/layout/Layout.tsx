@@ -69,7 +69,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                     <button
                       type="button"
                       onClick={handleSignOut}
-                      className="ml-4 inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-heliotrope transition-colors duration-200"
+                      className="ml-4 inline-flex items-center px-4 py-2 border border-concrete text-sm font-medium rounded-md text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-heliotrope transition-colors duration-200"
                     >
                       Sign out
                     </button>
@@ -102,7 +102,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
       >
         {/* Backdrop */}
         <div
-          className="fixed inset-0 bg-gray-600 bg-opacity-75"
+          className="fixed inset-0 bg-thunder bg-opacity-75"
           aria-hidden="true"
           onClick={() => setSidebarOpen(false)}
         ></div>
@@ -133,7 +133,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 className={`group flex items-center px-2 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/dashboard"
                     ? "bg-heliotrope/10 text-heliotrope"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    : "text-thunder hover:bg-concrete hover:text-thunder"
                 }`}
               >
                 <LayoutDashboard className="mr-4 h-6 w-6 text-heliotrope" />
@@ -145,7 +145,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 className={`group flex items-center px-2 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/finance"
                     ? "bg-gold/10 text-gold"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    : "text-thunder hover:bg-concrete hover:text-thunder"
                 }`}
               >
                 <Receipt className="mr-4 h-6 w-6 text-gold" />
@@ -157,7 +157,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 className={`group flex items-center px-2 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/travel"
                     ? "bg-jade/10 text-jade"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    : "text-thunder hover:bg-concrete hover:text-thunder"
                 }`}
               >
                 <Plane className="mr-4 h-6 w-6 text-jade" />
@@ -169,7 +169,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 className={`group flex items-center px-2 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/jobs"
                     ? "bg-bittersweet/10 text-bittersweet"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    : "text-thunder hover:bg-concrete hover:text-thunder"
                 }`}
               >
                 <Briefcase className="mr-4 h-6 w-6 text-bittersweet" />
@@ -181,7 +181,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 className={`group flex items-center px-2 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/settings"
                     ? "bg-lavender/10 text-lavender"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    : "text-thunder hover:bg-concrete hover:text-thunder"
                 }`}
               >
                 {/* <Settings className="mr-4 h-6 w-6 text-lavender" /> */}
@@ -190,14 +190,14 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
             </nav>
           </div>
 
-          <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
+          <div className="flex-shrink-0 flex border-t border-concrete p-4">
             <button
               onClick={handleSignOut}
               className="flex-shrink-0 group block w-full"
             >
               <div className="flex items-center">
                 <div className="ml-3">
-                  <p className="text-base font-medium text-gray-700 group-hover:text-gray-900">
+                  <p className="text-base font-medium text-thunder group-hover:text-thunder">
                     Sign out
                   </p>
                 </div>
@@ -209,7 +209,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
 
       {/* Static sidebar for desktop */}
       <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
-        <div className="flex-1 flex flex-col min-h-0 border-r border-gray-200 bg-white">
+        <div className="flex-1 flex flex-col min-h-0 border-r border-concrete bg-white">
           <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
             <div className="flex items-center flex-shrink-0 px-4">
               <img src="/logo.png" alt="Actioneer" className="h-8 w-8" />
@@ -223,7 +223,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/dashboard"
                     ? "bg-heliotrope/10 text-heliotrope"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    : "text-thunder hover:bg-concrete hover:text-thunder"
                 }`}
               >
                 <LayoutDashboard className="mr-3 h-6 w-6 text-heliotrope" />
@@ -235,7 +235,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/finance"
                     ? "bg-gold/10 text-gold"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    : "text-thunder hover:bg-concrete hover:text-thunder"
                 }`}
               >
                 <Receipt className="mr-3 h-6 w-6 text-gold" />
@@ -247,7 +247,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/travel"
                     ? "bg-jade/10 text-jade"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    : "text-thunder hover:bg-concrete hover:text-thunder"
                 }`}
               >
                 <Plane className="mr-3 h-6 w-6 text-jade" />
@@ -259,7 +259,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 className={`group flex items-center px-2 py-2 pb-4 mb-2 text-sm font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/jobs"
                     ? "bg-bittersweet/10 text-bittersweet"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    : "text-thunder hover:bg-concrete hover:text-thunder"
                 }`}
               >
                 <Briefcase className="mr-3 h-6 w-6 text-bittersweet" />
@@ -271,7 +271,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 className={`group flex items-center px-2 py-4 mt-4 text-sm font-medium transition-colors duration-200 border-t ${
                   location.pathname === "/settings"
                     ? "bg-lavender/10 text-lavender"
-                    : "text-gray-600 hover:bg-gray-50 hover:text-gray-900"
+                    : "text-thunder hover:bg-concrete hover:text-thunder"
                 }`}
               >
                 {/* <Settings className="mr-3 h-6 w-6 text-lavender" /> */}
@@ -279,10 +279,10 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
               </Link>
             </nav>
           </div>
-          <div className="flex-shrink-0 flex border-t border-gray-200 p-4">
+          <div className="flex-shrink-0 flex border-t border-concrete p-4">
             <button
               onClick={handleSignOut}
-              className="flex items-center text-gray-600 hover:text-gray-900 transition-colors duration-200"
+              className="flex items-center text-thunder hover:text-thunder transition-colors duration-200"
             >
               <LogOut className="h-5 w-5 mr-2" />
               <span>Sign out</span>
@@ -293,10 +293,10 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
 
       {/* Main content */}
       <div className="md:pl-64 flex flex-col flex-1">
-        <div className="sticky top-0 z-10 md:hidden pl-1 pt-1 sm:pl-3 sm:pt-3 bg-gray-100">
+        <div className="sticky top-0 z-10 md:hidden pl-1 pt-1 sm:pl-3 sm:pt-3 bg-concrete">
           <button
             type="button"
-            className="-ml-0.5 -mt-0.5 h-12 w-12 inline-flex items-center justify-center rounded-md text-gray-500 hover:text-gray-900 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-heliotrope"
+            className="-ml-0.5 -mt-0.5 h-12 w-12 inline-flex items-center justify-center rounded-md text-thunder hover:text-thunder focus:outline-none focus:ring-2 focus:ring-inset focus:ring-heliotrope"
             onClick={() => setSidebarOpen(true)}
           >
             <span className="sr-only">Open sidebar</span>

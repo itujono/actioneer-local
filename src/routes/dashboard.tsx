@@ -132,7 +132,7 @@ function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="py-12 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-heliotrope"></div>
-            <p className="mt-2 text-sm text-gray-500">Loading dashboard...</p>
+            <p className="mt-2 text-sm text-thunder">Loading dashboard...</p>
           </div>
         </div>
       </div>
@@ -147,7 +147,7 @@ function Dashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="py-12 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-heliotrope"></div>
-            <p className="mt-2 text-gray-500">Redirecting to login...</p>
+            <p className="mt-2 text-thunder">Redirecting to login...</p>
           </div>
         </div>
       </div>
@@ -266,7 +266,7 @@ function Dashboard() {
               </h3>
               <Calendar className="h-5 w-5 text-concrete" />
             </div>
-            <div className="border-t border-gray-200 px-4 py-5 sm:p-6">
+            <div className="border-t border-concrete px-4 py-5 sm:p-6">
               {travelLoading ? (
                 <div className="py-8 text-center text-concrete">
                   Loading events...
@@ -318,7 +318,7 @@ function Dashboard() {
               </h3>
               <DollarSign className="h-5 w-5 text-concrete" />
             </div>
-            <div className="border-t border-gray-200 px-4 py-5 sm:p-6">
+            <div className="border-t border-concrete px-4 py-5 sm:p-6">
               {receiptsLoading ? (
                 <div className="py-8 text-center text-concrete">
                   Loading expenses...

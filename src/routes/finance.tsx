@@ -724,7 +724,7 @@ function FinancialDashboard() {
                   className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all border ${
                     showCurrencyBreakdown
                       ? "bg-heliotrope/10 text-heliotrope border-heliotrope/20"
-                      : "bg-white text-black border-gray-200 hover:bg-gray-50"
+                      : "bg-white text-black border-concrete hover:bg-concrete"
                   }`}
                 >
                   <RefreshCw
@@ -954,14 +954,14 @@ function FinancialDashboard() {
           <div className="bg-white rounded-xl shadow-lg border border-thunder/30 p-12">
             <div className="flex justify-center items-center">
               <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
-              <span className="ml-4 text-lg text-gray-600">
+              <span className="ml-4 text-lg text-thunder">
                 Loading financial data...
               </span>
             </div>
           </div>
         ) : Object.keys(groupedTransactions).length === 0 ? (
           <div className="bg-white rounded-xl shadow-lg border border-thunder/30 p-12 text-center">
-            <PiggyBank className="h-16 w-16 text-gray-300 mx-auto mb-4" />
+            <PiggyBank className="h-16 w-16 text-concrete mx-auto mb-4" />
             <h3 className="text-xl font-medium text-black mb-2">
               No financial transactions found
             </h3>
@@ -1313,7 +1313,7 @@ function FinancialDashboard() {
                 if (hasNextRevenuePage) fetchNextRevenue();
               }}
               disabled={isFetchingNextReceipts || isFetchingNextRevenue}
-              className="inline-flex items-center px-6 py-3 border border-gray-300 rounded-lg text-sm font-medium text-black bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              className="inline-flex items-center px-6 py-3 border border-concrete rounded-lg text-sm font-medium text-black bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
             >
               {isFetchingNextReceipts || isFetchingNextRevenue ? (
                 <>

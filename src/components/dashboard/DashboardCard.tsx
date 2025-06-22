@@ -30,17 +30,17 @@ export default function DashboardCard({
           </div>
           <div className="ml-5 w-0 flex-1">
             <dl>
-              <dt className="text-sm font-medium text-gray-500 truncate">
+              <dt className="text-sm font-medium text-thunder truncate">
                 {title}
               </dt>
               <dd>
-                <div className="text-lg font-medium text-gray-900">{value}</div>
+                <div className="text-lg font-medium text-thunder">{value}</div>
               </dd>
             </dl>
           </div>
         </div>
       </div>
-      <div className="bg-gray-50 px-5 py-3">
+      <div className="bg-concrete px-5 py-3">
         <div className="text-sm">
           <Link
             to={link}

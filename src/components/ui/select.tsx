@@ -63,13 +63,13 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
       <select
         className={cn(
           // Base styles
-          "w-full rounded-md border bg-white focus:outline-none focus:ring-2 focus:ring-heliotrope focus:border-heliotrope disabled:bg-gray-50 disabled:text-gray-500 disabled:cursor-not-allowed transition-colors",
+          "w-full rounded-md border bg-white focus:outline-none focus:ring-2 focus:ring-heliotrope focus:border-heliotrope disabled:bg-concrete disabled:text-thunder disabled:cursor-not-allowed transition-colors",
           // Size variants
           sizeClasses[size],
           // Border colors
           error
             ? "border-bittersweet focus:ring-bittersweet focus:border-bittersweet"
-            : "border-gray-200 text-black",
+            : "border-concrete text-black",
           className
         )}
         ref={ref}

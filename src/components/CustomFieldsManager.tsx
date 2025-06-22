@@ -119,22 +119,22 @@ export function CustomFieldsManager({
     <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
       <div className="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
         {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-gray-200">
+        <div className="flex items-center justify-between p-6 border-b border-concrete">
           <div>
-            <h2 className="text-xl font-semibold text-gray-900">
+            <h2 className="text-xl font-semibold text-thunder">
               Custom Fields -{" "}
               {tableName
                 .replace("_", " ")
                 .replace(/\b\w/g, (l) => l.toUpperCase())}
             </h2>
-            <p className="text-sm text-gray-500 mt-1">
+            <p className="text-sm text-thunder mt-1">
               Add custom columns to track additional information that matters to
               you
             </p>
           </div>
           <button
             onClick={onClose}
-            className="text-gray-400 hover:text-gray-600"
+            className="text-concrete hover:text-thunder"
           >
             <X className="h-6 w-6" />
           </button>
@@ -144,18 +144,18 @@ export function CustomFieldsManager({
         <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
           {/* Existing Fields */}
           <div className="space-y-4 mb-6">
-            <h3 className="text-lg font-medium text-gray-900">
+            <h3 className="text-lg font-medium text-thunder">
               Current Custom Fields
             </h3>
 
             {isLoadingFields ? (
               <div className="text-center py-4">
                 <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
-                <p className="mt-2 text-sm text-gray-500">Loading fields...</p>
+                <p className="mt-2 text-sm text-thunder">Loading fields...</p>
               </div>
             ) : customFields.length === 0 ? (
-              <div className="text-center py-8 bg-gray-50 rounded-lg">
-                <p className="text-gray-500">
+              <div className="text-center py-8 bg-concrete rounded-lg">
+                <p className="text-thunder">
                   No custom fields yet. Add your first one below!
                 </p>
               </div>
@@ -164,15 +164,15 @@ export function CustomFieldsManager({
                 {customFields.map((field) => (
                   <div
                     key={field.id}
-                    className="flex items-center justify-between p-4 bg-gray-50 rounded-lg"
+                    className="flex items-center justify-between p-4 bg-concrete rounded-lg"
                   >
                     <div className="flex items-center space-x-3">
-                      <GripVertical className="h-4 w-4 text-gray-400" />
+                      <GripVertical className="h-4 w-4 text-concrete" />
                       <div>
-                        <h4 className="font-medium text-gray-900">
+                        <h4 className="font-medium text-thunder">
                           {field.field_label}
                         </h4>
-                        <p className="text-sm text-gray-500">
+                        <p className="text-sm text-thunder">
                           {field.field_type} • {field.field_name}
                           {field.is_required && " • Required"}
                         </p>
@@ -181,7 +181,7 @@ export function CustomFieldsManager({
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => setEditingField(field.id)}
-                        className="p-2 text-gray-400 hover:text-gray-600"
+                        className="p-2 text-concrete hover:text-thunder"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
@@ -202,7 +202,7 @@ export function CustomFieldsManager({
           {/* Add New Field Form */}
           <div className="border-t pt-6">
             <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-medium text-gray-900">
+              <h3 className="text-lg font-medium text-thunder">
                 Add New Field
               </h3>
               {!showAddForm && (
@@ -217,10 +217,10 @@ export function CustomFieldsManager({
             </div>
 
             {showAddForm && (
-              <div className="space-y-4 bg-gray-50 p-4 rounded-lg">
+              <div className="space-y-4 bg-concrete p-4 rounded-lg">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-thunder mb-1">
                       Field Label *
                     </label>
                     <input
@@ -233,12 +233,12 @@ export function CustomFieldsManager({
                         }))
                       }
                       placeholder="e.g., Salary Range"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-concrete rounded-md focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
 
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-thunder mb-1">
                       Field Type *
                     </label>
                     <select
@@ -249,7 +249,7 @@ export function CustomFieldsManager({
                           field_type: e.target.value as CustomFieldType,
                         }))
                       }
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-concrete rounded-md focus:ring-blue-500 focus:border-blue-500"
                     >
                       {fieldTypeOptions.map((option) => (
                         <option key={option.value} value={option.value}>
@@ -263,7 +263,7 @@ export function CustomFieldsManager({
                 {/* Type-specific options */}
                 {newField.field_type === "select" && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-thunder mb-1">
                       Options (one per line)
                     </label>
                     <textarea
@@ -273,14 +273,14 @@ export function CustomFieldsManager({
                       }
                       placeholder="Option 1&#10;Option 2&#10;Option 3"
                       rows={3}
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-concrete rounded-md focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                 )}
 
                 {newField.field_type === "currency" && (
                   <div>
-                    <label className="block text-sm font-medium text-gray-700 mb-1">
+                    <label className="block text-sm font-medium text-thunder mb-1">
                       Currency Code
                     </label>
                     <input
@@ -296,7 +296,7 @@ export function CustomFieldsManager({
                         }))
                       }
                       placeholder="USD"
-                      className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-concrete rounded-md focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                 )}
@@ -305,7 +305,7 @@ export function CustomFieldsManager({
                   newField.field_type === "currency") && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-thunder mb-1">
                         Minimum Value
                       </label>
                       <input
@@ -322,11 +322,11 @@ export function CustomFieldsManager({
                             },
                           }))
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-concrete rounded-md focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-1">
+                      <label className="block text-sm font-medium text-thunder mb-1">
                         Maximum Value
                       </label>
                       <input
@@ -343,7 +343,7 @@ export function CustomFieldsManager({
                             },
                           }))
                         }
-                        className="w-full px-3 py-2 border border-gray-300 rounded-md focus:ring-blue-500 focus:border-blue-500"
+                        className="w-full px-3 py-2 border border-concrete rounded-md focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
                   </div>
@@ -360,11 +360,11 @@ export function CustomFieldsManager({
                         is_required: e.target.checked,
                       }))
                     }
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-gray-300 rounded"
+                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-concrete rounded"
                   />
                   <label
                     htmlFor="is_required"
-                    className="ml-2 block text-sm text-gray-700"
+                    className="ml-2 block text-sm text-thunder"
                   >
                     Required field
                   </label>
@@ -376,7 +376,7 @@ export function CustomFieldsManager({
                       setShowAddForm(false);
                       setNewField(defaultNewField);
                     }}
-                    className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+                    className="px-4 py-2 text-sm font-medium text-thunder bg-white border border-concrete rounded-md hover:bg-concrete"
                   >
                     Cancel
                   </button>
@@ -394,11 +394,11 @@ export function CustomFieldsManager({
         </div>
 
         {/* Footer */}
-        <div className="border-t border-gray-200 px-6 py-4 bg-gray-50">
+        <div className="border-t border-concrete px-6 py-4 bg-concrete">
           <div className="flex justify-end">
             <button
               onClick={onClose}
-              className="px-4 py-2 text-sm font-medium text-gray-700 bg-white border border-gray-300 rounded-md hover:bg-gray-50"
+              className="px-4 py-2 text-sm font-medium text-thunder bg-white border border-concrete rounded-md hover:bg-concrete"
             >
               Done
             </button>

@@ -267,7 +267,7 @@ function TravelDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="py-12 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-jade"></div>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-thunder">
               Loading travel dashboard...
             </p>
           </div>
@@ -299,15 +299,15 @@ function TravelDashboard() {
                           }),
                         })
                       }
-                      className="inline-flex items-center text-sm font-medium text-gray-700 hover:text-jade"
+                      className="inline-flex items-center text-sm font-medium text-thunder hover:text-jade"
                     >
                       🏠 Travel Dashboard
                     </button>
                   </li>
                   <li>
                     <div className="flex items-center">
-                      <span className="text-gray-400 mx-2">/</span>
-                      <span className="text-sm font-medium text-gray-500">
+                      <span className="text-concrete mx-2">/</span>
+                      <span className="text-sm font-medium text-thunder">
                         📧 Email Analysis
                       </span>
                     </div>
@@ -316,12 +316,12 @@ function TravelDashboard() {
               </nav>
             )}
 
-            <h1 className="text-2xl font-bold text-gray-900">
+            <h1 className="text-2xl font-bold text-thunder">
               {hasDestination
                 ? `Travel to ${travelCriteria.destination}`
                 : "Travel Dashboard"}
             </h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-thunder">
               {hasDestination
                 ? searchParams.from === "dashboard"
                   ? "Refreshed recommendations from your email analysis"
@@ -330,8 +330,8 @@ function TravelDashboard() {
             </p>
           </div>
           <div className="text-right">
-            <p className="text-sm text-gray-600">Your location</p>
-            <p className="text-lg font-medium text-gray-900">
+            <p className="text-sm text-thunder">Your location</p>
+            <p className="text-lg font-medium text-thunder">
               📍 {(userLocation || defaultLocation).city},{" "}
               {(userLocation || defaultLocation).country}
             </p>
@@ -340,12 +340,12 @@ function TravelDashboard() {
 
         {/* Travel Search Form */}
         {/* <div className="mt-8 bg-white rounded-lg shadow px-6 py-6">
-          <h2 className="text-lg font-medium text-gray-900 mb-4">
+          <h2 className="text-lg font-medium text-thunder mb-4">
             Plan Your Trip
           </h2>
           <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-thunder">
                 Destination
               </label>
               <input
@@ -357,12 +357,12 @@ function TravelDashboard() {
                     destination: e.target.value,
                   }))
                 }
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-jade focus:border-jade"
+                className="mt-1 block w-full px-3 py-2 border border-concrete rounded-md shadow-sm focus:outline-none focus:ring-jade focus:border-jade"
                 placeholder="e.g., Kyoto, Paris, Tokyo"
               />
             </div>
             <div>
-              <label className="block text-sm font-medium text-gray-700">
+              <label className="block text-sm font-medium text-thunder">
                 Travelers
               </label>
               <select
@@ -373,7 +373,7 @@ function TravelDashboard() {
                     travelers: parseInt(e.target.value),
                   }))
                 }
-                className="mt-1 block w-full px-3 py-2 border border-gray-300 rounded-md shadow-sm focus:outline-none focus:ring-jade focus:border-jade"
+                className="mt-1 block w-full px-3 py-2 border border-concrete rounded-md shadow-sm focus:outline-none focus:ring-jade focus:border-jade"
               >
                 {[1, 2, 3, 4, 5, 6].map((num) => (
                   <option key={num} value={num}>
@@ -471,10 +471,10 @@ function TravelDashboard() {
             <div className="mx-auto w-16 h-16 bg-jade/10 rounded-full flex items-center justify-center mb-4">
               <PlaneIcon className="h-8 w-8 text-jade" />
             </div>
-            <h3 className="text-lg font-medium text-gray-900 mb-2">
+            <h3 className="text-lg font-medium text-thunder mb-2">
               Ready to Plan Your Next Adventure?
             </h3>
-            <p className="text-gray-600 mb-6 max-w-md mx-auto">
+            <p className="text-thunder mb-6 max-w-md mx-auto">
               Your travel recommendations will appear here when you analyze
               travel emails in Gmail. Check your recent travel emails below or
               head to Gmail to get started!
@@ -491,7 +491,7 @@ function TravelDashboard() {
               </a>
               <button
                 onClick={() => window.location.reload()}
-                className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-jade"
+                className="inline-flex items-center px-4 py-2 border border-concrete rounded-md shadow-sm text-sm font-medium text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-jade"
               >
                 🔄 Refresh Page
               </button>
@@ -503,7 +503,7 @@ function TravelDashboard() {
         {savedTravels && savedTravels.length > 0 && (
           <div className="mt-12">
             <div className="flex items-center justify-between mb-4">
-              <h2 className="text-lg font-medium text-gray-900">
+              <h2 className="text-lg font-medium text-thunder">
                 Recent Travel Emails
               </h2>
               {hasDestination && searchParams.from === "dashboard" && (
@@ -519,7 +519,7 @@ function TravelDashboard() {
                       }),
                     })
                   }
-                  className="inline-flex items-center px-3 py-1.5 border border-gray-300 rounded-md text-xs font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-jade transition-colors"
+                  className="inline-flex items-center px-3 py-1.5 border border-concrete rounded-md text-xs font-medium text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-jade transition-colors"
                 >
                   ✕ Clear Selection
                 </button>
@@ -578,9 +578,9 @@ function TravelSection({
 }) {
   return (
     <div className="bg-white rounded-lg shadow">
-      <div className="px-6 py-4 border-b border-gray-200">
-        <h3 className="text-lg font-medium text-gray-900">{title}</h3>
-        <p className="text-sm text-gray-500">{subtitle}</p>
+      <div className="px-6 py-4 border-b border-concrete">
+        <h3 className="text-lg font-medium text-thunder">{title}</h3>
+        <p className="text-sm text-thunder">{subtitle}</p>
       </div>
       <div className="p-6">
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
@@ -643,14 +643,14 @@ function TravelCard({
   };
 
   return (
-    <div className="border border-gray-200 rounded-lg p-4 hover:shadow-md transition-shadow">
+    <div className="border border-concrete rounded-lg p-4 hover:shadow-md transition-shadow">
       <div className="mb-3">
         {type === "flight" && (
           <div>
-            <h4 className="font-medium text-gray-900">
+            <h4 className="font-medium text-thunder">
               {item.airline} {item.flightNumber}
             </h4>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-thunder">
               {item.duration} •{" "}
               {item.stops === 0
                 ? "Direct"
@@ -660,18 +660,18 @@ function TravelCard({
         )}
         {type === "hotel" && (
           <div>
-            <h4 className="font-medium text-gray-900">
+            <h4 className="font-medium text-thunder">
               {item.hotelName || item.name}
             </h4>
-            <p className="text-sm text-gray-500">
+            <p className="text-sm text-thunder">
               ⭐ {item.rating} • {item.location}
             </p>
           </div>
         )}
         {type === "attraction" && (
           <div>
-            <h4 className="font-medium text-gray-900">{item.name}</h4>
-            <p className="text-sm text-gray-500">
+            <h4 className="font-medium text-thunder">{item.name}</h4>
+            <p className="text-sm text-thunder">
               ⭐ {item.rating} • {item.category}
             </p>
           </div>
@@ -724,9 +724,9 @@ function TravelEmailCard({
       flight: "bg-blue-50 text-blue-600",
       hotel: "bg-purple-50 text-purple-600",
       attraction: "bg-green-50 text-green-600",
-      general: "bg-gray-50 text-gray-600",
+      general: "bg-concrete text-thunder",
     };
-    return colors[type as keyof typeof colors] || "bg-gray-50 text-gray-600";
+    return colors[type as keyof typeof colors] || "bg-concrete text-thunder";
   };
 
   const formatDateRange = () => {
@@ -776,7 +776,7 @@ function TravelEmailCard({
       className={`px-6 py-4 cursor-pointer transition-all duration-200 border-l-4 ${
         isSelected
           ? "bg-jade/10 border-jade shadow-sm ring-1 ring-jade/20 hover:bg-jade/15"
-          : "border-transparent hover:bg-gray-50 hover:border-jade/50"
+          : "border-transparent hover:bg-concrete hover:border-jade/50"
       }`}
       onClick={() => onSelect(travel)}
     >
@@ -795,7 +795,7 @@ function TravelEmailCard({
             <div className="flex items-center gap-2 mb-1">
               <p
                 className={`text-sm font-medium truncate ${
-                  isSelected ? "text-gray-900" : "text-gray-900"
+                  isSelected ? "text-thunder" : "text-thunder"
                 }`}
               >
                 To <FormattedDestination destination={travel.destination} />
@@ -811,14 +811,14 @@ function TravelEmailCard({
 
             {/* Date range */}
             {formatDateRange() && (
-              <p className="text-sm text-gray-500 mb-1">
+              <p className="text-sm text-thunder mb-1">
                 📅 {formatDateRange()}
               </p>
             )}
 
             {/* Additional context info */}
             {getAdditionalInfo() && (
-              <p className="text-xs text-gray-400 truncate">
+              <p className="text-xs text-concrete truncate">
                 {getAdditionalInfo()}
               </p>
             )}
@@ -826,8 +826,8 @@ function TravelEmailCard({
         </div>
 
         <div className="flex flex-col items-end text-right ml-4">
-          <div className="text-xs text-gray-400 mb-1">Analyzed</div>
-          <div className="text-sm text-gray-500">
+          <div className="text-xs text-concrete mb-1">Analyzed</div>
+          <div className="text-sm text-thunder">
             {new Date(travel.created_at).toLocaleDateString()}
           </div>
           <div className="mt-2">
@@ -1102,10 +1102,10 @@ function TravelSectionSkeleton({
 }) {
   return (
     <div className="bg-white rounded-lg shadow">
-      <div className="px-6 py-4 border-b border-gray-200">
-        <h3 className="text-lg font-medium text-gray-900">{title}</h3>
+      <div className="px-6 py-4 border-b border-concrete">
+        <h3 className="text-lg font-medium text-thunder">{title}</h3>
         <div className="mt-1">
-          <div className="h-4 bg-gray-200 rounded animate-pulse w-48"></div>
+          <div className="h-4 bg-concrete rounded animate-pulse w-48"></div>
         </div>
       </div>
       <div className="p-6">
@@ -1121,19 +1121,19 @@ function TravelSectionSkeleton({
 
 function TravelCardSkeleton() {
   return (
-    <div className="border border-gray-200 rounded-lg p-4">
+    <div className="border border-concrete rounded-lg p-4">
       <div className="mb-3">
         {/* Title skeleton */}
-        <div className="h-5 bg-gray-200 rounded animate-pulse w-3/4 mb-2"></div>
+        <div className="h-5 bg-concrete rounded animate-pulse w-3/4 mb-2"></div>
         {/* Subtitle skeleton */}
-        <div className="h-4 bg-gray-200 rounded animate-pulse w-1/2"></div>
+        <div className="h-4 bg-concrete rounded animate-pulse w-1/2"></div>
       </div>
 
       <div className="flex items-center justify-between">
         {/* Price skeleton */}
-        <div className="h-6 bg-gray-200 rounded animate-pulse w-20"></div>
+        <div className="h-6 bg-concrete rounded animate-pulse w-20"></div>
         {/* Button skeleton */}
-        <div className="h-8 bg-gray-200 rounded animate-pulse w-20"></div>
+        <div className="h-8 bg-concrete rounded animate-pulse w-20"></div>
       </div>
     </div>
   );

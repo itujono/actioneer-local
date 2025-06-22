@@ -16,8 +16,8 @@ export function CustomFieldInput({
   error,
   disabled,
 }: CustomFieldInputProps) {
-  const baseInputClasses = `w-full px-3 py-2 border rounded-md focus:ring-heliotrope focus:border-heliotrope disabled:bg-gray-50 disabled:text-gray-500 ${
-    error ? "border-red-300" : "border-gray-300"
+  const baseInputClasses = `w-full px-3 py-2 border rounded-md focus:ring-heliotrope focus:border-heliotrope disabled:bg-concrete disabled:text-thunder ${
+    error ? "border-red-300" : "border-concrete"
   }`;
 
   const handleChange = (newValue: any) => {
@@ -56,7 +56,7 @@ export function CustomFieldInput({
       case "currency":
         return (
           <div className="relative">
-            <span className="absolute left-3 top-2 text-gray-500 text-sm">
+            <span className="absolute left-3 top-2 text-thunder text-sm">
               {field.field_options.currency || "USD"}
             </span>
             <input
@@ -111,9 +111,9 @@ export function CustomFieldInput({
               checked={value === true}
               onChange={(e) => handleChange(e.target.checked)}
               disabled={disabled}
-              className="h-4 w-4 text-heliotrope focus:ring-heliotrope border-gray-300 rounded disabled:opacity-50"
+              className="h-4 w-4 text-heliotrope focus:ring-heliotrope border-concrete rounded disabled:opacity-50"
             />
-            <span className="text-sm text-gray-700">
+            <span className="text-sm text-thunder">
               {value === true ? "Yes" : "No"}
             </span>
           </label>
@@ -134,7 +134,7 @@ export function CustomFieldInput({
 
   return (
     <div className="space-y-1">
-      <label className="block text-sm font-medium text-gray-700">
+      <label className="block text-sm font-medium text-thunder">
         {field.field_label}
         {field.is_required && <span className="text-red-500 ml-1">*</span>}
       </label>
@@ -152,7 +152,7 @@ interface CustomFieldCellProps {
 
 export function CustomFieldCell({ field, value }: CustomFieldCellProps) {
   if (value === null || value === undefined || value === "") {
-    return <span className="text-gray-400">—</span>;
+    return <span className="text-concrete">—</span>;
   }
 
   const formatValue = () => {
@@ -180,7 +180,7 @@ export function CustomFieldCell({ field, value }: CustomFieldCellProps) {
     }
   };
 
-  return <span className="text-sm text-gray-900">{formatValue()}</span>;
+  return <span className="text-sm text-thunder">{formatValue()}</span>;
 }
 
 // Enhanced editable table cell for custom fields
@@ -258,7 +258,7 @@ export function EditableCustomFieldCell({
 
   const formatDisplayValue = () => {
     if (value === null || value === undefined || value === "") {
-      return <span className="text-gray-400">—</span>;
+      return <span className="text-concrete">—</span>;
     }
 
     switch (field.field_type) {
@@ -287,7 +287,7 @@ export function EditableCustomFieldCell({
 
   const renderEditInput = () => {
     const baseInputClasses = `w-full px-2 py-1 text-sm border rounded focus:ring-heliotrope focus:border-heliotrope bg-white min-h-[28px] ${
-      error ? "border-red-300" : "border-gray-300"
+      error ? "border-red-300" : "border-concrete"
     }`;
 
     switch (field.field_type) {
@@ -325,7 +325,7 @@ export function EditableCustomFieldCell({
       case "currency":
         return (
           <div className="relative w-full h-full">
-            <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-gray-500 text-xs z-10">
+            <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-thunder text-xs z-10">
               {field.field_options.currency || "USD"}
             </span>
             <input
@@ -422,7 +422,7 @@ export function EditableCustomFieldCell({
   return (
     <div
       className={`group flex items-center space-x-2 min-h-[28px] relative ${
-        disabled ? "" : "cursor-pointer hover:bg-gray-50 rounded px-1 py-1"
+        disabled ? "" : "cursor-pointer hover:bg-concrete rounded px-1 py-1"
       }`}
       onClick={handleEdit}
     >
@@ -432,12 +432,12 @@ export function EditableCustomFieldCell({
       ) : (
         // Display mode
         <>
-          <span className="text-sm text-gray-900 min-w-0 flex-1 py-1">
+          <span className="text-sm text-thunder min-w-0 flex-1 py-1">
             {formatDisplayValue()}
           </span>
           {!disabled && (
             <svg
-              className="h-3 w-3 text-gray-400 opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
+              className="h-3 w-3 text-concrete opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
               fill="none"
               stroke="currentColor"
               viewBox="0 0 24 24"

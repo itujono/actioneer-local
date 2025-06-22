@@ -508,7 +508,7 @@ function JobsDashboard() {
       case "declined":
         return <XCircle className="h-4 w-4 text-red-500" />;
       default:
-        return <Clock className="h-4 w-4 text-gray-500" />;
+        return <Clock className="h-4 w-4 text-thunder" />;
     }
   };
 
@@ -528,7 +528,7 @@ function JobsDashboard() {
       case "declined":
         return "bg-red-100 text-red-800";
       default:
-        return "bg-gray-100 text-gray-800";
+        return "bg-concrete text-thunder";
     }
   };
 
@@ -545,7 +545,7 @@ function JobsDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="py-12 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-bittersweet"></div>
-            <p className="mt-2 text-sm text-gray-500">
+            <p className="mt-2 text-sm text-thunder">
               Checking authentication...
             </p>
           </div>
@@ -562,9 +562,7 @@ function JobsDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="py-12 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-bittersweet"></div>
-            <p className="mt-2 text-sm text-gray-500">
-              Redirecting to login...
-            </p>
+            <p className="mt-2 text-sm text-thunder">Redirecting to login...</p>
           </div>
         </div>
       </div>
@@ -612,10 +610,10 @@ function JobsDashboard() {
         {/* Header */}
         <div className="md:flex md:items-center md:justify-between">
           <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold leading-7 text-gray-900 sm:text-2xl sm:truncate">
+            <h1 className="text-2xl font-bold leading-7 text-thunder sm:text-2xl sm:truncate">
               Job Applications
             </h1>
-            <p className="mt-1 text-sm text-gray-500">
+            <p className="mt-1 text-sm text-thunder">
               Track and manage your job applications
             </p>
           </div>
@@ -623,7 +621,7 @@ function JobsDashboard() {
             <button
               onClick={() => setShowCustomFieldsManager(true)}
               type="button"
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bittersweet"
+              className="inline-flex items-center px-4 py-2 border border-concrete rounded-md shadow-sm text-sm font-medium text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bittersweet"
               title="Manage custom columns"
             >
               <Columns className="h-4 w-4 mr-2" />
@@ -632,14 +630,14 @@ function JobsDashboard() {
             <button
               onClick={resetColumnOrder}
               type="button"
-              className="inline-flex items-center px-3 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-600 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bittersweet"
+              className="inline-flex items-center px-3 py-2 border border-concrete rounded-md shadow-sm text-sm font-medium text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bittersweet"
               title="Reset column order to default"
             >
               <GripVertical className="h-4 w-4" />
             </button>
             <button
               type="button"
-              className="inline-flex items-center px-4 py-2 border border-gray-300 rounded-md shadow-sm text-sm font-medium text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bittersweet"
+              className="inline-flex items-center px-4 py-2 border border-concrete rounded-md shadow-sm text-sm font-medium text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bittersweet"
             >
               <Plus className="h-4 w-4 mr-2" />
               Add Application
@@ -657,10 +655,10 @@ function JobsDashboard() {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
+                    <dt className="text-sm font-medium text-thunder truncate">
                       Total Applications
                     </dt>
-                    <dd className="text-lg font-medium text-gray-900">
+                    <dd className="text-lg font-medium text-thunder">
                       {isLoading ? "..." : jobApplications?.length || 0}
                     </dd>
                   </dl>
@@ -677,10 +675,10 @@ function JobsDashboard() {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
+                    <dt className="text-sm font-medium text-thunder truncate">
                       Pending
                     </dt>
-                    <dd className="text-lg font-medium text-gray-900">
+                    <dd className="text-lg font-medium text-thunder">
                       {isLoading
                         ? "..."
                         : jobApplications?.filter(
@@ -702,10 +700,10 @@ function JobsDashboard() {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
+                    <dt className="text-sm font-medium text-thunder truncate">
                       Next Step
                     </dt>
-                    <dd className="text-lg font-medium text-gray-900">
+                    <dd className="text-lg font-medium text-thunder">
                       {isLoading
                         ? "..."
                         : jobApplications?.filter(
@@ -727,10 +725,10 @@ function JobsDashboard() {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
+                    <dt className="text-sm font-medium text-thunder truncate">
                       Interviews
                     </dt>
-                    <dd className="text-lg font-medium text-gray-900">
+                    <dd className="text-lg font-medium text-thunder">
                       {isLoading
                         ? "..."
                         : jobApplications?.filter((app: JobApplication) =>
@@ -751,10 +749,10 @@ function JobsDashboard() {
                 </div>
                 <div className="ml-5 w-0 flex-1">
                   <dl>
-                    <dt className="text-sm font-medium text-gray-500 truncate">
+                    <dt className="text-sm font-medium text-thunder truncate">
                       Success Rate
                     </dt>
-                    <dd className="text-lg font-medium text-gray-900">
+                    <dd className="text-lg font-medium text-thunder">
                       {isLoading
                         ? "..."
                         : jobApplications && jobApplications.length > 0
@@ -778,16 +776,16 @@ function JobsDashboard() {
 
         {/* Filters and Search */}
         <div className="mt-8 bg-white shadow rounded-lg">
-          <div className="p-6 border-b border-gray-200">
+          <div className="p-6 border-b border-concrete">
             <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
               {/* Search */}
               <div className="relative flex-1 max-w-lg">
                 <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-                  <Search className="h-5 w-5 text-gray-400" />
+                  <Search className="h-5 w-5 text-concrete" />
                 </div>
                 <input
                   type="text"
-                  className="block w-full max-w-sm pl-10 pr-3 py-2 border border-gray-300 rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+                  className="block w-full max-w-sm pl-10 pr-3 py-2 border border-concrete rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
                   placeholder="Search companies or positions..."
                   value={searchTerm}
                   onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -805,7 +803,7 @@ function JobsDashboard() {
               <div className="flex items-center space-x-4">
                 <div className="flex items-center">
                   <select
-                    className="block w-full pl-3 pr-10 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                    className="block w-full pl-3 pr-10 py-2 text-base border border-concrete focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                     value={statusFilter}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                       setStatusFilter(e.target.value)
@@ -821,9 +819,9 @@ function JobsDashboard() {
                 </div>
 
                 <div className="flex items-center space-x-2">
-                  <span className="text-sm text-gray-500">Show:</span>
+                  <span className="text-sm text-thunder">Show:</span>
                   <select
-                    className="block pl-3 pr-8 py-2 text-base border border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                    className="block pl-3 pr-8 py-2 text-base border border-concrete focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
                     value={pageSize}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                       setPageSize(Number(e.target.value))
@@ -844,19 +842,19 @@ function JobsDashboard() {
             {isLoading ? (
               <div className="py-12 text-center">
                 <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
-                <p className="mt-2 text-sm text-gray-500">
+                <p className="mt-2 text-sm text-thunder">
                   Loading applications...
                 </p>
               </div>
             ) : filteredAndSortedApplications.data.length === 0 ? (
               <div className="py-12 text-center">
-                <BriefcaseIcon className="mx-auto h-12 w-12 text-gray-400" />
-                <h3 className="mt-2 text-sm font-medium text-gray-900">
+                <BriefcaseIcon className="mx-auto h-12 w-12 text-concrete" />
+                <h3 className="mt-2 text-sm font-medium text-thunder">
                   {jobApplications?.length === 0
                     ? "No job applications yet"
                     : "No applications match your filters"}
                 </h3>
-                <p className="mt-1 text-sm text-gray-500">
+                <p className="mt-1 text-sm text-thunder">
                   {jobApplications?.length === 0
                     ? "Job application emails will automatically appear here when detected."
                     : "Try adjusting your search or filters to find what you're looking for."}
@@ -869,7 +867,7 @@ function JobsDashboard() {
                   onDragEnd={onDragEnd}
                 >
                   <table className="min-w-full divide-y divide-gray-200">
-                    <thead className="bg-gray-50">
+                    <thead className="bg-concrete">
                       <SortableContext
                         items={columnOrder.map((col) => col.id)}
                         strategy={horizontalListSortingStrategy}
@@ -889,7 +887,10 @@ function JobsDashboard() {
                     <tbody className="bg-white divide-y divide-gray-200">
                       {filteredAndSortedApplications.data.map(
                         (application: JobApplication) => (
-                          <tr key={application.id} className="hover:bg-gray-50">
+                          <tr
+                            key={application.id}
+                            className="hover:bg-concrete"
+                          >
                             {columnOrder.map((column) => {
                               const cellKey = `${application.id}-${column.id}`;
 
@@ -903,11 +904,11 @@ function JobsDashboard() {
                                     >
                                       <div className="flex">
                                         {/* <div className="flex-shrink-0 h-10 w-10">
-                                          <div className="h-10 w-10 rounded-full bg-gray-200 flex items-center justify-center">
-                                            <Building2 className="h-5 w-5 text-gray-500" />
+                                          <div className="h-10 w-10 rounded-full bg-concrete flex items-center justify-center">
+                                            <Building2 className="h-5 w-5 text-thunder" />
                                           </div>
                                         </div> */}
-                                        <div className="text-sm font-medium text-gray-900 flex items-center">
+                                        <div className="text-sm font-medium text-thunder flex items-center">
                                           {application.company}
                                           {getFlagEmoji(
                                             application.country_code
@@ -929,7 +930,7 @@ function JobsDashboard() {
                                       key={cellKey}
                                       className="px-6 py-4 whitespace-nowrap"
                                     >
-                                      <div className="text-sm text-gray-900">
+                                      <div className="text-sm text-thunder">
                                         {application.position}
                                       </div>
                                     </td>
@@ -963,10 +964,10 @@ function JobsDashboard() {
                                   return (
                                     <td
                                       key={cellKey}
-                                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                                      className="px-6 py-4 whitespace-nowrap text-sm text-thunder"
                                     >
                                       <div className="flex items-center">
-                                        <Calendar className="h-4 w-4 text-gray-400 mr-2" />
+                                        <Calendar className="h-4 w-4 text-concrete mr-2" />
                                         {new Date(
                                           application.applied_date
                                         ).toLocaleDateString()}
@@ -978,7 +979,7 @@ function JobsDashboard() {
                                   return (
                                     <td
                                       key={cellKey}
-                                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                      className="px-6 py-4 whitespace-nowrap text-sm text-thunder"
                                     >
                                       {formatDistanceToNow(
                                         new Date(application.created_at)
@@ -999,7 +1000,7 @@ function JobsDashboard() {
                                             application
                                           )
                                         }
-                                        className="inline-flex items-center px-3 py-1 border border-gray-300 shadow-sm text-xs font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+                                        className="inline-flex items-center px-3 py-1 border border-concrete shadow-sm text-xs font-medium rounded-md text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
                                         title="Search for this email in Gmail"
                                       >
                                         <Mail className="h-3 w-3 mr-1" />
@@ -1024,7 +1025,7 @@ function JobsDashboard() {
                                       return (
                                         <td
                                           key={cellKey}
-                                          className="px-6 py-4 whitespace-nowrap text-sm text-gray-900"
+                                          className="px-6 py-4 whitespace-nowrap text-sm text-thunder"
                                         >
                                           <EditableCustomFieldCell
                                             field={field}
@@ -1054,7 +1055,7 @@ function JobsDashboard() {
                                   return (
                                     <td
                                       key={cellKey}
-                                      className="px-6 py-4 whitespace-nowrap text-sm text-gray-500"
+                                      className="px-6 py-4 whitespace-nowrap text-sm text-thunder"
                                     >
                                       —
                                     </td>
@@ -1073,27 +1074,27 @@ function JobsDashboard() {
 
           {/* Pagination */}
           {!isLoading && filteredAndSortedApplications.totalCount > 0 && (
-            <div className="bg-white px-4 py-3 border-t border-gray-200 sm:px-6">
+            <div className="bg-white px-4 py-3 border-t border-concrete sm:px-6">
               <div className="flex items-center justify-between">
                 <div className="flex-1 flex justify-between sm:hidden">
                   <button
                     onClick={() => setCurrentPage(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="relative inline-flex items-center px-4 py-2 border border-concrete text-sm font-medium rounded-md text-thunder bg-white hover:bg-concrete disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Previous
                   </button>
                   <button
                     onClick={() => setCurrentPage(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-gray-300 text-sm font-medium rounded-md text-gray-700 bg-white hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                    className="ml-3 relative inline-flex items-center px-4 py-2 border border-concrete text-sm font-medium rounded-md text-thunder bg-white hover:bg-concrete disabled:opacity-50 disabled:cursor-not-allowed"
                   >
                     Next
                   </button>
                 </div>
                 <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
                   <div>
-                    <p className="text-sm text-gray-700">
+                    <p className="text-sm text-thunder">
                       Showing{" "}
                       <span className="font-medium">
                         {filteredAndSortedApplications.totalCount > 0
@@ -1112,7 +1113,7 @@ function JobsDashboard() {
                       <button
                         onClick={() => setCurrentPage(currentPage - 1)}
                         disabled={currentPage === 1}
-                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-concrete bg-white text-sm font-medium text-thunder hover:bg-concrete disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <ChevronLeft className="h-5 w-5" />
                       </button>
@@ -1135,7 +1136,7 @@ function JobsDashboard() {
                           return (
                             <React.Fragment key={page}>
                               {showEllipsis && (
-                                <span className="relative inline-flex items-center px-4 py-2 border border-gray-300 bg-white text-sm font-medium text-gray-700">
+                                <span className="relative inline-flex items-center px-4 py-2 border border-concrete bg-white text-sm font-medium text-thunder">
                                   ...
                                 </span>
                               )}
@@ -1144,7 +1145,7 @@ function JobsDashboard() {
                                 className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
                                   page === currentPage
                                     ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
-                                    : "bg-white border-gray-300 text-gray-500 hover:bg-gray-50"
+                                    : "bg-white border-concrete text-thunder hover:bg-concrete"
                                 }`}
                               >
                                 {page}
@@ -1156,7 +1157,7 @@ function JobsDashboard() {
                       <button
                         onClick={() => setCurrentPage(currentPage + 1)}
                         disabled={currentPage === totalPages}
-                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-gray-300 bg-white text-sm font-medium text-gray-500 hover:bg-gray-50 disabled:opacity-50 disabled:cursor-not-allowed"
+                        className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-concrete bg-white text-sm font-medium text-thunder hover:bg-concrete disabled:opacity-50 disabled:cursor-not-allowed"
                       >
                         <ChevronRight className="h-5 w-5" />
                       </button>

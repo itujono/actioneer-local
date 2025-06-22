@@ -53,12 +53,12 @@ export function DraggableTableHeader({
       ref={setNodeRef}
       style={style}
       scope="col"
-      className={`px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider relative group ${
+      className={`px-6 py-3 text-left text-xs font-medium text-thunder uppercase tracking-wider relative group ${
         column.sortable && !column.fixed
-          ? "cursor-pointer hover:bg-gray-100"
+          ? "cursor-pointer hover:bg-concrete"
           : ""
       } ${isDragging ? "bg-blue-50 shadow-lg z-10" : ""} ${
-        column.fixed ? "bg-gray-50" : ""
+        column.fixed ? "bg-concrete" : ""
       }`}
       onClick={handleHeaderClick}
     >
@@ -73,10 +73,10 @@ export function DraggableTableHeader({
             <div
               {...attributes}
               {...listeners}
-              className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1 -ml-1 hover:bg-gray-200 rounded"
+              className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1 -ml-1 hover:bg-concrete rounded"
               onClick={(e) => e.stopPropagation()} // Prevent sort when clicking drag handle
             >
-              <GripVertical className="h-3 w-3 text-gray-400" />
+              <GripVertical className="h-3 w-3 text-concrete" />
             </div>
           )}
         </div>
@@ -95,7 +95,7 @@ export function DraggableTableHeader({
 
       {/* Visual indicator for fixed columns */}
       {column.fixed && (
-        <div className="absolute top-0 left-0 w-1 h-full bg-gray-300"></div>
+        <div className="absolute top-0 left-0 w-1 h-full bg-concrete"></div>
       )}
     </th>
   );
@@ -128,7 +128,7 @@ export function DraggableCustomFieldHeader({
     return (
       <th
         scope="col"
-        className="px-6 py-3 text-left text-xs font-medium text-gray-500 uppercase tracking-wider"
+        className="px-6 py-3 text-left text-xs font-medium text-thunder uppercase tracking-wider"
       >
         {fieldLabel}
       </th>
