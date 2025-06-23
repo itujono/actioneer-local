@@ -88,7 +88,7 @@ function Index() {
         <HowToInstallSection />
       </div>
 
-      <div className="section-spacing bg-lavender">
+      <div className="section-spacing bg-thunder">
         <FAQSection />
       </div>
 
