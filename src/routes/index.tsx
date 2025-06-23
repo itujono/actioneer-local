@@ -7,6 +7,7 @@ import HowItWorksSection from "../components/home/HowItWorksSection";
 import HowToInstallSection from "../components/home/HowToInstallSection";
 import AutopilotSection from "../components/home/AutopilotSection";
 import CTASection from "../components/home/CTASection";
+import Fling from "../components/Fling";
 
 export const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -88,11 +89,12 @@ function Index() {
           <HowItWorksSection />
         </div>
 
-        <div className="section-spacing bg-bittersweet">
+        <div className="section-spacing bg-bittersweet relative z-10">
           <HowToInstallSection />
         </div>
 
-        <div className="section-spacing">
+        <div className="section-spacing relative">
+          <Fling className="absolute -top-44 sm:-top-20 right-[70%] w-1/2 h-1/2 scale-x-[-1] rotate-90 sm:rotate-45 z-0 text-lime" />
           <FAQSection />
         </div>
 

@@ -1,5 +1,6 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
+import Fling from "../Fling";
 
 const renderAnswerWithLinks = (text: string) => {
   const urlRegex = /(https?:\/\/[^\s]+)/g;
@@ -77,7 +78,7 @@ export default function FAQSection() {
   ];
 
   return (
-    <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+    <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8 relative">
       <div className="text-center mb-12 sm:mb-16">
         <h2 className="text-3xl sm:text-4xl font-bold text-heliotrope mb-4 sm:mb-6">
           Frequently Asked Questions

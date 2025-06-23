@@ -34,7 +34,7 @@ export default function AutopilotSection() {
       testimonial: (
         <>
           "Saved $400 on my last trip just by seeing all options in one place!"
-          <br />— Lebron James
+          <br />— Lebron J.
         </>
       ),
       testimonialImage: "/public/lebron.webp",
