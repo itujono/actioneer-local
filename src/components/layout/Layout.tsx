@@ -39,53 +39,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
 
   if (isPublicPage) {
     return (
-      <div className="min-h-screen bg-concrete/10">
-        <header className="shadow-sm">
-          <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div className="flex justify-between h-16">
-              <div className="flex">
-                <div className="flex-shrink-0 flex items-center">
-                  <Link to="/" className="flex items-center">
-                    <img
-                      src="/logo.png"
-                      alt="Actioneer"
-                      className="h-8 w-8 text-heliotrope"
-                    />
-                    <span className="ml-2 text-xl font-bold text-thunder">
-                      Actioneer
-                    </span>
-                  </Link>
-                </div>
-              </div>
-              <div className="flex items-center">
-                {isAuthenticated ? (
-                  <>
-                    <Link
-                      to="/dashboard"
-                      className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-heliotrope bg-heliotrope/10 hover:bg-heliotrope/20 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-heliotrope transition-colors duration-200"
-                    >
-                      Dashboard
-                    </Link>
-                    <button
-                      type="button"
-                      onClick={handleSignOut}
-                      className="ml-4 inline-flex items-center px-4 py-2 border border-concrete text-sm font-medium rounded-md text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-heliotrope transition-colors duration-200"
-                    >
-                      Sign out
-                    </button>
-                  </>
-                ) : (
-                  <Link
-                    to="/auth"
-                    className="inline-flex items-center px-4 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-heliotrope hover:bg-heliotrope/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-heliotrope transition-colors duration-200"
-                  >
-                    Sign in with Google
-                  </Link>
-                )}
-              </div>
-            </div>
-          </div>
-        </header>
+      <div className="min-h-screen">
         <main>{children}</main>
       </div>
     );

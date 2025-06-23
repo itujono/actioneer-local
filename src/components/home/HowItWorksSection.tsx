@@ -52,22 +52,6 @@ export default function HowItWorksSection() {
           updated automatically without you lifting a finger.
         </HowItWorksItem>
       </div>
-
-      <div className="text-center mt-16">
-        <div className="inline-flex items-center px-6 py-3 bg-white rounded-2xl shadow-lg border border-gray-light">
-          <div className="flex items-center space-x-2 text-gray-dark">
-            <span className="text-2xl">⚡</span>
-            <span className="font-semibold">Result:</span>
-            <span className="text-heliotrope font-bold">
-              2.5 hours saved weekly
-            </span>
-            <span>•</span>
-            <span className="text-jade font-bold">98% user retention</span>
-            <span>•</span>
-            <span className="text-gold font-bold">Zero manual work</span>
-          </div>
-        </div>
-      </div>
     </div>
   );
 

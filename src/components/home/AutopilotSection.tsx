@@ -13,8 +13,14 @@ export default function AutopilotSection() {
       description: "Never manually enter another expense.",
       details:
         "Every receipt and invoice email becomes a perfectly categorized financial entry—expenses, income, refunds, you name it. Complete with merchant details, amounts, and smart categorization that knows the difference between your coffee habit and that freelance payment.",
-      testimonial:
-        '💡 "I used to spend Sunday mornings sorting receipts. Now I spend them sleeping in!" - Sarah M.',
+      testimonial: (
+        <>
+          "I used to spend Sunday mornings sorting receipts. Now I spend them
+          sleeping in!"
+          <br />— Marshall M.
+        </>
+      ),
+      testimonialImage: "/public/marshall.webp",
       imagePlaceholder: "📧💰", // Placeholder for now
     },
     {
@@ -25,8 +31,13 @@ export default function AutopilotSection() {
       description: "Stop juggling 47 browser tabs.",
       details:
         "Compare hotel prices, flight options, and attractions instantly. Add trips to your calendar with one click.",
-      testimonial:
-        '✈️ "Saved $400 on my last trip just by seeing all options in one place!" - Mike T.',
+      testimonial: (
+        <>
+          "Saved $400 on my last trip just by seeing all options in one place!"
+          <br />— Lebron James
+        </>
+      ),
+      testimonialImage: "/public/lebron.webp",
       imagePlaceholder: "🌍✈️",
     },
     {
@@ -37,8 +48,13 @@ export default function AutopilotSection() {
       description: "Turn job hunting chaos into zen.",
       details:
         'Every application email gets organized, tracked, and followed up automatically. No more "Did I apply there already?" moments.',
-      testimonial:
-        '🎯 "Landed my dream job because I never missed a follow-up!" - Alex R.',
+      testimonial: (
+        <>
+          "Landed my dream job because I never missed a follow-up!"
+          <br />— Mariah C.
+        </>
+      ),
+      testimonialImage: "/public/mariah-carey.webp",
       imagePlaceholder: "💼📈",
     },
     {
@@ -49,8 +65,13 @@ export default function AutopilotSection() {
       description: "We're just getting started.",
       details:
         "We're working really hard to add more features to Actioneer; medical appointments, package deliveries, subscription renewals, event tickets, and so much more. Your inbox will become the ultimate command center for your entire digital life.",
-      testimonial:
-        "🚀 \"Can't wait to see what else they'll automate!\" - Early Beta User",
+      testimonial: (
+        <>
+          "Feels like magic! Can't wait to see what else they'll automate!"
+          <br />— Jackie C.
+        </>
+      ),
+      testimonialImage: "/public/jackie.jpg",
       imagePlaceholder: "✨🔮",
     },
   ];
@@ -137,11 +158,11 @@ export default function AutopilotSection() {
           {/* Right side - Content display (spans 2 columns) */}
           <div className="lg:col-span-3">
             <div
-              className={`card-playful bg-${activeFeature.color}/10 border-${activeFeature.color}/20 min-h-[500px] flex flex-col`}
+              className={`card-playful bg-${activeFeature.color}/10 border-${activeFeature.color}/20 min-h-[40rem] flex flex-col`}
             >
               {/* Image placeholder */}
               <div
-                className={`w-full h-48 bg-${activeFeature.color}/20 rounded-2xl mb-6 flex items-center justify-center text-6xl flex-shrink-0`}
+                className={`w-full h-64 bg-${activeFeature.color}/20 rounded-2xl mb-6 flex items-center justify-center text-6xl flex-shrink-0`}
               >
                 {activeFeature.imagePlaceholder}
               </div>
@@ -157,8 +178,13 @@ export default function AutopilotSection() {
                   </strong>{" "}
                   {activeFeature.details}
                 </p>
-                <div className="text-sm text-gray bg-white/50 rounded-lg p-3 mt-auto">
-                  {activeFeature.testimonial}
+                <div className="text-sm text-gray bg-white/50 rounded-lg p-3 mt-auto flex items-center justify-between gap-4">
+                  <p>{activeFeature.testimonial}</p>
+                  <img
+                    src={activeFeature.testimonialImage}
+                    alt={activeFeature.title}
+                    className="w-12 h-12 rounded-full object-cover"
+                  />
                 </div>
               </div>
             </div>

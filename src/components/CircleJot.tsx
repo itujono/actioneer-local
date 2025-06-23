@@ -1,13 +1,14 @@
 interface CircleJotProps {
   color?: string;
+  className?: string;
 }
 
-export default function CircleJot({ color }: CircleJotProps) {
+export default function CircleJot({ color, className }: CircleJotProps) {
   return (
     <svg
       className={`absolute -top-2 left-24 w-36 h-16 stroke-[6px] ${
         color || "stroke-jade"
-      }`}
+      } ${className}`}
       viewBox="0 0 270.01 97.06"
       fill="none"
       xmlns="http://www.w3.org/2000/svg"

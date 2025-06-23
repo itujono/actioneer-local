@@ -1,13 +1,9 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
-// Helper function to render text with clickable links
 const renderAnswerWithLinks = (text: string) => {
-  // Regular expression to match URLs
   const urlRegex = /(https?:\/\/[^\s]+)/g;
-
   const parts = text.split(urlRegex);
-
   return parts.map((part, index) => {
     if (urlRegex.test(part)) {
       return (
@@ -86,7 +82,7 @@ export default function FAQSection() {
         <h2 className="text-4xl font-bold text-heliotrope mb-6">
           Frequently Asked Questions
         </h2>
-        <p className="text-xl text-white max-w-3xl mx-auto">
+        <p className="text-xl max-w-3xl mx-auto">
           Everything you need to know about Actioneer. Can't find the answer
           you're looking for? Drop us a line and we'll get back to you faster
           than you can say "email automation"!
