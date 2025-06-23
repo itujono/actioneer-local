@@ -26,7 +26,7 @@ export default function HowToInstallSection() {
               href="https://actioneer.online/dashboard"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-heliotrope hover:text-heliotrope/80 font-semibold underline break-all"
+              className="text-sandy hover:text-sandy/80 font-semibold underline break-all"
             >
               https://actioneer.online/dashboard
             </a>{" "}
@@ -45,7 +45,7 @@ export default function HowToInstallSection() {
               href="https://workspace.google.com/marketplace"
               target="_blank"
               rel="noopener noreferrer"
-              className="text-jade hover:text-jade/80 font-semibold underline"
+              className="text-lime hover:text-lime/80 font-semibold underline"
             >
               Gmail add-on
             </a>{" "}
@@ -59,9 +59,8 @@ export default function HowToInstallSection() {
             You're All Set!
           </h3>
           <p className="text-white text-base sm:text-lg mb-4 sm:mb-6 leading-relaxed">
-            Now grab your <strong className="text-lavender">apple juice</strong>
-            , start that Netflix binge, and watch your emails organize
-            themselves.
+            Now grab your <strong className="text-gold">apple juice</strong>,
+            start that Netflix binge, and watch your emails organize themselves.
             <span className="text-xl sm:text-2xl ml-2">🍎📺✨</span>
           </p>
         </section>

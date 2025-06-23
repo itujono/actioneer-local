@@ -8,6 +8,7 @@ import HowToInstallSection from "../components/home/HowToInstallSection";
 import AutopilotSection from "../components/home/AutopilotSection";
 import CTASection from "../components/home/CTASection";
 import Fling from "../components/Fling";
+import Spiral from "../components/Spiral";
 
 export const indexRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -22,8 +23,9 @@ function Index() {
         {/* Hero Section */}
         <div className="relative overflow-hidden bg-heliotrope">
           <Navbar />
-          <div className="relative px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
-            <div className="mx-auto max-w-4xl text-center">
+          <div className="px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
+            <div className="relative mx-auto max-w-4xl text-center">
+              <Spiral className="absolute -top-44 sm:top-20 -left-1/3 w-1/3 h-1/3 z-0 text-lime" />
               <div className="flex justify-center mb-4 sm:mb-6">
                 <div className="inline-flex items-center px-3 py-2 sm:px-4 sm:py-2 bg-white/20 backdrop-blur-sm rounded-full text-white font-medium text-sm sm:text-base">
                   <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-wiggle" />

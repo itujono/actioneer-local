@@ -1,6 +1,5 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
-import Fling from "../Fling";
 
 const renderAnswerWithLinks = (text: string) => {
   const urlRegex = /(https?:\/\/[^\s]+)/g;
