@@ -1,8 +1,14 @@
+import CircleJot from "../CircleJot";
+
 export default function HowItWorksSection() {
   return (
     <div className="mx-auto max-w-7xl px-6 lg:px-8">
       <div className="text-center mb-16">
-        <h2 className="text-4xl font-bold text-thunder mb-6">How it works</h2>
+        <div className="relative inline-block">
+          <h2 className="text-4xl font-bold text-thunder mb-6">How it works</h2>
+          {/* Circle jot SVG with dynamic color control */}
+          <CircleJot />
+        </div>
         <p className="text-xl text-gray max-w-3xl mx-auto">
           Three simple steps to transform your inbox from chaos to clarity. Set
           it up once, then sit back and watch the magic happen.
@@ -10,14 +16,22 @@ export default function HowItWorksSection() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 lg:gap-12">
-        <HowItWorksItem title="Install & Forget" number={1}>
-          Add the Gmail add-on in 30 seconds. Our intelligent agent immediately
-          starts
+        <HowItWorksItem title="Sign In & Start" number={1}>
+          Simply visit{" "}
+          <a
+            href="https://actioneer.online/dashboard"
+            target="_blank"
+            rel="noopener noreferrer"
+            className="text-heliotrope font-semibold hover:text-heliotrope/80 underline"
+          >
+            https://actioneer.online/dashboard
+          </a>{" "}
+          and sign in with Google. Our intelligent agent immediately starts
           <strong className="text-heliotrope">
             {" "}
             monitoring your incoming emails
           </strong>{" "}
-          - no setup, no configuration, no headaches.
+          - no installation, no setup, no configuration, no headaches.
         </HowItWorksItem>
         <HowItWorksItem title="Agent Takes Over" number={2}>
           Like having a super-smart assistant working 24/7. In every incoming

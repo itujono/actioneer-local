@@ -1,4 +1,4 @@
-import { createRoute } from "@tanstack/react-router";
+import { createRoute, Link } from "@tanstack/react-router";
 import { rootRoute } from "./root";
 import { Sparkles, Clock, Heart } from "lucide-react";
 import FAQSection from "../components/home/FaqSection";
@@ -15,7 +15,7 @@ export const indexRoute = createRoute({
 
 function Index() {
   return (
-    <div className="bg-concrete/10">
+    <div className="bg-concrete">
       <div className="relative overflow-hidden bg-heliotrope">
         <div className="absolute inset-0 overflow-hidden">
           <div className="absolute -top-40 -right-40 w-80 h-80 bg-lime opacity-20 rounded-full blob-animation"></div>
@@ -39,22 +39,25 @@ function Index() {
             </h1>
 
             <p className="text-xl sm:text-2xl text-white/90 mb-8 max-w-3xl mx-auto text-balance">
-              Stop drowning in receipts, travel bookings, and job applications.
+              Stop drowning in receipts, travel bookings, and job applications.{" "}
               <strong className="text-gold">
                 Actioneer transforms every email into instant, smart actions
               </strong>
-              while you focus on what actually matters.
+              —automatically, without setting up a thing.
             </p>
 
             <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
-              <a href="/auth" className="btn-primary text-lg px-8 py-4">
+              <Link
+                href="/auth"
+                className="btn-primary bg-daisy text-lg px-8 py-4"
+              >
                 <Clock className="w-5 h-5 mr-2 inline" />
                 Start in 30 seconds
-              </a>
-              <a href="#proof" className="btn-secondary text-lg px-8 py-4">
+              </Link>
+              <Link href="#proof" className="btn-secondary text-lg px-8 py-4">
                 <Heart className="w-5 h-5 mr-2 inline" />
                 See the magic
-              </a>
+              </Link>
             </div>
 
             <div className="flex flex-wrap justify-center gap-6 text-white/80 text-sm">
@@ -77,19 +80,19 @@ function Index() {
 
       <AutopilotSection />
 
-      <div id="proof" className="section-spacing bg-concrete/10">
+      <div id="proof" className="section-spacing">
         <HowItWorksSection />
       </div>
 
-      <div className="section-spacing bg-white">
+      <div className="section-spacing bg-bittersweet">
         <HowToInstallSection />
       </div>
 
-      <div className="section-spacing bg-white">
+      <div className="section-spacing bg-lavender">
         <FAQSection />
       </div>
 
-      <div className="bg-thunder text-white section-spacing">
+      <div className="bg-jade text-white section-spacing">
         <CTASection />
       </div>
     </div>

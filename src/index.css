@@ -19,12 +19,11 @@
 
 @layer components {
   .btn-primary {
-    @apply px-6 py-3 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transform hover:scale-105 transition-all duration-300 ease-out;
-    background: linear-gradient(135deg, #9d6bff 0%, #7c2df7 100%);
+    @apply px-6 py-3 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transform transition-all duration-300 ease-out bg-heliotrope;
   }
   
   .btn-secondary {
-    @apply px-6 py-3 bg-white text-heliotrope font-semibold rounded-2xl border-2 border-gray-light hover:border-heliotrope hover:bg-gray-light transform hover:scale-105 transition-all duration-300 ease-out;
+    @apply px-6 py-3 bg-white text-heliotrope font-semibold rounded-2xl border-2 border-gray-light hover:border-heliotrope hover:bg-gray-light transform transition-all duration-300 ease-out;
   }
   
   .card-playful {

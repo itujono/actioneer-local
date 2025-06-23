@@ -1,6 +1,31 @@
 import { useState } from "react";
 import { ChevronDown } from "lucide-react";
 
+// Helper function to render text with clickable links
+const renderAnswerWithLinks = (text: string) => {
+  // Regular expression to match URLs
+  const urlRegex = /(https?:\/\/[^\s]+)/g;
+
+  const parts = text.split(urlRegex);
+
+  return parts.map((part, index) => {
+    if (urlRegex.test(part)) {
+      return (
+        <a
+          key={index}
+          href={part}
+          target="_blank"
+          rel="noopener noreferrer"
+          className="text-heliotrope font-semibold hover:text-heliotrope/80 transition-colors duration-200 underline decoration-heliotrope/30 hover:decoration-heliotrope/60"
+        >
+          {part}
+        </a>
+      );
+    }
+    return part;
+  });
+};
+
 export default function FAQSection() {
   const [openItems, setOpenItems] = useState<string[]>([]);
 
@@ -27,13 +52,13 @@ export default function FAQSection() {
       id: "what-to-install",
       question: "What should I install?",
       answer:
-        "Just the Actioneer Gmail add-on from the Google Workspace Marketplace! It takes literally 30 seconds to install. No complex software, no browser extensions, no additional apps. Once installed, you'll see the Actioneer logo in your Gmail sidebar whenever you open relevant emails. That's it—you're all set!",
+        "Nothing at all to get started! You can begin using Actioneer immediately by signing in at https://actioneer.online/ with your Google account. Your emails are already being monitored and processed automatically. However, installing the optional Gmail add-on from the Google Workspace Marketplace gives you convenient access to smart actions directly in your inbox — like seeing expense details right when you open a receipt email, or travel comparisons when viewing booking confirmations.",
     },
     {
       id: "dashboard-access",
       question: "How do I access the dashboard?",
       answer:
-        'After installing the Gmail add-on, open any relevant email (receipt, travel booking, etc.) and click the Actioneer logo in your Gmail sidebar. Then click "View on Dashboard" and sign in with your Google account. You can also directly visit the dashboard anytime through your personalized link. Your dashboard is where all the magic happens—organized data, insights, and smart recommendations.',
+        'The easiest way is to go directly to https://actioneer.online/dashboard and sign in with your Google account. Alternatively, if you have the Gmail add-on installed, you can open any relevant email (receipt, travel booking, etc.) and click the Actioneer logo in your Gmail sidebar, then click "View on Dashboard." Your dashboard is where all the magic happens—organized data, insights, and smart recommendations.',
     },
     {
       id: "supported-categories",
@@ -58,10 +83,10 @@ export default function FAQSection() {
   return (
     <div className="mx-auto max-w-4xl px-6 lg:px-8">
       <div className="text-center mb-16">
-        <h2 className="text-4xl font-bold text-thunder mb-6">
+        <h2 className="text-4xl font-bold text-heliotrope mb-6">
           Frequently Asked Questions
         </h2>
-        <p className="text-xl text-gray max-w-3xl mx-auto">
+        <p className="text-xl text-white max-w-3xl mx-auto">
           Everything you need to know about Actioneer. Can't find the answer
           you're looking for? Drop us a line and we'll get back to you faster
           than you can say "email automation"!
@@ -88,7 +113,9 @@ export default function FAQSection() {
             </button>
             {openItems.includes(item.id) && (
               <div className="px-8 pb-6 pt-6">
-                <p className="text-gray-dark leading-relaxed">{item.answer}</p>
+                <p className="text-gray-dark leading-relaxed">
+                  {renderAnswerWithLinks(item.answer)}
+                </p>
               </div>
             )}
           </div>
