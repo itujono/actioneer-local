@@ -440,6 +440,23 @@ export function getCityCodeFromName(destination: string): string {
     melbourne: "MEL",
     toronto: "YYZ",
     vancouver: "YVR",
+    // Asian cities
+    jakarta: "CGK",
+    bangkok: "BKK",
+    "kuala lumpur": "KUL",
+    manila: "MNL",
+    seoul: "ICN",
+    "ho chi minh city": "SGN",
+    "new delhi": "DEL",
+    mumbai: "BOM",
+    istanbul: "IST",
+    // Additional major cities
+    shanghai: "PVG",
+    beijing: "PEK",
+    osaka: "KIX",
+    frankfurt: "FRA",
+    zurich: "ZUR",
+    vienna: "VIE",
   };
 
   const normalizedDestination = destination.toLowerCase();
@@ -473,6 +490,23 @@ export function getCoordinatesFromName(destination: string): {
       melbourne: { latitude: -37.8136, longitude: 144.9631 },
       toronto: { latitude: 43.6532, longitude: -79.3832 },
       vancouver: { latitude: 49.2827, longitude: -123.1207 },
+      // Asian cities
+      jakarta: { latitude: -6.2088, longitude: 106.8456 },
+      bangkok: { latitude: 13.7563, longitude: 100.5018 },
+      "kuala lumpur": { latitude: 3.139, longitude: 101.6869 },
+      manila: { latitude: 14.5995, longitude: 120.9842 },
+      seoul: { latitude: 37.5665, longitude: 126.978 },
+      "ho chi minh city": { latitude: 10.8231, longitude: 106.6297 },
+      "new delhi": { latitude: 28.6139, longitude: 77.209 },
+      mumbai: { latitude: 19.076, longitude: 72.8777 },
+      istanbul: { latitude: 41.0082, longitude: 28.9784 },
+      // Additional major cities
+      shanghai: { latitude: 31.2304, longitude: 121.4737 },
+      beijing: { latitude: 39.9042, longitude: 116.4074 },
+      osaka: { latitude: 34.6937, longitude: 135.5023 },
+      frankfurt: { latitude: 50.1109, longitude: 8.6821 },
+      zurich: { latitude: 47.3769, longitude: 8.5417 },
+      vienna: { latitude: 48.2082, longitude: 16.3738 },
     };
 
   const normalizedDestination = destination.toLowerCase();
@@ -484,12 +518,58 @@ export function getCoordinatesFromName(destination: string): {
   ); // Default to NYC
 }
 
-// Utility to get city code via Amadeus API with fallback
+// Utility to get city code via comprehensive airports database with Amadeus fallback
 export async function getCityCodeFromDestination(
   destination: string
 ): Promise<string> {
   try {
-    // Use Amadeus Airport & City Search to get city code
+    // First, try to find in comprehensive airports database (same as frontend)
+    console.log(`🔍 Searching airports database for: "${destination}"`);
+
+    const response = await fetch(
+      "https://raw.githubusercontent.com/lxndrblz/Airports/main/airports.csv",
+      { signal: AbortSignal.timeout(5000) }
+    );
+
+    if (response.ok) {
+      const csvData = await response.text();
+      const lines = csvData.split("\n");
+      const headers = lines[0].split(",");
+
+      // Search for city name or airport name matches
+      const searchTerm = destination.toLowerCase();
+
+      for (let i = 1; i < lines.length; i++) {
+        const values = lines[i].split(",");
+        const airport: Record<string, string> = {};
+        headers.forEach((header, index) => {
+          airport[header.replace(/"/g, "")] =
+            values[index]?.replace(/"/g, "") || "";
+        });
+
+        const municipality = airport["municipality"]?.toLowerCase() || "";
+        const airportName = airport["name"]?.toLowerCase() || "";
+        const iataCode = airport["iata_code"]?.toUpperCase();
+
+        // Match by city name or airport name
+        if (
+          iataCode &&
+          (municipality === searchTerm || airportName.includes(searchTerm))
+        ) {
+          console.log(
+            `✅ Found in airports DB: "${destination}" → "${iataCode}"`
+          );
+          return iataCode;
+        }
+      }
+    }
+  } catch (error) {
+    console.log("⚠️ Airports database search failed:", error);
+  }
+
+  try {
+    // Fallback to Amadeus API
+    console.log(`🔄 Trying Amadeus API for: "${destination}"`);
     const searchResponse = await callAmadeusAPI(
       "/v1/reference-data/locations",
       {
@@ -499,13 +579,17 @@ export async function getCityCodeFromDestination(
     );
 
     if (searchResponse.data && searchResponse.data.length > 0) {
+      console.log(
+        `✅ Found in Amadeus: "${destination}" → "${searchResponse.data[0].iataCode}"`
+      );
       return searchResponse.data[0].iataCode;
     }
   } catch (error) {
-    console.error("Error getting city code from Amadeus:", error);
+    console.error("⚠️ Amadeus API search failed:", error);
   }
 
-  // Fallback to local mapping
+  // Final fallback to local mapping
+  console.log(`🗺️ Using local mapping for: "${destination}"`);
   return getCityCodeFromName(destination);
 }
 

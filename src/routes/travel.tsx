@@ -76,12 +76,21 @@ function TravelDashboard() {
   const searchParams = travelRoute.useSearch();
   const navigate = useNavigate({ from: travelRoute.fullPath });
 
-  // Only set travel criteria if we have search params
+  // Sync travel criteria with search params
   const [travelCriteria, setTravelCriteria] = useState<TravelData>({
     destination: searchParams.destination || "",
     origin: searchParams.origin || "NYC",
     travelers: searchParams.travelers || 1,
   });
+
+  // Update travel criteria when search params change (e.g., when clicking a saved travel email)
+  useEffect(() => {
+    setTravelCriteria({
+      destination: searchParams.destination || "",
+      origin: searchParams.origin || "NYC",
+      travelers: searchParams.travelers || 1,
+    });
+  }, [searchParams.destination, searchParams.origin, searchParams.travelers]);
 
   // Check if we have a destination to show recommendations
   const hasDestination = Boolean(searchParams.destination);
@@ -225,7 +234,7 @@ function TravelDashboard() {
   });
 
   // Fetch saved travel data from database
-  const { data: savedTravels, isLoading: savedLoading } = useQuery({
+  const { data: savedTravels } = useQuery({
     queryKey: ["saved-travels", user?.id],
     queryFn: async () => {
       if (!user) throw new Error("User not authenticated");
@@ -241,25 +250,6 @@ function TravelDashboard() {
     },
     enabled: !!user,
   });
-
-  // Debug saved travels data and selection state
-  if (savedTravels) {
-    console.log(
-      "📊 Saved travels data:",
-      savedTravels.map((t) => ({
-        id: t.id,
-        email_id: t.email_id,
-        destination: t.destination,
-        created_at: t.created_at,
-        isSelected: searchParams.messageId === t.email_id && hasDestination,
-      }))
-    );
-    console.log("🎯 Current selection state:", {
-      messageId: searchParams.messageId,
-      hasDestination,
-      from: searchParams.from,
-    });
-  }
 
   if (authLoading) {
     return (
