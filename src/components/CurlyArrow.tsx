@@ -9,7 +9,7 @@ export default function CurlyArrow({ color, className }: CurlyArrowProps) {
       xmlns="http://www.w3.org/2000/svg"
       viewBox="0 0 98.25 232.1"
       fill="none"
-      className={`absolute top-0 -left-16 w-20 h-64 stroke-[6px] ${
+      className={`absolute top-0 -left-16 sm:-left-20 w-20 h-64 stroke-[6px] ${
         color || "stroke-thunder"
       } ${className}`}
     >

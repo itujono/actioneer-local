@@ -2,10 +2,13 @@ import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "../../supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "../../hooks/useAuth";
+import { useState } from "react";
+import { Menu, X } from "lucide-react";
 
 export default function Navbar() {
   const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   const handleSignOut = async () => {
     try {
@@ -17,25 +20,26 @@ export default function Navbar() {
     }
   };
 
+  const toggleMobileMenu = () => {
+    setIsMobileMenuOpen(!isMobileMenuOpen);
+  };
+
   return (
-    <header className="bg-transparent">
+    <header className="bg-transparent relative z-50">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-        <div className="flex justify-between h-16">
-          <div className="flex">
-            <div className="flex-shrink-0 flex items-center">
-              <Link to="/" className="flex items-center">
-                <img
-                  src="/logo.png"
-                  alt="Actioneer"
-                  className="h-8 w-8 text-heliotrope"
-                />
-                <span className="ml-2 text-xl font-bold text-white">
-                  Actioneer
-                </span>
-              </Link>
-            </div>
-          </div>
+        {/* Desktop Navigation */}
+        <div className="flex justify-between items-center h-16">
           <div className="flex items-center">
+            <Link to="/" className="flex items-center">
+              <img src="/logo.png" alt="Actioneer" className="h-8 w-8" />
+              <span className="ml-2 text-xl font-bold text-white">
+                Actioneer
+              </span>
+            </Link>
+          </div>
+
+          {/* Desktop menu */}
+          <div className="hidden md:flex items-center space-x-4">
             {isAuthenticated ? (
               <>
                 <Link
@@ -47,7 +51,7 @@ export default function Navbar() {
                 <button
                   type="button"
                   onClick={handleSignOut}
-                  className="ml-4 inline-flex items-center px-4 py-2 border border-concrete text-sm font-medium rounded-md text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-heliotrope transition-colors duration-200"
+                  className="inline-flex items-center px-4 py-2 border border-concrete text-sm font-medium rounded-md text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-heliotrope transition-colors duration-200"
                 >
                   Sign out
                 </button>
@@ -61,7 +65,58 @@ export default function Navbar() {
               </Link>
             )}
           </div>
+
+          {/* Mobile menu button */}
+          <div className="md:hidden">
+            <button
+              onClick={toggleMobileMenu}
+              className="inline-flex items-center justify-center p-2 rounded-md text-white hover:text-white/80 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white transition-colors duration-200"
+            >
+              <span className="sr-only">Open main menu</span>
+              {isMobileMenuOpen ? (
+                <X className="h-6 w-6" />
+              ) : (
+                <Menu className="h-6 w-6" />
+              )}
+            </button>
+          </div>
         </div>
+
+        {/* Mobile menu */}
+        {isMobileMenuOpen && (
+          <div className="md:hidden">
+            <div className="px-2 pt-2 pb-3 space-y-1 bg-white/95 backdrop-blur-sm rounded-lg mt-2 shadow-lg border border-white/20">
+              {isAuthenticated ? (
+                <>
+                  <Link
+                    to="/dashboard"
+                    className="block px-3 py-2 rounded-md text-base font-medium text-heliotrope hover:text-heliotrope/80 hover:bg-heliotrope/10 transition-colors duration-200"
+                    onClick={() => setIsMobileMenuOpen(false)}
+                  >
+                    Dashboard
+                  </Link>
+                  <button
+                    onClick={() => {
+                      handleSignOut();
+                      setIsMobileMenuOpen(false);
+                    }}
+                    className="block w-full text-left px-3 py-2 rounded-md text-base font-medium text-thunder hover:text-thunder/80 hover:bg-gray/10 transition-colors duration-200"
+                  >
+                    Sign out
+                  </button>
+                </>
+              ) : (
+                <Link
+                  to="/auth"
+                  className="block px-3 py-2 rounded-md text-base font-medium text-white bg-heliotrope hover:bg-heliotrope/90 transition-colors duration-200 text-center"
+                  onClick={() => setIsMobileMenuOpen(false)}
+                >
+                  Sign in with Google
+                </Link>
+              )}
+            </div>
+          </div>
+        )}
       </div>
     </header>
   );

@@ -21,24 +21,24 @@ function Index() {
         {/* Hero Section */}
         <div className="relative overflow-hidden bg-heliotrope">
           <Navbar />
-          <div className="relative px-6 py-16 sm:py-20 lg:px-8">
+          <div className="relative px-4 py-12 sm:px-6 sm:py-16 lg:px-8 lg:py-20">
             <div className="mx-auto max-w-4xl text-center">
-              <div className="flex justify-center mb-6">
-                <div className="inline-flex items-center px-4 py-2 bg-white/20 backdrop-blur-sm rounded-full text-white font-medium">
-                  <Sparkles className="w-4 h-4 mr-2 animate-wiggle" />
+              <div className="flex justify-center mb-4 sm:mb-6">
+                <div className="inline-flex items-center px-3 py-2 sm:px-4 sm:py-2 bg-white/20 backdrop-blur-sm rounded-full text-white font-medium text-sm sm:text-base">
+                  <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-wiggle" />
                   Install once, forget it
-                  <Sparkles className="w-4 h-4 ml-2 animate-wiggle" />
+                  <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 ml-2 animate-wiggle" />
                 </div>
               </div>
 
-              <h1 className="text-4xl sm:text-5xl lg:text-6xl font-bold text-white mb-6 text-balance">
+              <h1 className="text-3xl sm:text-4xl md:text-5xl lg:text-6xl font-bold text-white mb-4 sm:mb-6 text-balance leading-tight">
                 Your emails work for you,
                 <span className="block text-lime">
                   not the other way around
                 </span>
               </h1>
 
-              <p className="text-xl sm:text-2xl text-white/90 mb-8 max-w-3xl mx-auto text-balance">
+              <p className="text-lg sm:text-xl lg:text-2xl text-white/90 mb-6 sm:mb-8 max-w-3xl mx-auto text-balance px-2">
                 Stop drowning in receipts, travel bookings, and job
                 applications.{" "}
                 <strong className="text-gold">
@@ -47,21 +47,24 @@ function Index() {
                 —automatically, without setting up a thing.
               </p>
 
-              <div className="flex flex-col sm:flex-row gap-4 justify-center items-center mb-8">
+              <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-6 sm:mb-8 px-4">
                 <Link
                   href="/auth"
-                  className="btn-primary bg-daisy text-lg px-8 py-4"
+                  className="w-full sm:w-auto btn-primary bg-daisy text-lg px-6 sm:px-8 py-3 sm:py-4 text-center"
                 >
-                  <Clock className="w-5 h-5 mr-2 inline" />
+                  <Clock className="w-4 h-4 sm:w-5 sm:h-5 mr-2 inline" />
                   Start in 30 seconds
                 </Link>
-                <Link href="#proof" className="btn-secondary text-lg px-8 py-4">
-                  <Heart className="w-5 h-5 mr-2 inline" />
+                <Link
+                  href="#proof"
+                  className="w-full sm:w-auto btn-secondary text-lg px-6 sm:px-8 py-3 sm:py-4 text-center"
+                >
+                  <Heart className="w-4 h-4 sm:w-5 sm:h-5 mr-2 inline" />
                   See the magic
                 </Link>
               </div>
 
-              <div className="flex flex-wrap justify-center gap-6 text-white/80 text-sm">
+              <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-white/80 text-sm px-4">
                 <div className="flex items-center">
                   <div className="w-2 h-2 bg-jade rounded-full mr-2"></div>
                   No monthly fees

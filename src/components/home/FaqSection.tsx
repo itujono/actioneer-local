@@ -77,39 +77,39 @@ export default function FAQSection() {
   ];
 
   return (
-    <div className="mx-auto max-w-4xl px-6 lg:px-8">
-      <div className="text-center mb-16">
-        <h2 className="text-4xl font-bold text-heliotrope mb-6">
+    <div className="mx-auto max-w-4xl px-4 sm:px-6 lg:px-8">
+      <div className="text-center mb-12 sm:mb-16">
+        <h2 className="text-3xl sm:text-4xl font-bold text-heliotrope mb-4 sm:mb-6">
           Frequently Asked Questions
         </h2>
-        <p className="text-xl max-w-3xl mx-auto">
+        <p className="text-lg sm:text-xl max-w-3xl mx-auto px-2">
           Everything you need to know about Actioneer. Can't find the answer
           you're looking for? Drop us a line and we'll get back to you faster
           than you can say "email automation"!
         </p>
       </div>
-      <div className="space-y-4">
+      <div className="space-y-3 sm:space-y-4">
         {faqItems.map((item) => (
           <div
             key={item.id}
-            className="border border-gray-light rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow duration-200"
+            className="border border-gray-light rounded-xl sm:rounded-2xl overflow-hidden bg-white shadow-sm hover:shadow-md transition-shadow duration-200"
           >
             <button
               onClick={() => toggleItem(item.id)}
-              className="w-full px-8 py-6 text-left flex items-center justify-between hover:bg-concrete/50 transition-colors duration-200 group focus:ring-0 focus:outline-none"
+              className="w-full px-4 sm:px-8 py-4 sm:py-6 text-left flex items-center justify-between hover:bg-concrete/50 transition-colors duration-200 group focus:ring-0 focus:outline-none min-h-[60px] touch-manipulation"
             >
-              <h3 className="text-lg font-semibold text-thunder group-hover:text-heliotrope transition-colors duration-200">
+              <h3 className="text-base sm:text-lg font-semibold text-thunder group-hover:text-heliotrope transition-colors duration-200 pr-4">
                 {item.question}
               </h3>
               <ChevronDown
-                className={`w-5 h-5 text-gray transition-transform duration-300 group-hover:text-heliotrope ${
+                className={`w-5 h-5 sm:w-6 sm:h-6 text-gray transition-transform duration-300 group-hover:text-heliotrope flex-shrink-0 ${
                   openItems.includes(item.id) ? "rotate-180" : ""
                 }`}
               />
             </button>
             {openItems.includes(item.id) && (
-              <div className="px-8 pb-6 pt-6">
-                <p className="text-gray-dark leading-relaxed">
+              <div className="px-4 sm:px-8 pb-4 sm:pb-6 pt-2 sm:pt-4">
+                <p className="text-gray-dark leading-relaxed text-sm sm:text-base">
                   {renderAnswerWithLinks(item.answer)}
                 </p>
               </div>

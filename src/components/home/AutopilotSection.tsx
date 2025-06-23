@@ -80,110 +80,175 @@ export default function AutopilotSection() {
 
   return (
     <div className="bg-concrete/10">
-      <div className="mx-auto max-w-7xl px-6 lg:px-8 py-16 pb-4">
-        <div className="text-center mb-16">
-          <h2 className="text-4xl font-bold text-thunder mb-6">
+      <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8 py-12 sm:py-16 lg:py-20">
+        <div className="text-center mb-12 sm:mb-16">
+          <h2 className="text-3xl sm:text-4xl font-bold text-thunder mb-4 sm:mb-6">
             Your personal email autopilot
           </h2>
-          <p className="text-xl text-gray max-w-3xl mx-auto">
+          <p className="text-lg sm:text-xl text-gray max-w-3xl mx-auto px-2">
             While you sleep, eat, or binge-watch Netflix, Actioneer is busy
             turning your messy inbox into organized, actionable insights. It's
             like having a super-efficient assistant who never takes a day off.
           </p>
         </div>
 
-        <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
-          {/* Left side - Vertical tabs (spans 2 columns) */}
-          <div className="lg:col-span-2 space-y-4">
-            {features.map((feature) => {
-              const Icon = feature.icon;
-              const isActive = activeTab === feature.id;
+        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6 sm:gap-8">
+          {/* Mobile: Horizontal scroll tabs, Desktop: Vertical tabs */}
+          <div className="lg:col-span-2">
+            {/* Mobile horizontal tabs */}
+            <div className="lg:hidden overflow-x-auto scrollbar-hide mb-6">
+              <div className="flex space-x-4 pb-2 min-w-max">
+                {features.map((feature) => {
+                  const Icon = feature.icon;
+                  const isActive = activeTab === feature.id;
 
-              return (
-                <button
-                  key={feature.id}
-                  onClick={() => setActiveTab(feature.id)}
-                  className={`w-full text-left p-6 rounded-2xl border-2 transition-all duration-300 group ${
-                    isActive
-                      ? `bg-${feature.color}/20 border-${feature.color} shadow-lg`
-                      : "bg-white/50 border-gray-light hover:bg-white/80 hover:border-gray"
-                  }`}
-                >
-                  <div className="flex items-start space-x-4">
-                    {Icon && (
-                      <div
-                        className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${
-                          isActive
-                            ? `bg-${feature.color}`
-                            : "bg-gray-light group-hover:bg-gray"
-                        }`}
-                      >
-                        <Icon
-                          className={`h-6 w-6 ${
-                            isActive ? "text-white" : "text-gray-dark"
-                          }`}
-                        />
+                  return (
+                    <button
+                      key={feature.id}
+                      onClick={() => setActiveTab(feature.id)}
+                      className={`flex-shrink-0 p-4 rounded-xl border-2 transition-all duration-300 min-w-[200px] ${
+                        isActive
+                          ? `bg-${feature.color}/20 border-${feature.color} shadow-lg`
+                          : "bg-white/50 border-gray-light hover:bg-white/80 hover:border-gray"
+                      }`}
+                    >
+                      <div className="flex items-center space-x-3">
+                        {Icon && (
+                          <div
+                            className={`w-10 h-10 rounded-xl flex items-center justify-center transition-colors ${
+                              isActive ? `bg-${feature.color}` : "bg-gray-light"
+                            }`}
+                          >
+                            <Icon
+                              className={`h-5 w-5 ${
+                                isActive ? "text-white" : "text-gray-dark"
+                              }`}
+                            />
+                          </div>
+                        )}
+                        <div className="text-left">
+                          <h3
+                            className={`text-lg font-bold mb-1 ${
+                              isActive ? "text-thunder" : "text-gray-dark"
+                            }`}
+                          >
+                            {feature.title}
+                          </h3>
+                          <p
+                            className={`text-xs ${
+                              isActive ? "text-gray-dark" : "text-gray"
+                            }`}
+                          >
+                            <strong
+                              className={
+                                isActive
+                                  ? `text-${feature.color}`
+                                  : "text-gray-dark"
+                              }
+                            >
+                              {feature.description}
+                            </strong>
+                          </p>
+                        </div>
                       </div>
-                    )}
-                    <div className="flex-1">
-                      <h3
-                        className={`text-xl font-bold mb-2 ${
-                          isActive ? "text-thunder" : "text-gray-dark"
-                        }`}
-                      >
-                        {feature.title}
-                      </h3>
-                      <p
-                        className={`text-sm ${
-                          isActive ? "text-gray-dark" : "text-gray"
-                        }`}
-                      >
-                        <strong
-                          className={
+                    </button>
+                  );
+                })}
+              </div>
+            </div>
+
+            {/* Desktop vertical tabs */}
+            <div className="hidden lg:block space-y-4">
+              {features.map((feature) => {
+                const Icon = feature.icon;
+                const isActive = activeTab === feature.id;
+
+                return (
+                  <button
+                    key={feature.id}
+                    onClick={() => setActiveTab(feature.id)}
+                    className={`w-full text-left p-6 rounded-2xl border-2 transition-all duration-300 group ${
+                      isActive
+                        ? `bg-${feature.color}/20 border-${feature.color} shadow-lg`
+                        : "bg-white/50 border-gray-light hover:bg-white/80 hover:border-gray"
+                    }`}
+                  >
+                    <div className="flex items-start space-x-4">
+                      {Icon && (
+                        <div
+                          className={`w-12 h-12 rounded-2xl flex items-center justify-center transition-colors ${
                             isActive
-                              ? `text-${feature.color}`
-                              : "text-gray-dark"
-                          }
+                              ? `bg-${feature.color}`
+                              : "bg-gray-light group-hover:bg-gray"
+                          }`}
                         >
-                          {feature.description}
-                        </strong>
-                      </p>
+                          <Icon
+                            className={`h-6 w-6 ${
+                              isActive ? "text-white" : "text-gray-dark"
+                            }`}
+                          />
+                        </div>
+                      )}
+                      <div className="flex-1">
+                        <h3
+                          className={`text-xl font-bold mb-2 ${
+                            isActive ? "text-thunder" : "text-gray-dark"
+                          }`}
+                        >
+                          {feature.title}
+                        </h3>
+                        <p
+                          className={`text-sm ${
+                            isActive ? "text-gray-dark" : "text-gray"
+                          }`}
+                        >
+                          <strong
+                            className={
+                              isActive
+                                ? `text-${feature.color}`
+                                : "text-gray-dark"
+                            }
+                          >
+                            {feature.description}
+                          </strong>
+                        </p>
+                      </div>
                     </div>
-                  </div>
-                </button>
-              );
-            })}
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          {/* Right side - Content display (spans 2 columns) */}
+          {/* Content display */}
           <div className="lg:col-span-3">
             <div
-              className={`card-playful bg-${activeFeature.color}/10 border-${activeFeature.color}/20 min-h-[40rem] flex flex-col`}
+              className={`card-playful bg-${activeFeature.color}/10 border-${activeFeature.color}/20 min-h-[24rem] sm:min-h-[32rem] lg:min-h-[40rem] flex flex-col`}
             >
               {/* Image placeholder */}
               <div
-                className={`w-full h-64 bg-${activeFeature.color}/20 rounded-2xl mb-6 flex items-center justify-center text-6xl flex-shrink-0`}
+                className={`w-full h-40 sm:h-48 lg:h-64 bg-${activeFeature.color}/20 rounded-2xl mb-4 sm:mb-6 flex items-center justify-center text-4xl sm:text-5xl lg:text-6xl flex-shrink-0`}
               >
                 {activeFeature.imagePlaceholder}
               </div>
 
               {/* Content */}
-              <div className="space-y-4 flex-1 flex flex-col">
-                <h3 className="text-2xl font-bold text-thunder">
+              <div className="space-y-3 sm:space-y-4 flex-1 flex flex-col">
+                <h3 className="text-xl sm:text-2xl font-bold text-thunder">
                   {activeFeature.title}
                 </h3>
-                <p className="text-gray-dark text-lg flex-1">
+                <p className="text-gray-dark text-base sm:text-lg flex-1">
                   <strong className={`text-${activeFeature.color}`}>
                     {activeFeature.description}
                   </strong>{" "}
                   {activeFeature.details}
                 </p>
-                <div className="text-sm text-gray bg-white/50 rounded-lg p-3 mt-auto flex items-center justify-between gap-4">
-                  <p>{activeFeature.testimonial}</p>
+                <div className="text-sm text-gray bg-white/50 rounded-lg p-3 mt-auto flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+                  <p className="flex-1">{activeFeature.testimonial}</p>
                   <img
                     src={activeFeature.testimonialImage}
                     alt={activeFeature.title}
-                    className="w-12 h-12 rounded-full object-cover"
+                    className="w-10 h-10 sm:w-12 sm:h-12 rounded-full object-cover flex-shrink-0"
                   />
                 </div>
               </div>
