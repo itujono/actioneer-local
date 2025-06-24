@@ -33,7 +33,7 @@ const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
         "bg-heliotrope text-white hover:bg-heliotrope/90 focus:ring-heliotrope",
       secondary: "bg-gold text-white hover:bg-gold/90 focus:ring-gold",
       outline:
-        "border border-concrete bg-white text-black hover:bg-concrete focus:ring-heliotrope",
+        "border border-gray-light bg-white text-black hover:bg-concrete focus:ring-heliotrope",
       ghost: "text-black hover:bg-concrete focus:ring-heliotrope",
     };
 

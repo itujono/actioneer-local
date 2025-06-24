@@ -57,7 +57,7 @@ export function DraggableTableHeader({
         column.sortable && !column.fixed
           ? "cursor-pointer hover:bg-concrete"
           : ""
-      } ${isDragging ? "bg-blue-50 shadow-lg z-10" : ""} ${
+      } ${isDragging ? "bg-heliotrope/20 shadow-lg z-10" : ""} ${
         column.fixed ? "bg-concrete" : ""
       }`}
       onClick={handleHeaderClick}

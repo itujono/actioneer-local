@@ -22,7 +22,7 @@ export function CurrencyBreakdown({
   }
 
   return (
-    <div className="bg-white rounded-xl border border-heliotrope/30 p-6">
+    <div className="bg-white rounded-xl border-2 border-gray-light p-6 mt-8">
       <div className="flex items-center justify-between mb-6">
         <h3 className="text-lg font-semibold text-black">Currency Breakdown</h3>
         <span className="inline-flex items-center px-3 py-1 rounded-full text-xs font-medium bg-heliotrope/10 text-heliotrope">
@@ -36,7 +36,7 @@ export function CurrencyBreakdown({
           return (
             <div
               key={currency}
-              className="bg-concrete rounded-lg p-4 border border-heliotrope/30 hover:shadow-md transition-shadow"
+              className="bg-concrete/50 rounded-lg p-4 border border-gray-light hover:shadow-md transition-shadow"
             >
               <div className="flex items-center justify-between mb-3">
                 <div className="flex items-center space-x-2">

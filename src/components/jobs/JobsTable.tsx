@@ -30,7 +30,7 @@ export function JobsTable({
     return (
       <div className="overflow-hidden">
         <div className="py-12 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-blue-600"></div>
+          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-jade"></div>
           <p className="mt-2 text-sm text-thunder">Loading applications...</p>
         </div>
       </div>

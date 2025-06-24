@@ -27,7 +27,7 @@ export function JobsStats({ jobApplications, isLoading }: JobsStatsProps) {
             (app: JobApplication) => app.status.toLowerCase() === "next_step"
           ).length || 0
         }
-        icon={<AlertCircle className="h-6 w-6 text-bittersweet" />}
+        icon={<AlertCircle className="h-6 w-6 text-jade" />}
         isLoading={isLoading}
       />
       <JobStatsCard
@@ -37,7 +37,7 @@ export function JobsStats({ jobApplications, isLoading }: JobsStatsProps) {
             app.status.toLowerCase().includes("interview")
           ).length || 0
         }
-        icon={<AlertCircle className="h-6 w-6 text-bittersweet" />}
+        icon={<AlertCircle className="h-6 w-6 text-jade" />}
         isLoading={isLoading}
       />
       <JobStatsCard
@@ -47,26 +47,41 @@ export function JobsStats({ jobApplications, isLoading }: JobsStatsProps) {
             ["offer", "accepted"].includes(app.status.toLowerCase())
           ).length || 0
         }
-        icon={<CheckCircle className="h-6 w-6 text-bittersweet" />}
+        icon={<CheckCircle className="h-6 w-6 text-jade" />}
         isLoading={isLoading}
       />
     </div>
   );
 }
 
+type JobStatsTitle =
+  | "Total Applications"
+  | "Pending"
+  | "Next Step"
+  | "Interviews"
+  | "Success Rate";
+
 interface JobStatsCardProps {
-  title: string;
+  title: JobStatsTitle;
   value: number;
   icon: React.ReactNode;
   isLoading?: boolean;
 }
 
 function JobStatsCard({ title, value, icon, isLoading }: JobStatsCardProps) {
+  const iconColorMap: Record<JobStatsTitle, string> = {
+    "Total Applications": "text-bittersweet",
+    Pending: "text-bittersweet",
+    "Next Step": "text-jade",
+    Interviews: "text-jade",
+    "Success Rate": "text-jade",
+  };
+
   return (
     <div className="bg-white overflow-hidden rounded-md border-2 border-gray-light">
       <div className="p-5">
         <div className="flex items-center">
-          <div className="flex-shrink-0 [&>svg]:text-bittersweet">{icon}</div>
+          <div className={`flex-shrink-0 ${iconColorMap[title]}`}>{icon}</div>
           <div className="ml-5 w-0 flex-1">
             <dl>
               <dt className="text-sm font-medium text-thunder truncate">

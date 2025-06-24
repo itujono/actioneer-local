@@ -2,7 +2,7 @@ import { useState } from "react";
 import { X, Plus, Trash2, Edit, GripVertical } from "lucide-react";
 import { CustomFieldType } from "../supabase/types";
 import { useCustomFields } from "../hooks/useCustomFields";
-import { Select, Input } from "./ui";
+import { Select, Input, Button, Checkbox } from "./ui";
 
 interface CustomFieldsManagerProps {
   isOpen: boolean;
@@ -153,7 +153,7 @@ export function CustomFieldsManager({
 
             {isLoadingFields ? (
               <div className="text-center py-4">
-                <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+                <div className="inline-block animate-spin rounded-full h-6 w-6 border-b-2 border-jade"></div>
                 <p className="mt-2 text-sm text-thunder">Loading fields...</p>
               </div>
             ) : customFields.length === 0 ? (
@@ -209,13 +209,14 @@ export function CustomFieldsManager({
                 Add New Field
               </h3>
               {!showAddForm && (
-                <button
+                <Button
                   onClick={() => setShowAddForm(true)}
-                  className="inline-flex items-center px-3 py-2 border border-transparent text-sm font-medium rounded-md text-white bg-blue-600 hover:bg-blue-700"
+                  variant="primary"
+                  size="sm"
                 >
                   <Plus className="h-4 w-4 mr-2" />
                   Add Field
-                </button>
+                </Button>
               )}
             </div>
 
@@ -271,7 +272,7 @@ export function CustomFieldsManager({
                       }
                       placeholder="Option 1&#10;Option 2&#10;Option 3"
                       rows={3}
-                      className="w-full px-3 py-2 border border-concrete rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      className="w-full px-3 py-2 border border-concrete rounded-md focus:ring-jade focus:border-jade"
                     />
                   </div>
                 )}
@@ -338,44 +339,37 @@ export function CustomFieldsManager({
                   </div>
                 )}
 
-                <div className="flex items-center">
-                  <input
-                    type="checkbox"
-                    id="is_required"
-                    checked={newField.is_required}
-                    onChange={(e) =>
-                      setNewField((prev) => ({
-                        ...prev,
-                        is_required: e.target.checked,
-                      }))
-                    }
-                    className="h-4 w-4 text-blue-600 focus:ring-blue-500 border-concrete rounded"
-                  />
-                  <label
-                    htmlFor="is_required"
-                    className="ml-2 block text-sm text-thunder"
-                  >
-                    Required field
-                  </label>
-                </div>
+                <Checkbox
+                  id="is_required"
+                  label="Required field"
+                  checked={newField.is_required}
+                  onChange={(checked) =>
+                    setNewField((prev) => ({
+                      ...prev,
+                      is_required: checked,
+                    }))
+                  }
+                  variant="primary"
+                />
 
                 <div className="flex justify-end space-x-3">
-                  <button
+                  <Button
                     onClick={() => {
                       setShowAddForm(false);
                       setNewField(defaultNewField);
                     }}
-                    className="px-4 py-2 text-sm font-medium text-thunder bg-white border border-concrete rounded-md hover:bg-concrete"
+                    variant="outline"
+                    size="sm"
                   >
                     Cancel
-                  </button>
-                  <button
+                  </Button>
+                  <Button
                     onClick={handleAddField}
                     disabled={isCreating || !newField.field_label.trim()}
-                    className="px-4 py-2 text-sm font-medium text-white bg-blue-600 border border-transparent rounded-md hover:bg-blue-700 disabled:opacity-50"
+                    className="px-4 py-2 text-sm font-medium text-white"
                   >
                     {isCreating ? "Adding..." : "Add Field"}
-                  </button>
+                  </Button>
                 </div>
               </div>
             )}

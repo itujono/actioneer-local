@@ -73,7 +73,7 @@ export function TransactionsList({
     return (
       <div className="bg-white rounded-xl shadow-lg border border-heliotrope/30 p-12 mt-12">
         <div className="flex justify-center items-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
+          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-jade"></div>
           <span className="ml-4 text-lg text-thunder">
             Loading financial data...
           </span>

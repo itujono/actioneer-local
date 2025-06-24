@@ -32,7 +32,8 @@ export function JobsHeader({
         size="sm"
         title="Reset column order to default"
       >
-        <GripVertical className="h-4 w-4" />
+        <GripVertical className="h-4 w-4 mr-2" />
+        Reset column order
       </Button>
       <Button variant="primary" size="sm">
         <Plus className="h-4 w-4 mr-2" />

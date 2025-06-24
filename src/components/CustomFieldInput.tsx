@@ -1,6 +1,6 @@
 import React from "react";
 import { CustomFieldDefinition } from "../supabase/types";
-import { Input, Select } from "./ui";
+import { Input, Select, Checkbox } from "./ui";
 
 interface CustomFieldInputProps {
   field: CustomFieldDefinition;
@@ -116,25 +116,14 @@ export function CustomFieldInput({
       case "boolean":
         return (
           <div className="space-y-1">
-            <label className="block text-sm font-medium text-thunder">
-              {field.field_label}
-              {field.is_required && (
-                <span className="text-bittersweet ml-1">*</span>
-              )}
-            </label>
-            <label className="flex items-center space-x-2">
-              <input
-                type="checkbox"
-                checked={value === true}
-                onChange={(e) => handleChange(e.target.checked)}
-                disabled={disabled}
-                className="h-4 w-4 text-heliotrope focus:ring-heliotrope border-concrete rounded disabled:opacity-50"
-              />
-              <span className="text-sm text-thunder">
-                {value === true ? "Yes" : "No"}
-              </span>
-            </label>
-            {error && <p className="text-sm text-bittersweet">{error}</p>}
+            <Checkbox
+              label={`${field.field_label} (${value === true ? "Yes" : "No"})`}
+              checked={value === true}
+              onChange={(checked) => handleChange(checked)}
+              disabled={disabled}
+              required={field.is_required}
+              error={error}
+            />
           </div>
         );
 
