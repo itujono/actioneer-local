@@ -61,9 +61,9 @@ export function JobsTable({
     <>
       {/* Table */}
       <div className="overflow-hidden">
-        <div className="overflow-x-auto">
+        <div className="overflow-x-auto border-2 border-thunder">
           <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-            <table className="min-w-full divide-y divide-gray-200">
+            <table className="min-w-full divide-y divide-thunder">
               <thead className="bg-concrete">
                 <SortableContext
                   items={columnOrder.map((col) => col.id)}
@@ -100,7 +100,7 @@ export function JobsTable({
 
       {/* Pagination */}
       {filteredAndSortedApplications.totalCount > 0 && (
-        <div className="bg-white px-4 py-3 border-t border-concrete sm:px-6">
+        <div className="bg-white px-4 py-3 border-2 border-t-0 border-thunder sm:px-6">
           <div className="flex items-center justify-between">
             <div className="flex-1 flex justify-between sm:hidden">
               <Button

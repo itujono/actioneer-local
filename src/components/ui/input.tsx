@@ -93,8 +93,12 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     },
     ref
   ) => {
-    const baseClasses =
-      "w-full rounded-md border bg-white focus:outline-none focus:ring-2 focus:ring-heliotrope focus:border-heliotrope disabled:bg-concrete disabled:text-thunder disabled:cursor-not-allowed transition-colors placeholder-gray-500";
+    const baseClasses = cn(
+      "w-full rounded-none border-2 bg-white border-thunder",
+      "focus:outline-none focus:ring-0 focus:ring-heliotrope focus:border-heliotrope",
+      "disabled:bg-concrete disabled:text-thunder disabled:cursor-not-allowed",
+      "transition-colors placeholder-gray-500"
+    );
 
     const sizeClasses = {
       sm: "px-3 py-1.5 text-sm",
@@ -128,8 +132,10 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
 
         {/* Left icon */}
         {leftIcon && !leftAddon && (
-          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none">
-            <div className="text-concrete">{leftIcon}</div>
+          <div className="absolute inset-y-0 left-0 flex items-center pl-3 pointer-events-none group">
+            <div className="text-thunder group-focus:text-heliotrope">
+              {leftIcon}
+            </div>
           </div>
         )}
 
