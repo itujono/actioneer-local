@@ -1,6 +1,7 @@
 import React from "react";
 import { RefreshCw } from "lucide-react";
 import { Select, TabSelector } from "../ui";
+import { Button } from "../ui/button";
 import { SUPPORTED_CURRENCIES } from "../../utils/currency";
 
 interface FinanceControlsProps {
@@ -100,21 +101,18 @@ export function FinanceControls({
 
         {/* Currency Breakdown Toggle */}
         {uniqueCurrencies.length > 1 && (
-          <button
+          <Button
             onClick={() => setShowCurrencyBreakdown(!showCurrencyBreakdown)}
-            className={`px-3 py-1.5 text-sm font-medium rounded-md transition-all border ${
-              showCurrencyBreakdown
-                ? "bg-heliotrope/10 text-heliotrope border-heliotrope/20"
-                : "bg-white text-black border-concrete hover:bg-concrete"
-            }`}
+            variant={showCurrencyBreakdown ? "primary" : "outline"}
+            size="sm"
           >
             <RefreshCw
-              className={`h-4 w-4 inline mr-1 ${
+              className={`h-4 w-4 mr-1 ${
                 showCurrencyBreakdown ? "rotate-180" : ""
               } transition-transform`}
             />
             {uniqueCurrencies.length} Currencies
-          </button>
+          </Button>
         )}
       </div>
     </div>

@@ -15,9 +15,9 @@ import {
   JobsStats,
   JobsControls,
   JobsTable,
-  JobApplication,
-  SortConfig,
 } from "../components/jobs";
+import type { JobApplication, SortConfig } from "../components/jobs/types";
+import { Button } from "../components/ui/button";
 
 export const jobsRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -400,12 +400,16 @@ function JobsDashboard() {
                   <br />
                   Email: {user?.email || "Not authenticated"}
                 </div>
-                <button
-                  onClick={() => refetch()}
-                  className="mt-2 text-sm text-red-600 hover:text-red-800 underline"
-                >
-                  Try again
-                </button>
+                <div className="mt-3">
+                  <Button
+                    onClick={() => refetch()}
+                    variant="outline"
+                    size="sm"
+                    className="text-red-600 border-red-600 hover:bg-red-50"
+                  >
+                    Try again
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

@@ -4,6 +4,7 @@ import { TransactionCard } from "./TransactionCard";
 import { TransactionListItem } from "./TransactionListItem";
 import { formatDateLabel } from "./constants";
 import { formatCurrency, currencyManager } from "../../utils/currency";
+import { Button } from "../ui/button";
 
 interface TransactionsListProps {
   isLoading: boolean;
@@ -182,23 +183,22 @@ export function TransactionsList({
       {/* Show More Button */}
       {hasNextPage && (
         <div className="mt-8 flex justify-center">
-          <button
+          <Button
             onClick={onLoadMore}
             disabled={isFetchingNextPage}
-            className="inline-flex items-center px-6 py-3 border border-concrete rounded-lg text-sm font-medium text-black bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-blue-500 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+            variant="outline"
+            size="md"
+            loading={isFetchingNextPage}
           >
             {isFetchingNextPage ? (
-              <>
-                <Loader2 className="h-4 w-4 mr-2 animate-spin" />
-                Loading more...
-              </>
+              "Loading more..."
             ) : (
               <>
                 <ChevronDown className="h-4 w-4 mr-2" />
                 Show more transactions
               </>
             )}
-          </button>
+          </Button>
         </div>
       )}
     </div>

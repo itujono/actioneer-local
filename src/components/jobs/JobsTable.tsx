@@ -7,6 +7,7 @@ import {
 } from "@dnd-kit/sortable";
 import { DraggableTableHeader } from "../DraggableTableHeader";
 import { JobTableRow } from "./JobTableRow";
+import { Button } from "../ui/button";
 import type { JobsTableProps } from "./types";
 
 export function JobsTable({
@@ -102,20 +103,22 @@ export function JobsTable({
         <div className="bg-white px-4 py-3 border-t border-concrete sm:px-6">
           <div className="flex items-center justify-between">
             <div className="flex-1 flex justify-between sm:hidden">
-              <button
+              <Button
                 onClick={() => setCurrentPage(currentPage - 1)}
                 disabled={currentPage === 1}
-                className="relative inline-flex items-center px-4 py-2 border border-concrete text-sm font-medium rounded-md text-thunder bg-white hover:bg-concrete disabled:opacity-50 disabled:cursor-not-allowed"
+                variant="outline"
+                size="sm"
               >
                 Previous
-              </button>
-              <button
+              </Button>
+              <Button
                 onClick={() => setCurrentPage(currentPage + 1)}
                 disabled={currentPage === totalPages}
-                className="ml-3 relative inline-flex items-center px-4 py-2 border border-concrete text-sm font-medium rounded-md text-thunder bg-white hover:bg-concrete disabled:opacity-50 disabled:cursor-not-allowed"
+                variant="outline"
+                size="sm"
               >
                 Next
-              </button>
+              </Button>
             </div>
             <div className="hidden sm:flex-1 sm:flex sm:items-center sm:justify-between">
               <div>
@@ -135,13 +138,15 @@ export function JobsTable({
               </div>
               <div>
                 <nav className="relative z-0 inline-flex rounded-md shadow-sm -space-x-px">
-                  <button
+                  <Button
                     onClick={() => setCurrentPage(currentPage - 1)}
                     disabled={currentPage === 1}
-                    className="relative inline-flex items-center px-2 py-2 rounded-l-md border border-concrete bg-white text-sm font-medium text-thunder hover:bg-concrete disabled:opacity-50 disabled:cursor-not-allowed"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-r-none"
                   >
                     <ChevronLeft className="h-5 w-5" />
-                  </button>
+                  </Button>
 
                   {/* Page numbers */}
                   {Array.from({ length: totalPages }, (_, i) => i + 1)
@@ -161,31 +166,33 @@ export function JobsTable({
                       return (
                         <React.Fragment key={page}>
                           {showEllipsis && (
-                            <span className="relative inline-flex items-center px-4 py-2 border border-concrete bg-white text-sm font-medium text-thunder">
+                            <span className="relative inline-flex items-center px-4 py-2 border border-concrete bg-white text-sm font-medium text-thunder rounded-none">
                               ...
                             </span>
                           )}
-                          <button
+                          <Button
                             onClick={() => setCurrentPage(page)}
-                            className={`relative inline-flex items-center px-4 py-2 border text-sm font-medium ${
-                              page === currentPage
-                                ? "z-10 bg-blue-50 border-blue-500 text-blue-600"
-                                : "bg-white border-concrete text-thunder hover:bg-concrete"
-                            }`}
+                            variant={
+                              page === currentPage ? "primary" : "outline"
+                            }
+                            size="sm"
+                            className="rounded-none"
                           >
                             {page}
-                          </button>
+                          </Button>
                         </React.Fragment>
                       );
                     })}
 
-                  <button
+                  <Button
                     onClick={() => setCurrentPage(currentPage + 1)}
                     disabled={currentPage === totalPages}
-                    className="relative inline-flex items-center px-2 py-2 rounded-r-md border border-concrete bg-white text-sm font-medium text-thunder hover:bg-concrete disabled:opacity-50 disabled:cursor-not-allowed"
+                    variant="outline"
+                    size="sm"
+                    className="rounded-l-none"
                   >
                     <ChevronRight className="h-5 w-5" />
-                  </button>
+                  </Button>
                 </nav>
               </div>
             </div>

@@ -7,6 +7,7 @@ import {
   ExternalLink,
   Mail,
 } from "lucide-react";
+import { Button } from "../ui/button";
 import type { JobApplication } from "./types";
 
 // Helper function to get flag emoji from country code
@@ -178,13 +179,14 @@ export const GmailButton = ({
   emailId: string;
   application?: JobApplication;
 }) => (
-  <button
+  <Button
     onClick={() => openGmailUrl(emailId, application)}
-    className="inline-flex items-center px-3 py-1 border border-concrete shadow-sm text-xs font-medium rounded-md text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500"
+    variant="outline"
+    size="sm"
     title="Search for this email in Gmail"
   >
     <Mail className="h-3 w-3 mr-1" />
     Find in Gmail
     <ExternalLink className="h-3 w-3 ml-1" />
-  </button>
+  </Button>
 );

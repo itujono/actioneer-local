@@ -5,6 +5,7 @@ import { useState, useMemo, useEffect } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../supabase/client";
 import { currencyManager } from "../utils/currency";
+import { Button } from "../components/ui/button";
 import {
   FinanceHeader,
   FinanceControls,
@@ -410,15 +411,19 @@ function FinancialDashboard() {
                   <br />
                   Email: {user?.email || "Not authenticated"}
                 </div>
-                <button
-                  onClick={() => {
-                    refetchReceipts();
-                    refetchRevenue();
-                  }}
-                  className="mt-2 text-sm text-bittersweet hover:text-bittersweet underline"
-                >
-                  Try again
-                </button>
+                <div className="mt-3">
+                  <Button
+                    onClick={() => {
+                      refetchReceipts();
+                      refetchRevenue();
+                    }}
+                    variant="outline"
+                    size="sm"
+                    className="text-bittersweet border-bittersweet hover:bg-bittersweet/10"
+                  >
+                    Try again
+                  </Button>
+                </div>
               </div>
             </div>
           </div>

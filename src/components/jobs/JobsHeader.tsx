@@ -1,6 +1,7 @@
 import React from "react";
 import { Plus, Columns, GripVertical } from "lucide-react";
 import { PageTitle } from "../ui";
+import { Button } from "../ui/button";
 
 interface JobsHeaderProps {
   onShowCustomFieldsManager: () => void;
@@ -16,30 +17,27 @@ export function JobsHeader({
       title="Job Applications"
       description="Track and manage your job applications"
     >
-      <button
+      <Button
         onClick={onShowCustomFieldsManager}
-        type="button"
-        className="inline-flex items-center px-4 py-2 border border-concrete rounded-md shadow-sm text-sm font-medium text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bittersweet"
+        variant="outline"
+        size="sm"
         title="Manage custom columns"
       >
         <Columns className="h-4 w-4 mr-2" />
         Manage Custom Fields
-      </button>
-      <button
+      </Button>
+      <Button
         onClick={onResetColumnOrder}
-        type="button"
-        className="inline-flex items-center px-3 py-2 border border-concrete rounded-md shadow-sm text-sm font-medium text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bittersweet"
+        variant="outline"
+        size="sm"
         title="Reset column order to default"
       >
         <GripVertical className="h-4 w-4" />
-      </button>
-      <button
-        type="button"
-        className="inline-flex items-center px-4 py-2 border border-concrete rounded-md shadow-sm text-sm font-medium text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bittersweet"
-      >
+      </Button>
+      <Button variant="primary" size="sm">
         <Plus className="h-4 w-4 mr-2" />
         Add Application
-      </button>
+      </Button>
     </PageTitle>
   );
 }
