@@ -5,6 +5,7 @@ import { useState, useEffect } from "react";
 import { PlaneIcon } from "lucide-react";
 import { supabase } from "../supabase/client";
 import { useAuth } from "../hooks/useAuth";
+import { PageTitle } from "../components/ui";
 
 // Define search params schema for type safety and validation
 const travelSearchSchema = {
@@ -269,9 +270,8 @@ function TravelDashboard() {
   return (
     <div className="py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        {/* Header */}
         <div className="flex justify-between items-center">
-          <div>
+          <div className="flex-1">
             {/* Breadcrumb when viewing specific travel */}
             {hasDestination && searchParams.from === "dashboard" && (
               <nav className="flex mb-2" aria-label="Breadcrumb">
@@ -306,20 +306,22 @@ function TravelDashboard() {
               </nav>
             )}
 
-            <h1 className="text-2xl font-bold text-thunder">
-              {hasDestination
-                ? `Travel to ${travelCriteria.destination}`
-                : "Travel Dashboard"}
-            </h1>
-            <p className="mt-1 text-sm text-thunder">
-              {hasDestination
-                ? searchParams.from === "dashboard"
-                  ? "Refreshed recommendations from your email analysis"
-                  : "Comprehensive travel recommendations powered by AI"
-                : "Your travel email history and planning hub"}
-            </p>
+            <PageTitle
+              title={
+                hasDestination
+                  ? `Travel to ${travelCriteria.destination}`
+                  : "Travel Dashboard"
+              }
+              description={
+                hasDestination
+                  ? searchParams.from === "dashboard"
+                    ? "Refreshed recommendations from your email analysis"
+                    : "Comprehensive travel recommendations powered by AI"
+                  : "Your travel email history and planning hub"
+              }
+            />
           </div>
-          <div className="text-right">
+          <div className="text-right ml-4">
             <p className="text-sm text-thunder">Your location</p>
             <p className="text-lg font-medium text-thunder">
               📍 {(userLocation || defaultLocation).city},{" "}

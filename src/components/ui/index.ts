@@ -1,3 +1,4 @@
-export { Button, type ButtonProps } from "./button";
-export { Select, type SelectProps, type SelectOption } from "./select";
-export { TabSelector, type TabOption } from "./TabSelector";
+export { Button } from "./button";
+export { Select } from "./select";
+export { TabSelector } from "./TabSelector";
+export { PageTitle } from "./PageTitle";

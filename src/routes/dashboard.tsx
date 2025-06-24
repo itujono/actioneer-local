@@ -13,6 +13,7 @@ import { useAuth } from "../hooks/useAuth";
 import DashboardCard from "../components/dashboard/DashboardCard";
 import RecentActivityCard from "../components/dashboard/RecentActivityCard";
 import { formatDistanceToNow } from "date-fns";
+import { PageTitle } from "../components/ui";
 
 export const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -21,13 +22,18 @@ export const dashboardRoute = createRoute({
   notFoundComponent: () => (
     <div className="py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        <h1 className="text-2xl font-bold text-black">Are you lost?</h1>
-        <p className="text-sm text-black">
-          The page you are looking for does not exist.
-        </p>
-        <Link to="/" className="text-sm text-black">
-          Go back to the home page
-        </Link>
+        <PageTitle
+          title="Are you lost?"
+          description="The page you are looking for does not exist."
+        />
+        <div className="mt-4">
+          <Link
+            to="/"
+            className="text-sm text-heliotrope hover:text-heliotrope/80 underline"
+          >
+            Go back to the home page
+          </Link>
+        </div>
       </div>
     </div>
   ),
@@ -169,7 +175,7 @@ function Dashboard() {
   return (
     <div className="py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        <h1 className="text-2xl font-bold text-black">Dashboard</h1>
+        <PageTitle title="Dashboard" />
       </div>
 
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">

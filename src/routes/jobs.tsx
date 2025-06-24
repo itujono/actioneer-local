@@ -32,6 +32,7 @@ import {
 } from "@dnd-kit/sortable";
 import { useColumnOrder, ColumnConfig } from "../hooks/useColumnOrder";
 import { DraggableTableHeader } from "../components/DraggableTableHeader";
+import { PageTitle, Select } from "../components/ui";
 
 export const jobsRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -607,43 +608,35 @@ function JobsDashboard() {
   return (
     <div className="py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        {/* Header */}
-        <div className="md:flex md:items-center md:justify-between">
-          <div className="flex-1 min-w-0">
-            <h1 className="text-2xl font-bold leading-7 text-thunder sm:text-2xl sm:truncate">
-              Job Applications
-            </h1>
-            <p className="mt-1 text-sm text-thunder">
-              Track and manage your job applications
-            </p>
-          </div>
-          <div className="mt-4 flex md:mt-0 md:ml-4 space-x-3">
-            <button
-              onClick={() => setShowCustomFieldsManager(true)}
-              type="button"
-              className="inline-flex items-center px-4 py-2 border border-concrete rounded-md shadow-sm text-sm font-medium text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bittersweet"
-              title="Manage custom columns"
-            >
-              <Columns className="h-4 w-4 mr-2" />
-              Manage Custom Fields
-            </button>
-            <button
-              onClick={resetColumnOrder}
-              type="button"
-              className="inline-flex items-center px-3 py-2 border border-concrete rounded-md shadow-sm text-sm font-medium text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bittersweet"
-              title="Reset column order to default"
-            >
-              <GripVertical className="h-4 w-4" />
-            </button>
-            <button
-              type="button"
-              className="inline-flex items-center px-4 py-2 border border-concrete rounded-md shadow-sm text-sm font-medium text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bittersweet"
-            >
-              <Plus className="h-4 w-4 mr-2" />
-              Add Application
-            </button>
-          </div>
-        </div>
+        <PageTitle
+          title="Job Applications"
+          description="Track and manage your job applications"
+        >
+          <button
+            onClick={() => setShowCustomFieldsManager(true)}
+            type="button"
+            className="inline-flex items-center px-4 py-2 border border-concrete rounded-md shadow-sm text-sm font-medium text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bittersweet"
+            title="Manage custom columns"
+          >
+            <Columns className="h-4 w-4 mr-2" />
+            Manage Custom Fields
+          </button>
+          <button
+            onClick={resetColumnOrder}
+            type="button"
+            className="inline-flex items-center px-3 py-2 border border-concrete rounded-md shadow-sm text-sm font-medium text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bittersweet"
+            title="Reset column order to default"
+          >
+            <GripVertical className="h-4 w-4" />
+          </button>
+          <button
+            type="button"
+            className="inline-flex items-center px-4 py-2 border border-concrete rounded-md shadow-sm text-sm font-medium text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-bittersweet"
+          >
+            <Plus className="h-4 w-4 mr-2" />
+            Add Application
+          </button>
+        </PageTitle>
 
         {/* Stats Cards */}
         <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-5">
@@ -802,36 +795,38 @@ function JobsDashboard() {
               {/* Status Filter and Page Size */}
               <div className="flex items-center space-x-4">
                 <div className="flex items-center">
-                  <select
-                    className="block w-full pl-3 pr-10 py-2 text-base border border-concrete focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
+                  <Select
                     value={statusFilter}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                       setStatusFilter(e.target.value)
                     }
-                  >
-                    <option value="all">All Statuses</option>
-                    {uniqueStatuses.map((status: string) => (
-                      <option key={status} value={status}>
-                        {status.charAt(0).toUpperCase() + status.slice(1)}
-                      </option>
-                    ))}
-                  </select>
+                    options={[
+                      { value: "all", label: "All Statuses" },
+                      ...uniqueStatuses.map((status: string) => ({
+                        value: status,
+                        label: status.charAt(0).toUpperCase() + status.slice(1),
+                      })),
+                    ]}
+                    size="sm"
+                  />
                 </div>
 
                 <div className="flex items-center space-x-2">
                   <span className="text-sm text-thunder">Show:</span>
-                  <select
-                    className="block pl-3 pr-8 py-2 text-base border border-concrete focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md"
-                    value={pageSize}
+                  <Select
+                    value={pageSize.toString()}
                     onChange={(e: React.ChangeEvent<HTMLSelectElement>) =>
                       setPageSize(Number(e.target.value))
                     }
-                  >
-                    <option value={10}>10</option>
-                    <option value={20}>20</option>
-                    <option value={50}>50</option>
-                    <option value={100}>100</option>
-                  </select>
+                    options={[
+                      { value: "10", label: "10" },
+                      { value: "20", label: "20" },
+                      { value: "50", label: "50" },
+                      { value: "100", label: "100" },
+                    ]}
+                    size="sm"
+                    className="w-20"
+                  />
                 </div>
               </div>
             </div>

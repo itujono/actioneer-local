@@ -1,7 +1,8 @@
-import React, { useState } from "react";
+import { useState } from "react";
 import { X, Plus, Trash2, Edit, GripVertical } from "lucide-react";
-import { CustomFieldDefinition, CustomFieldType } from "../supabase/types";
+import { CustomFieldType } from "../supabase/types";
 import { useCustomFields } from "../hooks/useCustomFields";
+import { Select } from "./ui";
 
 interface CustomFieldsManagerProps {
   isOpen: boolean;
@@ -32,11 +33,13 @@ const defaultNewField: NewFieldForm = {
   is_required: false,
 };
 
-const fieldTypeOptions: {
+type FieldTypeOption = {
   value: CustomFieldType;
   label: string;
   description: string;
-}[] = [
+};
+
+const fieldTypeOptions: FieldTypeOption[] = [
   { value: "text", label: "Text", description: "Single line text input" },
   { value: "number", label: "Number", description: "Numeric value" },
   { value: "currency", label: "Currency", description: "Monetary amount" },
@@ -241,7 +244,7 @@ export function CustomFieldsManager({
                     <label className="block text-sm font-medium text-thunder mb-1">
                       Field Type *
                     </label>
-                    <select
+                    <Select
                       value={newField.field_type}
                       onChange={(e) =>
                         setNewField((prev) => ({
@@ -249,14 +252,11 @@ export function CustomFieldsManager({
                           field_type: e.target.value as CustomFieldType,
                         }))
                       }
-                      className="w-full px-3 py-2 border border-concrete rounded-md focus:ring-blue-500 focus:border-blue-500"
-                    >
-                      {fieldTypeOptions.map((option) => (
-                        <option key={option.value} value={option.value}>
-                          {option.label} - {option.description}
-                        </option>
-                      ))}
-                    </select>
+                      options={fieldTypeOptions.map((option) => ({
+                        value: option.value,
+                        label: `${option.label} - ${option.description}`,
+                      }))}
+                    />
                   </div>
                 </div>
 
