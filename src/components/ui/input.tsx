@@ -94,7 +94,7 @@ const Input = React.forwardRef<HTMLInputElement, InputProps>(
     ref
   ) => {
     const baseClasses = cn(
-      "w-full rounded-none border-2 bg-white border-thunder",
+      "w-full rounded-md border-2 bg-white border-gray-light",
       "focus:outline-none focus:ring-0 focus:ring-heliotrope focus:border-heliotrope",
       "disabled:bg-concrete disabled:text-thunder disabled:cursor-not-allowed",
       "transition-colors placeholder-gray-500"

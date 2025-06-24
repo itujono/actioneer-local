@@ -213,7 +213,7 @@ function Dashboard() {
             }
             description="Total spending tracked"
             icon={<ReceiptIcon className="h-6 w-6" />}
-            iconBackground="bg-indigo-500"
+            iconBackground="bg-bittersweet/10"
             link="/receipts"
           />
 
@@ -226,7 +226,7 @@ function Dashboard() {
             }
             description="Upcoming trips"
             icon={<PlaneIcon className="h-6 w-6" />}
-            iconBackground="bg-teal-500"
+            iconBackground="bg-jade/10"
             link="/travel"
           />
 
@@ -239,14 +239,14 @@ function Dashboard() {
             }
             description="Active applications"
             icon={<BriefcaseIcon className="h-6 w-6" />}
-            iconBackground="bg-amber-500"
+            iconBackground="bg-heliotrope/10"
             link="/jobs"
           />
         </div>
 
         {/* Recent Activity */}
         <h2 className="text-lg font-medium text-black mt-8">Recent Activity</h2>
-        <div className="mt-2 overflow-hidden shadow ring-1 ring-black ring-opacity-5 sm:rounded-lg">
+        <div className="mt-2 overflow-hidden border-2 border-gray-light sm:rounded-lg">
           <div className="bg-white">
             {emailsLoading ? (
               <div className="py-12 text-center text-concrete">
@@ -277,12 +277,12 @@ function Dashboard() {
         {/* Upcoming Events and Pending Actions */}
         <div className="mt-8 grid grid-cols-1 gap-5 lg:grid-cols-2">
           {/* Upcoming Events */}
-          <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="bg-white overflow-hidden rounded-lg border-2 border-gray-light">
             <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
               <h3 className="text-lg font-medium text-black">
                 Upcoming Events
               </h3>
-              <Calendar className="h-5 w-5 text-concrete" />
+              <Calendar className="h-5 w-5 text-gray-light" />
             </div>
             <div className="border-t border-concrete px-4 py-5 sm:p-6">
               {travelLoading ? (
@@ -321,7 +321,7 @@ function Dashboard() {
                   ))}
                 </ul>
               ) : (
-                <div className="py-8 text-center text-concrete">
+                <div className="py-8 text-center text-thunder">
                   No upcoming events
                 </div>
               )}
@@ -329,12 +329,12 @@ function Dashboard() {
           </div>
 
           {/* Recent Expenses */}
-          <div className="bg-white overflow-hidden shadow rounded-lg">
+          <div className="bg-white overflow-hidden rounded-lg border-2 border-gray-light">
             <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
               <h3 className="text-lg font-medium text-black">
                 Recent Expenses
               </h3>
-              <DollarSign className="h-5 w-5 text-concrete" />
+              <DollarSign className="h-5 w-5 text-gray-light" />
             </div>
             <div className="border-t border-concrete px-4 py-5 sm:p-6">
               {receiptsLoading ? (

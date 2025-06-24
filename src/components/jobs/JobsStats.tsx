@@ -63,7 +63,7 @@ interface JobStatsCardProps {
 
 function JobStatsCard({ title, value, icon, isLoading }: JobStatsCardProps) {
   return (
-    <div className="bg-white overflow-hidden shadow rounded-none border-2 border-thunder">
+    <div className="bg-white overflow-hidden rounded-md border-2 border-gray-light">
       <div className="p-5">
         <div className="flex items-center">
           <div className="flex-shrink-0 [&>svg]:text-bittersweet">{icon}</div>

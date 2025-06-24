@@ -37,7 +37,7 @@ export function TravelCard({ item, type, userLocation }: TravelCardProps) {
   };
 
   return (
-    <div className="border border-concrete rounded-lg p-4 hover:shadow-md transition-shadow">
+    <div className="rounded-md p-4 hover:shadow-md transition-shadow border border-thunder">
       <div className="mb-3">
         {type === "flight" && (
           <div>
@@ -73,7 +73,7 @@ export function TravelCard({ item, type, userLocation }: TravelCardProps) {
       </div>
 
       <div className="flex items-center justify-between">
-        <div className="text-lg font-bold text-jade">
+        <div className="text-lg font-bold text-thunder">
           {getBestPrice()}
           {type === "hotel" && "/night"}
         </div>

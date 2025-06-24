@@ -10,8 +10,8 @@ export function TravelSection({
   userLocation,
 }: TravelSectionProps) {
   return (
-    <div className="bg-white rounded-lg shadow">
-      <div className="px-6 py-4 border-b border-concrete">
+    <div className="bg-white rounded-md border-2 border-thunder">
+      <div className="px-6 py-4 border-b border-thunder">
         <h3 className="text-lg font-medium text-thunder">{title}</h3>
         <p className="text-sm text-thunder">{subtitle}</p>
       </div>

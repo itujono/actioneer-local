@@ -13,8 +13,8 @@ export function JobsControls({
   setPageSize,
 }: JobsControlsProps) {
   return (
-    <div className="mt-8 bg-white shadow rounded-none border-2 border-thunder">
-      <div className="p-6 border-b border-concrete">
+    <div className="mt-8 bg-white rounded-md border-2 border-gray-light">
+      <div className="p-6 border-gray-light">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
           {/* Search */}
           <div className="flex-1 max-w-lg">

@@ -20,7 +20,7 @@ export default function DashboardCard({
   link,
 }: DashboardCardProps) {
   return (
-    <div className="bg-white overflow-hidden shadow rounded-lg border border-heliotrope">
+    <div className="bg-white overflow-hidden rounded-lg border-2 border-gray-light">
       <div className="p-5">
         <div className="flex items-center">
           <div className={`flex-shrink-0 rounded-md p-3 ${iconBackground}`}>
@@ -40,11 +40,11 @@ export default function DashboardCard({
           </div>
         </div>
       </div>
-      <div className="bg-heliotrope px-5 py-3">
+      <div className="bg-concrete px-5 py-3">
         <div className="text-sm">
           <Link
             to={link}
-            className="font-medium text-white hover:text-white/80 flex items-center"
+            className="font-medium text-thunder hover:text-thunder flex items-center"
           >
             <span className="flex-1">{description}</span>
             <ChevronRight className="h-5 w-5" />

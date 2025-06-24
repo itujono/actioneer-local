@@ -19,12 +19,12 @@ export function TravelEmailCard({
 
   const getTravelTypeColor = (type: string) => {
     const colors = {
-      flight: "bg-blue-50 text-blue-600",
-      hotel: "bg-purple-50 text-purple-600",
-      attraction: "bg-green-50 text-green-600",
-      general: "bg-concrete text-thunder",
+      flight: "bg-gold/20 text-thunder",
+      hotel: "bg-jade/20 text-jade",
+      attraction: "bg-gold/20 text-gold",
+      general: "bg-lime/20 text-thunder",
     };
-    return colors[type as keyof typeof colors] || "bg-concrete text-thunder";
+    return colors[type as keyof typeof colors] || "bg-lime text-thunder";
   };
 
   const formatDateRange = () => {
@@ -116,7 +116,7 @@ export function TravelEmailCard({
 
             {/* Additional context info */}
             {getAdditionalInfo() && (
-              <p className="text-xs text-concrete truncate">
+              <p className="text-xs text-thunder truncate">
                 {getAdditionalInfo()}
               </p>
             )}
@@ -124,7 +124,7 @@ export function TravelEmailCard({
         </div>
 
         <div className="flex flex-col items-end text-right ml-4">
-          <div className="text-xs text-concrete mb-1">Analyzed</div>
+          <div className="text-xs text-bittersweet mb-1">Analyzed</div>
           <div className="text-sm text-thunder">
             {new Date(travel.created_at).toLocaleDateString()}
           </div>

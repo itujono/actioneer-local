@@ -76,7 +76,7 @@ export function DraggableTableHeader({
               className="opacity-0 group-hover:opacity-100 transition-opacity cursor-grab active:cursor-grabbing p-1 -ml-1 hover:bg-concrete rounded"
               onClick={(e) => e.stopPropagation()} // Prevent sort when clicking drag handle
             >
-              <GripVertical className="h-3 w-3 text-concrete" />
+              <GripVertical className="h-3 w-3 text-thunder" />
             </div>
           )}
         </div>

@@ -438,7 +438,7 @@ function JobsDashboard() {
           setPageSize={setPageSize}
         />
 
-        <div className="mt-8 bg-white shadow rounded-lg">
+        <div className="mt-8 bg-concrete/50">
           <JobsTable
             isLoading={isLoading}
             filteredAndSortedApplications={filteredAndSortedApplications}

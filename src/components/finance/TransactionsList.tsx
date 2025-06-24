@@ -71,7 +71,7 @@ export function TransactionsList({
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl shadow-lg border border-heliotrope/30 p-12">
+      <div className="bg-white rounded-xl shadow-lg border border-heliotrope/30 p-12 mt-12">
         <div className="flex justify-center items-center">
           <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-blue-500"></div>
           <span className="ml-4 text-lg text-thunder">
@@ -84,8 +84,8 @@ export function TransactionsList({
 
   if (Object.keys(groupedTransactions).length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-lg border border-heliotrope/30 p-12 text-center">
-        <PiggyBank className="h-16 w-16 text-concrete mx-auto mb-4" />
+      <div className="bg-white rounded-xl shadow-lg border border-heliotrope/30 p-12 text-center mt-12">
+        <PiggyBank className="h-16 w-16 text-gray-light mx-auto mb-4" />
         <h3 className="text-xl font-medium text-black mb-2">
           No financial transactions found
         </h3>

@@ -32,7 +32,7 @@ export function FinanceControls({
   uniqueCurrencies,
 }: FinanceControlsProps) {
   return (
-    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white rounded-xl border border-heliotrope/30 p-4">
+    <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-4 bg-white rounded-xl border-2 border-gray-light p-4">
       <div className="flex flex-wrap items-center gap-4">
         {/* View Mode Selector */}
         <TabSelector

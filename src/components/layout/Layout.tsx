@@ -1,5 +1,5 @@
 import React from "react";
-import { Link, useRouterState } from "@tanstack/react-router";
+import { Link, useLocation } from "@tanstack/react-router";
 import { supabase } from "../../supabase/client";
 import { toast } from "sonner";
 import {
@@ -10,7 +10,6 @@ import {
   LogOut,
   Menu,
   X,
-  Mail,
 } from "lucide-react";
 
 interface LayoutProps {
@@ -20,7 +19,7 @@ interface LayoutProps {
 
 export default function Layout({ children, isAuthenticated }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
-  const { location } = useRouterState();
+  const location = useLocation();
 
   const handleSignOut = async () => {
     try {
@@ -47,7 +46,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
 
   // Dashboard layout with sidebar
   return (
-    <div className="min-h-screen bg-concrete">
+    <div className="min-h-screen bg-concrete/20">
       {/* Mobile sidebar */}
       <div
         className={`fixed inset-0 flex z-40 md:hidden ${
@@ -163,15 +162,15 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
 
       {/* Static sidebar for desktop */}
       <div className="hidden md:flex md:w-64 md:flex-col md:fixed md:inset-y-0">
-        <div className="flex-1 flex flex-col min-h-0 border-r border-concrete bg-white">
-          <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
+        <div className="flex-1 flex flex-col min-h-0 border-r border-concrete bg-concrete/40">
+          <section className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
             <div className="flex items-center flex-shrink-0 px-4">
               <img src="/logo.png" alt="actioneer" className="h-8 w-8" />
               <span className="ml-2 text-xl font-bold text-black">
                 actioneer
               </span>
             </div>
-            <nav className="mt-5 flex-1 px-2 bg-white space-y-1">
+            <nav className="mt-5 flex-1 px-2 bg-concrete/40 space-y-1">
               <Link
                 to="/dashboard"
                 className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
@@ -183,7 +182,6 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 <LayoutDashboard className="mr-3 h-6 w-6 text-heliotrope" />
                 Dashboard
               </Link>
-
               <Link
                 to="/finance"
                 className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
@@ -195,7 +193,6 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 <Receipt className="mr-3 h-6 w-6 text-gold" />
                 Finance
               </Link>
-
               <Link
                 to="/travel"
                 className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
@@ -207,7 +204,6 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 <Plane className="mr-3 h-6 w-6 text-jade" />
                 Travel
               </Link>
-
               <Link
                 to="/jobs"
                 className={`group flex items-center px-2 py-2 pb-4 mb-2 text-sm font-medium rounded-md transition-colors duration-200 ${
@@ -219,10 +215,9 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 <Briefcase className="mr-3 h-6 w-6 text-bittersweet" />
                 Job Applications
               </Link>
-
               <Link
                 to="/settings"
-                className={`group flex items-center px-2 py-4 mt-4 text-sm font-medium transition-colors duration-200 border-t border-bittersweet ${
+                className={`group flex items-center px-2 py-4 mt-4 text-sm font-medium transition-colors duration-200 border-t border-gray-light ${
                   location.pathname === "/settings"
                     ? "bg-lavender/10 text-lavender"
                     : "text-thunder hover:bg-concrete hover:text-thunder"
@@ -232,8 +227,8 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 Settings
               </Link>
             </nav>
-          </div>
-          <div className="flex-shrink-0 flex border-t border-concrete p-4">
+          </section>
+          <section className="flex-shrink-0 flex border-t border-concrete p-4">
             <button
               onClick={handleSignOut}
               className="flex items-center text-thunder hover:text-thunder transition-colors duration-200"
@@ -241,11 +236,11 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
               <LogOut className="h-5 w-5 mr-2" />
               <span>Sign out</span>
             </button>
-          </div>
+          </section>
         </div>
       </div>
 
-      {/* Main content */}
+      {/* Main content mobile */}
       <div className="md:pl-64 flex flex-col flex-1">
         <div className="sticky top-0 z-10 md:hidden pl-1 pt-1 sm:pl-3 sm:pt-3 bg-concrete">
           <button

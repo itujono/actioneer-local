@@ -32,7 +32,7 @@ export default function RecentActivityCard({
       case "job_application":
         return <BriefcaseIcon className="h-5 w-5 text-bittersweet" />;
       default:
-        return <MessageSquare className="h-5 w-5 text-black" />;
+        return <MessageSquare className="h-5 w-5 text-thunder" />;
     }
   };
 
@@ -66,7 +66,7 @@ export default function RecentActivityCard({
                   <p className="text-sm font-medium text-heliotrope truncate">
                     {title}
                   </p>
-                  <p className="mt-1 flex items-center text-sm text-black">
+                  <p className="mt-1 flex items-center text-sm text-thunder">
                     From&nbsp;{" "}
                     <span className="font-semibold">{description}</span>
                   </p>
@@ -74,8 +74,8 @@ export default function RecentActivityCard({
               </div>
             </div>
             <div className="flex items-center">
-              <p className="text-sm text-black mr-4">{date}</p>
-              <ChevronRight className="h-5 w-5 text-concrete" />
+              <p className="text-sm text-thunder mr-4">{date}</p>
+              <ChevronRight className="h-5 w-5 text-gray-light" />
             </div>
           </div>
         </div>

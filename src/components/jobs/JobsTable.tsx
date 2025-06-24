@@ -61,10 +61,10 @@ export function JobsTable({
     <>
       {/* Table */}
       <div className="overflow-hidden">
-        <div className="overflow-x-auto border-2 border-thunder">
+        <div className="overflow-x-auto border-2 border-b-0 border-gray-light rounded-t-md">
           <DndContext collisionDetection={closestCenter} onDragEnd={onDragEnd}>
-            <table className="min-w-full divide-y divide-thunder">
-              <thead className="bg-concrete">
+            <table className="min-w-full divide-y divide-gray-light">
+              <thead className="bg-transparent">
                 <SortableContext
                   items={columnOrder.map((col) => col.id)}
                   strategy={horizontalListSortingStrategy}
@@ -81,7 +81,7 @@ export function JobsTable({
                   </tr>
                 </SortableContext>
               </thead>
-              <tbody className="bg-white divide-y divide-gray-200">
+              <tbody className="bg-white divide-y divide-gray-light">
                 {filteredAndSortedApplications.data.map((application) => (
                   <JobTableRow
                     key={application.id}
@@ -100,7 +100,7 @@ export function JobsTable({
 
       {/* Pagination */}
       {filteredAndSortedApplications.totalCount > 0 && (
-        <div className="bg-white px-4 py-3 border-2 border-t-0 border-thunder sm:px-6">
+        <div className="bg-white px-4 py-3 border-2 border-gray-light rounded-b-md sm:px-6">
           <div className="flex items-center justify-between">
             <div className="flex-1 flex justify-between sm:hidden">
               <Button

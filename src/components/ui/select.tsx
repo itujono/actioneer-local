@@ -62,7 +62,7 @@ const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <select
         className={cn(
-          "w-full rounded-none border-2 bg-white border-thunder focus:outline-none focus:ring-0 focus:ring-heliotrope focus:border-heliotrope disabled:bg-concrete disabled:text-thunder disabled:cursor-not-allowed transition-colors",
+          "w-full rounded-md border-2 bg-white border-gray-light focus:outline-none focus:ring-0 focus:ring-heliotrope focus:border-heliotrope disabled:bg-concrete disabled:text-thunder disabled:cursor-not-allowed transition-colors",
           sizeClasses[size],
           error
             ? "border-bittersweet focus:ring-bittersweet focus:border-bittersweet"

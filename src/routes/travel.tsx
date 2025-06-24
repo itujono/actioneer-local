@@ -154,11 +154,7 @@ function TravelDashboard() {
   }, [userLocation]);
 
   // Fetch comprehensive travel data - only when we have a destination
-  const {
-    data: travelComparisons,
-    isLoading: travelLoading,
-    refetch: refetchTravel,
-  } = useQuery({
+  const { data: travelComparisons, isLoading: travelLoading } = useQuery({
     queryKey: ["travel-comparisons", travelCriteria],
     queryFn: async () => {
       if (!userProfile?.api_key) throw new Error("No API key available");
@@ -237,7 +233,7 @@ function TravelDashboard() {
             {/* Breadcrumb when viewing specific travel */}
             {hasDestination && searchParams.from === "dashboard" && (
               <nav className="flex mb-2" aria-label="Breadcrumb">
-                <ol className="inline-flex items-center space-x-1 md:space-x-3">
+                <ol className="inline-flex items-center space-x-1 md:space-x-1">
                   <li className="inline-flex items-center">
                     <Button
                       onClick={() =>
@@ -255,14 +251,14 @@ function TravelDashboard() {
                       size="sm"
                       className="text-sm font-medium text-thunder hover:text-jade p-0"
                     >
-                      🏠 Travel Dashboard
+                      Travel Dashboard
                     </Button>
                   </li>
                   <li>
                     <div className="flex items-center">
-                      <span className="text-concrete mx-2">/</span>
+                      <span className="text-thunder mx-2">/</span>
                       <span className="text-sm font-medium text-thunder">
-                        📧 Email Analysis
+                        Email Analysis
                       </span>
                     </div>
                   </li>
@@ -362,7 +358,7 @@ function TravelDashboard() {
 
         {/* No destination message */}
         {!hasDestination && (
-          <div className="mt-8 bg-gradient-to-r from-jade/5 to-emerald/5 rounded-lg p-8 text-center">
+          <div className="mt-8 bg-sandy/20 rounded-md p-8 text-center border-2 border-jade">
             <div className="mx-auto w-16 h-16 bg-jade/10 rounded-full flex items-center justify-center mb-4">
               <PlaneIcon className="h-8 w-8 text-jade" />
             </div>
@@ -423,8 +419,8 @@ function TravelDashboard() {
                 </Button>
               )}
             </div>
-            <div className="bg-white rounded-lg shadow overflow-hidden">
-              <ul className="divide-y divide-gray-200">
+            <div className="bg-white rounded-md border-2 border-thunder overflow-hidden">
+              <ul className="divide-y divide-thunder">
                 {savedTravels.map((travel) => {
                   // Ensure only one card is selected at a time
                   const isCurrentlySelected =

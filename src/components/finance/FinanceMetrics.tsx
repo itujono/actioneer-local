@@ -60,7 +60,7 @@ export function FinanceMetrics({
         </div>
 
         {/* Income & Expenses Summary */}
-        <div className="md:col-span-2 bg-white rounded-xl border border-heliotrope/30 p-6">
+        <div className="md:col-span-2 bg-white rounded-xl border-2 border-gray-light p-6">
           <h3 className="text-lg font-semibold text-black mb-4">
             Financial Summary
           </h3>

@@ -75,7 +75,7 @@ export function JobTableRow({
                 className="px-6 py-4 whitespace-nowrap text-sm text-thunder"
               >
                 <div className="flex items-center">
-                  <Calendar className="h-4 w-4 text-concrete mr-2" />
+                  <Calendar className="h-4 w-4 text-gray mr-2" />
                   {new Date(application.applied_date).toLocaleDateString()}
                 </div>
               </td>
