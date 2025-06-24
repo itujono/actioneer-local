@@ -6,30 +6,18 @@ import { PlaneIcon } from "lucide-react";
 import { supabase } from "../supabase/client";
 import { useAuth } from "../hooks/useAuth";
 import { PageTitle } from "../components/ui";
-
-// Define search params schema for type safety and validation
-const travelSearchSchema = {
-  destination: {
-    parse: (value: string | undefined) => value,
-    stringify: (value: string | undefined) => value,
-  },
-  origin: {
-    parse: (value: string | undefined) => value,
-    stringify: (value: string | undefined) => value,
-  },
-  travelers: {
-    parse: (value: string | undefined) => (value ? Number(value) : undefined),
-    stringify: (value: number | undefined) => value?.toString(),
-  },
-  messageId: {
-    parse: (value: string | undefined) => value,
-    stringify: (value: string | undefined) => value,
-  },
-  from: {
-    parse: (value: string | undefined) => value,
-    stringify: (value: string | undefined) => value,
-  },
-};
+import { Button } from "../components/ui/button";
+import {
+  TravelSection,
+  TravelEmailCard,
+  TravelSectionSkeleton,
+  getAirportFromCity,
+  getCurrencyFromCountry,
+  travelSearchSchema,
+  type LocationInfo,
+  type TravelData,
+  type TravelSearchParams,
+} from "../components/travel";
 
 export const travelRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -45,32 +33,6 @@ export const travelRoute = createRoute({
     from: travelSearchSchema.from.parse(search.from as string),
   }),
 });
-
-interface LocationInfo {
-  city?: string;
-  country?: string;
-  countryCode?: string;
-  airport: string;
-  currency: string;
-}
-
-interface TravelData {
-  destination: string;
-  origin: string;
-  travelers: number;
-  departureDate?: string;
-  returnDate?: string;
-  checkInDate?: string;
-  checkOutDate?: string;
-}
-
-interface TravelSearchParams {
-  destination?: string;
-  origin?: string;
-  travelers?: number;
-  messageId?: string;
-  from?: string;
-}
 
 function TravelDashboard() {
   const { user, isLoading: authLoading } = useAuth();
@@ -277,7 +239,7 @@ function TravelDashboard() {
               <nav className="flex mb-2" aria-label="Breadcrumb">
                 <ol className="inline-flex items-center space-x-1 md:space-x-3">
                   <li className="inline-flex items-center">
-                    <button
+                    <Button
                       onClick={() =>
                         navigate({
                           search: () => ({
@@ -289,10 +251,12 @@ function TravelDashboard() {
                           }),
                         })
                       }
-                      className="inline-flex items-center text-sm font-medium text-thunder hover:text-jade"
+                      variant="ghost"
+                      size="sm"
+                      className="text-sm font-medium text-thunder hover:text-jade p-0"
                     >
                       🏠 Travel Dashboard
-                    </button>
+                    </Button>
                   </li>
                   <li>
                     <div className="flex items-center">
@@ -329,67 +293,6 @@ function TravelDashboard() {
             </p>
           </div>
         </div>
-
-        {/* Travel Search Form */}
-        {/* <div className="mt-8 bg-white rounded-lg shadow px-6 py-6">
-          <h2 className="text-lg font-medium text-thunder mb-4">
-            Plan Your Trip
-          </h2>
-          <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-            <div>
-              <label className="block text-sm font-medium text-thunder">
-                Destination
-              </label>
-              <input
-                type="text"
-                value={travelCriteria.destination}
-                onChange={(e) =>
-                  setTravelCriteria((prev) => ({
-                    ...prev,
-                    destination: e.target.value,
-                  }))
-                }
-                className="mt-1 block w-full px-3 py-2 border border-concrete rounded-md shadow-sm focus:outline-none focus:ring-jade focus:border-jade"
-                placeholder="e.g., Kyoto, Paris, Tokyo"
-              />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-thunder">
-                Travelers
-              </label>
-              <select
-                value={travelCriteria.travelers}
-                onChange={(e) =>
-                  setTravelCriteria((prev) => ({
-                    ...prev,
-                    travelers: parseInt(e.target.value),
-                  }))
-                }
-                className="mt-1 block w-full px-3 py-2 border border-concrete rounded-md shadow-sm focus:outline-none focus:ring-jade focus:border-jade"
-              >
-                {[1, 2, 3, 4, 5, 6].map((num) => (
-                  <option key={num} value={num}>
-                    {num} {num === 1 ? "traveler" : "travelers"}
-                  </option>
-                ))}
-              </select>
-            </div>
-            <div className="flex items-end">
-              <button
-                onClick={() => refetchTravel()}
-                disabled={travelLoading}
-                className="w-full flex items-center justify-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-jade hover:bg-jade/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-jade disabled:opacity-50"
-              >
-                {travelLoading ? (
-                  <RefreshCwIcon className="h-4 w-4 mr-2 animate-spin" />
-                ) : (
-                  <MapPinIcon className="h-4 w-4 mr-2" />
-                )}
-                Get Recommendations
-              </button>
-            </div>
-          </div>
-        </div> */}
 
         {/* Only show travel recommendations when we have a destination */}
         {hasDestination && (
@@ -476,17 +379,18 @@ function TravelDashboard() {
                 href="https://mail.google.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-jade hover:bg-jade/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-jade"
+                className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md transition-colors bg-heliotrope text-white hover:bg-heliotrope/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-heliotrope"
               >
                 <PlaneIcon className="h-4 w-4 mr-2" />
                 Open Gmail
               </a>
-              <button
+              <Button
                 onClick={() => window.location.reload()}
-                className="inline-flex items-center px-4 py-2 border border-concrete rounded-md shadow-sm text-sm font-medium text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-jade"
+                variant="outline"
+                size="sm"
               >
                 🔄 Refresh Page
-              </button>
+              </Button>
             </div>
           </div>
         )}
@@ -499,7 +403,7 @@ function TravelDashboard() {
                 Recent Travel Emails
               </h2>
               {hasDestination && searchParams.from === "dashboard" && (
-                <button
+                <Button
                   onClick={() =>
                     navigate({
                       search: () => ({
@@ -511,10 +415,12 @@ function TravelDashboard() {
                       }),
                     })
                   }
-                  className="inline-flex items-center px-3 py-1.5 border border-concrete rounded-md text-xs font-medium text-thunder bg-white hover:bg-concrete focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-jade transition-colors"
+                  variant="outline"
+                  size="sm"
+                  className="text-xs"
                 >
                   ✕ Clear Selection
-                </button>
+                </Button>
               )}
             </div>
             <div className="bg-white rounded-lg shadow overflow-hidden">
@@ -549,583 +455,6 @@ function TravelDashboard() {
             </div>
           </div>
         )}
-      </div>
-    </div>
-  );
-}
-
-// Helper component for travel sections
-function TravelSection({
-  title,
-  subtitle,
-  items,
-  type,
-  userLocation,
-}: {
-  title: string;
-  subtitle: string;
-  items: any[];
-  type: "flight" | "hotel" | "attraction";
-  userLocation?: LocationInfo | null;
-}) {
-  return (
-    <div className="bg-white rounded-lg shadow">
-      <div className="px-6 py-4 border-b border-concrete">
-        <h3 className="text-lg font-medium text-thunder">{title}</h3>
-        <p className="text-sm text-thunder">{subtitle}</p>
-      </div>
-      <div className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {items.slice(0, 6).map((item, index) => (
-            <TravelCard
-              key={index}
-              item={item}
-              type={type}
-              userLocation={userLocation}
-            />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-// Helper component for individual travel cards
-function TravelCard({
-  item,
-  type,
-  userLocation,
-}: {
-  item: any;
-  type: "flight" | "hotel" | "attraction";
-  userLocation?: LocationInfo | null;
-}) {
-  const getBestPrice = () => {
-    if (item.otaOptions && item.otaOptions.length > 0) {
-      const prices = item.otaOptions.map((option: any) =>
-        parseFloat(option.price)
-      );
-      const minPrice = Math.min(...prices);
-      const currency = item.otaOptions[0].currency || "USD";
-      return `${currency} ${minPrice}`;
-    }
-    return item.price || "N/A";
-  };
-
-  const getBestBookingUrl = () => {
-    if (item.otaOptions && item.otaOptions.length > 0) {
-      const sortedOptions = item.otaOptions.sort(
-        (a: any, b: any) => parseFloat(a.price) - parseFloat(b.price)
-      );
-      return sortedOptions[0].bookingUrl;
-    }
-    return item.bookingUrl || "#";
-  };
-
-  const handleBookingClick = () => {
-    // Add tracking or analytics here if needed
-    const url = getBestBookingUrl();
-
-    // If the URL seems problematic (too long or complex), show a warning
-    if (url.length > 200 || url.includes("%3A") || url.includes("%2C")) {
-      console.log(
-        "⚠️ Complex booking URL detected, may be stripped by external site"
-      );
-    }
-  };
-
-  return (
-    <div className="border border-concrete rounded-lg p-4 hover:shadow-md transition-shadow">
-      <div className="mb-3">
-        {type === "flight" && (
-          <div>
-            <h4 className="font-medium text-thunder">
-              {item.airline} {item.flightNumber}
-            </h4>
-            <p className="text-sm text-thunder">
-              {item.duration} •{" "}
-              {item.stops === 0
-                ? "Direct"
-                : `${item.stops} stop${item.stops > 1 ? "s" : ""}`}
-            </p>
-          </div>
-        )}
-        {type === "hotel" && (
-          <div>
-            <h4 className="font-medium text-thunder">
-              {item.hotelName || item.name}
-            </h4>
-            <p className="text-sm text-thunder">
-              ⭐ {item.rating} • {item.location}
-            </p>
-          </div>
-        )}
-        {type === "attraction" && (
-          <div>
-            <h4 className="font-medium text-thunder">{item.name}</h4>
-            <p className="text-sm text-thunder">
-              ⭐ {item.rating} • {item.category}
-            </p>
-          </div>
-        )}
-      </div>
-
-      <div className="flex items-center justify-between">
-        <div className="text-lg font-bold text-jade">
-          {getBestPrice()}
-          {type === "hotel" && "/night"}
-        </div>
-        <a
-          href={getBestBookingUrl()}
-          target="_blank"
-          rel="noopener noreferrer"
-          className="px-3 py-1 bg-jade text-white text-sm rounded hover:bg-jade/90 transition-colors"
-          onClick={handleBookingClick}
-        >
-          Book Now
-        </a>
-      </div>
-    </div>
-  );
-}
-
-// Helper component for travel email cards
-interface TravelEmailCardProps {
-  travel: any; // Using any for now since we don't have full type definition
-  onSelect: (travel: any) => void;
-  isSelected?: boolean;
-}
-
-function TravelEmailCard({
-  travel,
-  onSelect,
-  isSelected = false,
-}: TravelEmailCardProps) {
-  const getTravelTypeIcon = (type: string) => {
-    const icons = {
-      flight: "✈️",
-      hotel: "🏨",
-      attraction: "🎯",
-      general: "🌍",
-    };
-    return icons[type as keyof typeof icons] || "🌍";
-  };
-
-  const getTravelTypeColor = (type: string) => {
-    const colors = {
-      flight: "bg-blue-50 text-blue-600",
-      hotel: "bg-purple-50 text-purple-600",
-      attraction: "bg-green-50 text-green-600",
-      general: "bg-concrete text-thunder",
-    };
-    return colors[type as keyof typeof colors] || "bg-concrete text-thunder";
-  };
-
-  const formatDateRange = () => {
-    if (!travel.start_date) return null;
-
-    const startDate = new Date(travel.start_date);
-    const endDate = travel.end_date ? new Date(travel.end_date) : null;
-
-    if (endDate && endDate.getTime() !== startDate.getTime()) {
-      return `${startDate.toLocaleDateString()} - ${endDate.toLocaleDateString()}`;
-    }
-    return startDate.toLocaleDateString();
-  };
-
-  const getAdditionalInfo = () => {
-    const info = [];
-
-    // Add travelers count if available
-    if (travel.details?.travelers || travel.details?.guests) {
-      const count = travel.details.travelers || travel.details.guests;
-      info.push(`${count} ${count === 1 ? "traveler" : "travelers"}`);
-    }
-
-    // Add origin if available and different from destination
-    if (
-      travel.details?.origin &&
-      travel.details.origin !== travel.destination
-    ) {
-      info.push(`from ${travel.details.origin}`);
-    }
-
-    // Add flight details if available
-    if (travel.type === "flight" && travel.details?.airline) {
-      info.push(travel.details.airline);
-    }
-
-    // Add hotel details if available
-    if (travel.type === "hotel" && travel.details?.hotelName) {
-      info.push(travel.details.hotelName);
-    }
-
-    return info.length > 0 ? info.join(" • ") : null;
-  };
-
-  return (
-    <li
-      className={`px-6 py-4 cursor-pointer transition-all duration-200 border-l-4 ${
-        isSelected
-          ? "bg-jade/10 border-jade shadow-sm ring-1 ring-jade/20 hover:bg-jade/15"
-          : "border-transparent hover:bg-concrete hover:border-jade/50"
-      }`}
-      onClick={() => onSelect(travel)}
-    >
-      <div className="flex items-center justify-between">
-        <div className="flex items-center flex-1 min-w-0">
-          <div className="flex-shrink-0">
-            <div
-              className={`h-12 w-12 rounded-full flex items-center justify-center ${getTravelTypeColor(
-                travel.type
-              )}`}
-            >
-              <span className="text-lg">{getTravelTypeIcon(travel.type)}</span>
-            </div>
-          </div>
-          <div className="ml-4 flex-1 min-w-0">
-            <div className="flex items-center gap-2 mb-1">
-              <p
-                className={`text-sm font-medium truncate ${
-                  isSelected ? "text-thunder" : "text-thunder"
-                }`}
-              >
-                To <FormattedDestination destination={travel.destination} />
-              </p>
-              <span
-                className={`inline-flex items-center px-2 py-0.5 rounded-full text-xs font-medium ${getTravelTypeColor(
-                  travel.type
-                )} ${isSelected ? "ring-1 ring-current/20" : ""}`}
-              >
-                {travel.type}
-              </span>
-            </div>
-
-            {/* Date range */}
-            {formatDateRange() && (
-              <p className="text-sm text-thunder mb-1">
-                📅 {formatDateRange()}
-              </p>
-            )}
-
-            {/* Additional context info */}
-            {getAdditionalInfo() && (
-              <p className="text-xs text-concrete truncate">
-                {getAdditionalInfo()}
-              </p>
-            )}
-          </div>
-        </div>
-
-        <div className="flex flex-col items-end text-right ml-4">
-          <div className="text-xs text-concrete mb-1">Analyzed</div>
-          <div className="text-sm text-thunder">
-            {new Date(travel.created_at).toLocaleDateString()}
-          </div>
-          <div className="mt-2">
-            <div className="inline-flex items-center text-xs font-medium text-jade">
-              {isSelected ? "✓ Selected" : "View Details →"}
-            </div>
-          </div>
-        </div>
-      </div>
-    </li>
-  );
-}
-
-// Helper functions
-function getAirportFromCity(city: string): string {
-  const cityToAirport: Record<string, string> = {
-    "New York": "NYC",
-    "Los Angeles": "LAX",
-    Chicago: "CHI",
-    Miami: "MIA",
-    "San Francisco": "SFO",
-    Boston: "BOS",
-    Seattle: "SEA",
-    Denver: "DEN",
-    Atlanta: "ATL",
-    Dallas: "DFW",
-    London: "LON",
-    Paris: "PAR",
-    Tokyo: "TYO",
-    Sydney: "SYD",
-    Toronto: "YTO",
-    // Add more as needed
-  };
-
-  return cityToAirport[city] || "NYC";
-}
-
-function getCurrencyFromCountry(countryCode: string): string {
-  const countryToCurrency: Record<string, string> = {
-    US: "USD",
-    GB: "GBP",
-    CA: "CAD",
-    AU: "AUD",
-    JP: "JPY",
-    FR: "EUR",
-    DE: "EUR",
-    IT: "EUR",
-    ES: "EUR",
-    NL: "EUR",
-    // Add more as needed
-  };
-
-  return countryToCurrency[countryCode] || "USD";
-}
-
-// Fallback airport/city mappings for when API fails
-const fallbackAirportToCityMap: Record<string, string> = {
-  // Major airports that don't match country codes
-  NYC: "New York",
-  LAX: "Los Angeles",
-  CHI: "Chicago",
-  MIA: "Miami",
-  SFO: "San Francisco",
-  BOS: "Boston",
-  SEA: "Seattle",
-  DEN: "Denver",
-  ATL: "Atlanta",
-  DFW: "Dallas",
-  LAS: "Las Vegas",
-  PHX: "Phoenix",
-  LON: "London",
-  PAR: "Paris",
-  TYO: "Tokyo",
-  SYD: "Sydney",
-  YTO: "Toronto",
-  BKK: "Bangkok",
-  SIN: "Singapore",
-  HKG: "Hong Kong",
-  ICN: "Seoul",
-  NRT: "Tokyo",
-  KIX: "Osaka",
-  PVG: "Shanghai",
-  PEK: "Beijing",
-  DEL: "New Delhi",
-  BOM: "Mumbai",
-  KUL: "Kuala Lumpur",
-  CGK: "Jakarta",
-  MNL: "Manila",
-  // Additional airports that might not be in the API
-  IST: "Istanbul",
-  LHR: "London",
-  CDG: "Paris",
-  FRA: "Frankfurt",
-  AMS: "Amsterdam",
-  FCO: "Rome",
-  MAD: "Madrid",
-  BCN: "Barcelona",
-  ZUR: "Zurich",
-  VIE: "Vienna",
-};
-
-// Airport data interface
-interface AirportData {
-  iata: string;
-  icao: string;
-  name: string;
-  city: string;
-  country: string;
-}
-
-// Hook to get airport information from API
-function useAirportInfo(airportCode: string) {
-  return useQuery({
-    queryKey: ["airport-info", airportCode],
-    queryFn: async (): Promise<AirportData | null> => {
-      // API Ninjas requires an API key, but we can use a fallback approach
-      // For now, let's use a free alternative - the GitHub airports database
-      try {
-        const response = await fetch(
-          `https://raw.githubusercontent.com/lxndrblz/Airports/main/airports.csv`
-        );
-
-        if (!response.ok) {
-          throw new Error("Failed to fetch airports database");
-        }
-
-        const csvData = await response.text();
-        const lines = csvData.split("\n");
-        const headers = lines[0].split(",");
-
-        // Find the airport by IATA code
-        for (let i = 1; i < lines.length; i++) {
-          const values = lines[i].split(",");
-          const airport: Record<string, string> = {};
-          headers.forEach((header, index) => {
-            airport[header.replace(/"/g, "")] =
-              values[index]?.replace(/"/g, "") || "";
-          });
-
-          if (airport["iata_code"] === airportCode.toUpperCase()) {
-            return {
-              iata: airport["iata_code"],
-              icao: airport["icao_code"],
-              name: airport["name"],
-              city: airport["municipality"] || airport["name"],
-              country: airport["iso_country"],
-            };
-          }
-        }
-
-        // If not found, return null to trigger fallback
-        return null;
-      } catch (error) {
-        console.log(
-          `⚠️ Failed to fetch airport info for ${airportCode}:`,
-          error
-        );
-        return null;
-      }
-    },
-    staleTime: 1000 * 60 * 60 * 24 * 7, // 7 days - airport data rarely changes
-    gcTime: 1000 * 60 * 60 * 24 * 30, // Keep in cache for 30 days
-    enabled: !!airportCode && airportCode.length === 3,
-    retry: false, // Don't retry on failure, use fallback instead
-  });
-}
-
-// TanStack Query hook to format destination names
-function useFormattedDestination(destination: string) {
-  console.log(`🔍 Starting format for: "${destination}"`);
-
-  // First try to get airport info if it looks like an airport code
-  const { data: airportInfo, isLoading: airportLoading } =
-    useAirportInfo(destination);
-
-  console.log(`✈️ Airport info for "${destination}":`, {
-    airportInfo,
-    airportLoading,
-  });
-
-  const { data: formattedName, isLoading: formatLoading } = useQuery({
-    queryKey: ["destination-format", destination],
-    queryFn: async () => {
-      console.log(`🏃 Running format query for: "${destination}"`);
-
-      // If it's already a proper city/country name (not a 3-letter code), return as-is
-      if (
-        destination.length > 3 ||
-        !/^[A-Z]{3}$/.test(destination.toUpperCase())
-      ) {
-        console.log(`📝 "${destination}" is already a proper name`);
-        return destination;
-      }
-
-      // If we have airport info, use the city from airport data
-      if (airportInfo?.city) {
-        console.log(`✈️ Using airport city: "${airportInfo.city}"`);
-        return airportInfo.city;
-      }
-
-      try {
-        // First, check if it's a known airport code in our fallback mapping
-        console.log(`🗺️ Trying fallback mapping for: "${destination}"`);
-        const cityName = fallbackAirportToCityMap[destination.toUpperCase()];
-        if (cityName) {
-          console.log(`🗺️ Found in fallback: "${cityName}"`);
-          return cityName;
-        }
-
-        // If not in airport mapping, try to get country name by alpha3 code
-        console.log(`🌍 Trying country API for: "${destination}"`);
-        const countryResponse = await fetch(
-          `https://restcountries.com/v3.1/alpha/${destination.toLowerCase()}`
-        );
-
-        if (countryResponse.ok) {
-          const countryData = await countryResponse.json();
-          if (
-            countryData &&
-            countryData[0] &&
-            countryData[0].name &&
-            countryData[0].name.common
-          ) {
-            console.log(`🌍 Found country: "${countryData[0].name.common}"`);
-            return countryData[0].name.common;
-          }
-        }
-
-        // If no mapping found, return original
-        console.log(`❌ No mapping found for: "${destination}"`);
-        return destination;
-      } catch (error) {
-        console.log(
-          `⚠️ Failed to resolve destination "${destination}":`,
-          error
-        );
-        // Fallback to original destination on error
-        return destination;
-      }
-    },
-    staleTime: 1000 * 60 * 60 * 24, // 24 hours - destination names don't change often
-    gcTime: 1000 * 60 * 60 * 24 * 7, // Keep in cache for 7 days
-    enabled: !!destination && !airportInfo?.city, // Only run if destination exists and we don't have airport info
-  });
-
-  const result = airportInfo?.city || formattedName || destination;
-  console.log(`🎯 Final result for "${destination}": "${result}"`);
-
-  // Return airport city if available, otherwise formatted name, otherwise original
-  return result;
-}
-
-// Component to display formatted destination
-function FormattedDestination({ destination }: { destination: string }) {
-  const formattedName = useFormattedDestination(destination);
-
-  // Debug formatting
-  if (destination !== formattedName) {
-    console.log(`🗺️ Formatted "${destination}" → "${formattedName}"`);
-  }
-
-  return <>{formattedName}</>;
-}
-
-// Skeleton loading components
-function TravelSectionSkeleton({
-  title,
-  subtitle,
-}: {
-  title: string;
-  subtitle: string;
-}) {
-  return (
-    <div className="bg-white rounded-lg shadow">
-      <div className="px-6 py-4 border-b border-concrete">
-        <h3 className="text-lg font-medium text-thunder">{title}</h3>
-        <div className="mt-1">
-          <div className="h-4 bg-concrete rounded animate-pulse w-48"></div>
-        </div>
-      </div>
-      <div className="p-6">
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
-          {[1, 2, 3].map((index) => (
-            <TravelCardSkeleton key={index} />
-          ))}
-        </div>
-      </div>
-    </div>
-  );
-}
-
-function TravelCardSkeleton() {
-  return (
-    <div className="border border-concrete rounded-lg p-4">
-      <div className="mb-3">
-        {/* Title skeleton */}
-        <div className="h-5 bg-concrete rounded animate-pulse w-3/4 mb-2"></div>
-        {/* Subtitle skeleton */}
-        <div className="h-4 bg-concrete rounded animate-pulse w-1/2"></div>
-      </div>
-
-      <div className="flex items-center justify-between">
-        {/* Price skeleton */}
-        <div className="h-6 bg-concrete rounded animate-pulse w-20"></div>
-        {/* Button skeleton */}
-        <div className="h-8 bg-concrete rounded animate-pulse w-20"></div>
       </div>
     </div>
   );
