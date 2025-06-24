@@ -1,4 +1,4 @@
-import { createRoute } from "@tanstack/react-router";
+import { createRoute, Link } from "@tanstack/react-router";
 import { rootRoute } from "./root";
 import { useQuery } from "@tanstack/react-query";
 import {
@@ -18,6 +18,19 @@ export const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
   path: "/dashboard",
   component: Dashboard,
+  notFoundComponent: () => (
+    <div className="py-6">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
+        <h1 className="text-2xl font-bold text-black">Are you lost?</h1>
+        <p className="text-sm text-black">
+          The page you are looking for does not exist.
+        </p>
+        <Link to="/" className="text-sm text-black">
+          Go back to the home page
+        </Link>
+      </div>
+    </div>
+  ),
 });
 
 function Dashboard() {
@@ -139,7 +152,6 @@ function Dashboard() {
     );
   }
 
-  // If not authenticated, the useEffect above will redirect to /auth
   // Show loading while redirect happens
   if (!user) {
     return (
@@ -235,7 +247,7 @@ function Dashboard() {
                 Loading recent activity...
               </div>
             ) : recentEmails?.length ? (
-              <ul className="divide-y divide-gray-200">
+              <ul className="divide-y divide-concrete">
                 {recentEmails.map((email) => (
                   <RecentActivityCard
                     key={email.id}
@@ -272,7 +284,7 @@ function Dashboard() {
                   Loading events...
                 </div>
               ) : travelData?.upcomingTrips.length ? (
-                <ul className="divide-y divide-gray-200">
+                <ul className="divide-y divide-concrete">
                   {travelData.upcomingTrips.map((trip) => (
                     <li key={trip.id} className="py-4">
                       <div className="flex items-center space-x-4">
@@ -324,7 +336,7 @@ function Dashboard() {
                   Loading expenses...
                 </div>
               ) : receiptsSummary?.recentReceipts.length ? (
-                <ul className="divide-y divide-gray-200">
+                <ul className="divide-y divide-concrete">
                   {receiptsSummary.recentReceipts.map((receipt) => (
                     <li key={receipt.id} className="py-4">
                       <div className="flex items-center space-x-4">

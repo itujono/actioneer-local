@@ -30,7 +30,7 @@ export default function AutopilotSection() {
       color: "gold",
       description: "Stop juggling 47 browser tabs.",
       details:
-        "Compare hotel prices, flight options, and attractions instantly. Add trips to your calendar with one click.",
+        "Compare hotel prices, flight options, and attractions instantly. Get insights on the best places to visit as soon as you open an email or by visiting the dashboard.",
       testimonial: (
         <>
           "Saved $400 on my last trip just by seeing all options in one place!"

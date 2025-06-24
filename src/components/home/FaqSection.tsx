@@ -66,7 +66,7 @@ export default function FAQSection() {
       id: "email-clients",
       question: "Which email clients does Actioneer support?",
       answer:
-        "Right now, Actioneer works exclusively with Gmail through our Gmail add-on. We chose to perfect the Gmail experience first since it's the most widely used email platform. Support for other email clients like Outlook and Apple Mail is on our roadmap, but we want to make sure we get Gmail absolutely right before expanding.",
+        "Right now, Actioneer works exclusively with Gmail through our Gmail add-on. We chose to perfect the Gmail experience first since it's the most widely used email platform. Support for other email clients like Outlook and Apple Mail is on our roadmap. Nonetheless, you can still use Actioneer even without the add-on by visiting the dashboard (https://actioneer.online/dashboard) and signing in with your Google account.",
     },
     {
       id: "pricing",

@@ -47,7 +47,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
 
   // Dashboard layout with sidebar
   return (
-    <div className="min-h-screen bg-concrete/10">
+    <div className="min-h-screen bg-concrete">
       {/* Mobile sidebar */}
       <div
         className={`fixed inset-0 flex z-40 md:hidden ${
@@ -78,7 +78,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
             <div className="flex-shrink-0 flex items-center px-4">
               <img src="/logo.png" alt="Actioneer" className="h-8 w-8" />
               <span className="ml-2 text-xl font-bold text-thunder">
-                Actioneer
+                actioneer
               </span>
             </div>
             <nav className="mt-5 px-2 space-y-1">
@@ -166,9 +166,9 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
         <div className="flex-1 flex flex-col min-h-0 border-r border-concrete bg-white">
           <div className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
             <div className="flex items-center flex-shrink-0 px-4">
-              <img src="/logo.png" alt="Actioneer" className="h-8 w-8" />
+              <img src="/logo.png" alt="actioneer" className="h-8 w-8" />
               <span className="ml-2 text-xl font-bold text-black">
-                Actioneer
+                actioneer
               </span>
             </div>
             <nav className="mt-5 flex-1 px-2 bg-white space-y-1">
@@ -222,7 +222,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
 
               <Link
                 to="/settings"
-                className={`group flex items-center px-2 py-4 mt-4 text-sm font-medium transition-colors duration-200 border-t ${
+                className={`group flex items-center px-2 py-4 mt-4 text-sm font-medium transition-colors duration-200 border-t border-bittersweet ${
                   location.pathname === "/settings"
                     ? "bg-lavender/10 text-lavender"
                     : "text-thunder hover:bg-concrete hover:text-thunder"
