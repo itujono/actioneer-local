@@ -2,7 +2,7 @@ import { useState } from "react";
 import { X, Plus, Trash2, Edit, GripVertical } from "lucide-react";
 import { CustomFieldType } from "../supabase/types";
 import { useCustomFields } from "../hooks/useCustomFields";
-import { Select } from "./ui";
+import { Select, Input } from "./ui";
 
 interface CustomFieldsManagerProps {
   isOpen: boolean;
@@ -223,10 +223,8 @@ export function CustomFieldsManager({
               <div className="space-y-4 bg-concrete p-4 rounded-lg">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div>
-                    <label className="block text-sm font-medium text-thunder mb-1">
-                      Field Label *
-                    </label>
-                    <input
+                    <Input
+                      label="Field Label"
                       type="text"
                       value={newField.field_label}
                       onChange={(e) =>
@@ -236,7 +234,7 @@ export function CustomFieldsManager({
                         }))
                       }
                       placeholder="e.g., Salary Range"
-                      className="w-full px-3 py-2 border border-concrete rounded-md focus:ring-blue-500 focus:border-blue-500"
+                      required
                     />
                   </div>
 
@@ -280,10 +278,8 @@ export function CustomFieldsManager({
 
                 {newField.field_type === "currency" && (
                   <div>
-                    <label className="block text-sm font-medium text-thunder mb-1">
-                      Currency Code
-                    </label>
-                    <input
+                    <Input
+                      label="Currency Code"
                       type="text"
                       value={newField.field_options.currency || "USD"}
                       onChange={(e) =>
@@ -296,7 +292,6 @@ export function CustomFieldsManager({
                         }))
                       }
                       placeholder="USD"
-                      className="w-full px-3 py-2 border border-concrete rounded-md focus:ring-blue-500 focus:border-blue-500"
                     />
                   </div>
                 )}
@@ -305,10 +300,8 @@ export function CustomFieldsManager({
                   newField.field_type === "currency") && (
                   <div className="grid grid-cols-2 gap-4">
                     <div>
-                      <label className="block text-sm font-medium text-thunder mb-1">
-                        Minimum Value
-                      </label>
-                      <input
+                      <Input
+                        label="Minimum Value"
                         type="number"
                         value={newField.field_options.min || ""}
                         onChange={(e) =>
@@ -322,14 +315,11 @@ export function CustomFieldsManager({
                             },
                           }))
                         }
-                        className="w-full px-3 py-2 border border-concrete rounded-md focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
                     <div>
-                      <label className="block text-sm font-medium text-thunder mb-1">
-                        Maximum Value
-                      </label>
-                      <input
+                      <Input
+                        label="Maximum Value"
                         type="number"
                         value={newField.field_options.max || ""}
                         onChange={(e) =>
@@ -343,7 +333,6 @@ export function CustomFieldsManager({
                             },
                           }))
                         }
-                        className="w-full px-3 py-2 border border-concrete rounded-md focus:ring-blue-500 focus:border-blue-500"
                       />
                     </div>
                   </div>

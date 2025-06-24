@@ -1,5 +1,6 @@
 import React from "react";
 import { CustomFieldDefinition } from "../supabase/types";
+import { Input, Select } from "./ui";
 
 interface CustomFieldInputProps {
   field: CustomFieldDefinition;
@@ -16,10 +17,6 @@ export function CustomFieldInput({
   error,
   disabled,
 }: CustomFieldInputProps) {
-  const baseInputClasses = `w-full px-3 py-2 border rounded-md focus:ring-heliotrope focus:border-heliotrope disabled:bg-concrete disabled:text-thunder ${
-    error ? "border-red-300" : "border-concrete"
-  }`;
-
   const handleChange = (newValue: any) => {
     onChange(newValue);
   };
@@ -28,19 +25,22 @@ export function CustomFieldInput({
     switch (field.field_type) {
       case "text":
         return (
-          <input
+          <Input
+            label={field.field_label}
             type="text"
             value={value || ""}
             onChange={(e) => handleChange(e.target.value)}
             placeholder={field.field_options.placeholder}
             disabled={disabled}
-            className={baseInputClasses}
+            required={field.is_required}
+            error={error}
           />
         );
 
       case "number":
         return (
-          <input
+          <Input
+            label={field.field_label}
             type="number"
             value={value || ""}
             onChange={(e) =>
@@ -49,99 +49,111 @@ export function CustomFieldInput({
             min={field.field_options.min}
             max={field.field_options.max}
             disabled={disabled}
-            className={baseInputClasses}
+            required={field.is_required}
+            error={error}
           />
         );
 
       case "currency":
         return (
-          <div className="relative">
-            <span className="absolute left-3 top-2 text-thunder text-sm">
-              {field.field_options.currency || "USD"}
-            </span>
-            <input
-              type="number"
-              value={value || ""}
-              onChange={(e) =>
-                handleChange(e.target.value ? Number(e.target.value) : null)
-              }
-              min={field.field_options.min || 0}
-              max={field.field_options.max}
-              step="0.01"
-              disabled={disabled}
-              className={`${baseInputClasses} pl-12`}
-              placeholder="0.00"
-            />
-          </div>
+          <Input
+            label={field.field_label}
+            type="number"
+            value={value || ""}
+            onChange={(e) =>
+              handleChange(e.target.value ? Number(e.target.value) : null)
+            }
+            min={field.field_options.min || 0}
+            max={field.field_options.max}
+            step="0.01"
+            disabled={disabled}
+            leftAddon={field.field_options.currency || "USD"}
+            placeholder="0.00"
+            required={field.is_required}
+            error={error}
+          />
         );
 
       case "date":
         return (
-          <input
+          <Input
+            label={field.field_label}
             type="date"
             value={value || ""}
             onChange={(e) => handleChange(e.target.value)}
             disabled={disabled}
-            className={baseInputClasses}
+            required={field.is_required}
+            error={error}
           />
         );
 
       case "select":
         return (
-          <select
-            value={value || ""}
-            onChange={(e) => handleChange(e.target.value)}
-            disabled={disabled}
-            className={baseInputClasses}
-          >
-            <option value="">Select an option...</option>
-            {field.field_options.options?.map((option) => (
-              <option key={option} value={option}>
-                {option}
-              </option>
-            ))}
-          </select>
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-thunder">
+              {field.field_label}
+              {field.is_required && (
+                <span className="text-bittersweet ml-1">*</span>
+              )}
+            </label>
+            <Select
+              value={value || ""}
+              onChange={(e) => handleChange(e.target.value)}
+              disabled={disabled}
+              placeholder="Select an option..."
+              error={!!error}
+              options={
+                field.field_options.options?.map((option) => ({
+                  value: option,
+                  label: option,
+                })) || []
+              }
+            />
+            {error && <p className="text-sm text-bittersweet">{error}</p>}
+          </div>
         );
 
       case "boolean":
         return (
-          <label className="flex items-center space-x-2">
-            <input
-              type="checkbox"
-              checked={value === true}
-              onChange={(e) => handleChange(e.target.checked)}
-              disabled={disabled}
-              className="h-4 w-4 text-heliotrope focus:ring-heliotrope border-concrete rounded disabled:opacity-50"
-            />
-            <span className="text-sm text-thunder">
-              {value === true ? "Yes" : "No"}
-            </span>
-          </label>
+          <div className="space-y-1">
+            <label className="block text-sm font-medium text-thunder">
+              {field.field_label}
+              {field.is_required && (
+                <span className="text-bittersweet ml-1">*</span>
+              )}
+            </label>
+            <label className="flex items-center space-x-2">
+              <input
+                type="checkbox"
+                checked={value === true}
+                onChange={(e) => handleChange(e.target.checked)}
+                disabled={disabled}
+                className="h-4 w-4 text-heliotrope focus:ring-heliotrope border-concrete rounded disabled:opacity-50"
+              />
+              <span className="text-sm text-thunder">
+                {value === true ? "Yes" : "No"}
+              </span>
+            </label>
+            {error && <p className="text-sm text-bittersweet">{error}</p>}
+          </div>
         );
 
       default:
         return (
-          <input
+          <Input
+            label={field.field_label}
             type="text"
             value={value || ""}
             onChange={(e) => handleChange(e.target.value)}
             disabled={disabled}
-            className={baseInputClasses}
+            required={field.is_required}
+            error={error}
           />
         );
     }
   };
 
-  return (
-    <div className="space-y-1">
-      <label className="block text-sm font-medium text-thunder">
-        {field.field_label}
-        {field.is_required && <span className="text-red-500 ml-1">*</span>}
-      </label>
-      {renderInput()}
-      {error && <p className="text-sm text-red-600">{error}</p>}
-    </div>
-  );
+  return <div className="space-y-1">{renderInput()}</div>;
 }
 
 // Table cell renderer for custom fields

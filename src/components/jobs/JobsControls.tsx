@@ -1,6 +1,6 @@
 import React from "react";
 import { Search } from "lucide-react";
-import { Select } from "../ui";
+import { Select, Input } from "../ui";
 import type { JobsControlsProps } from "./types";
 
 export function JobsControls({
@@ -17,13 +17,10 @@ export function JobsControls({
       <div className="p-6 border-b border-concrete">
         <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between space-y-4 sm:space-y-0">
           {/* Search */}
-          <div className="relative flex-1 max-w-lg">
-            <div className="absolute inset-y-0 left-0 pl-3 flex items-center pointer-events-none">
-              <Search className="h-5 w-5 text-concrete" />
-            </div>
-            <input
+          <div className="flex-1 max-w-lg">
+            <Input
               type="text"
-              className="block w-full max-w-sm pl-10 pr-3 py-2 border border-concrete rounded-md leading-5 bg-white placeholder-gray-500 focus:outline-none focus:placeholder-gray-400 focus:ring-1 focus:ring-blue-500 focus:border-blue-500"
+              leftIcon={<Search className="h-5 w-5" />}
               placeholder="Search companies or positions..."
               value={searchTerm}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>
@@ -34,6 +31,7 @@ export function JobsControls({
                   setSearchTerm("");
                 }
               }}
+              containerClassName="max-w-sm"
             />
           </div>
 
