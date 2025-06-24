@@ -125,14 +125,15 @@ export function CustomFieldsManager({
         <div className="flex items-center justify-between p-6 border-b border-concrete">
           <div>
             <h2 className="text-xl font-semibold text-thunder">
-              Custom Fields -{" "}
+              Add Custom Fields to{" "}
               {tableName
                 .replace("_", " ")
                 .replace(/\b\w/g, (l) => l.toUpperCase())}
             </h2>
-            <p className="text-sm text-thunder mt-1">
-              Add custom columns to track additional information that matters to
-              you
+            <p className="text-sm text-thunder mt-1 max-w-xl">
+              Custom fields are used to track additional information Actioneer
+              doesn't automatically track, such as salary range, interview date,
+              etc.
             </p>
           </div>
           <button
@@ -170,7 +171,6 @@ export function CustomFieldsManager({
                     className="flex items-center justify-between p-4 bg-concrete rounded-lg"
                   >
                     <div className="flex items-center space-x-3">
-                      <GripVertical className="h-4 w-4 text-concrete" />
                       <div>
                         <h4 className="font-medium text-thunder">
                           {field.field_label}

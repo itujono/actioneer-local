@@ -20,8 +20,13 @@ export function useColumnOrder({
   const [columnOrder, setColumnOrder] =
     useState<ColumnConfig[]>(defaultColumns);
 
-  // Load saved column order from localStorage on mount
+  // Load saved column order from localStorage on mount and when defaultColumns change
   useEffect(() => {
+    // Only update if defaultColumns actually has content (not empty array)
+    if (defaultColumns.length === 0) {
+      return;
+    }
+
     try {
       const savedOrder = localStorage.getItem(storageKey);
       if (savedOrder) {
@@ -40,12 +45,15 @@ export function useColumnOrder({
           }
         });
 
-        // Add any new columns that weren't in the saved order
+        // Add any new columns that weren't in the saved order (like new custom fields)
         columnMap.forEach((column) => {
           orderedColumns.push(column);
         });
 
         setColumnOrder(orderedColumns);
+      } else {
+        // No saved order, use default columns
+        setColumnOrder(defaultColumns);
       }
     } catch (error) {
       console.warn("Failed to load column order from localStorage:", error);
