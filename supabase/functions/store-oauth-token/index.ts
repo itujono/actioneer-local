@@ -4,6 +4,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 interface TokenRequest {
   userEmail: string;
   accessToken: string;
+  refreshToken?: string;
   expiresAt: string;
 }
 
@@ -19,7 +20,7 @@ Deno.serve(async (req: Request) => {
 
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { userEmail, accessToken, expiresAt }: TokenRequest =
+    const { userEmail, accessToken, refreshToken, expiresAt }: TokenRequest =
       await req.json();
 
     if (!userEmail || !accessToken || !expiresAt) {
@@ -40,11 +41,15 @@ Deno.serve(async (req: Request) => {
 
     if (userError || !user) {
       console.error("❌ User not found:", userError);
+      console.error("❌ Searched for email:", userEmail.toLowerCase());
+      console.error("❌ UserError details:", JSON.stringify(userError));
       return new Response(JSON.stringify({ error: "User not found" }), {
         status: 404,
         headers: { "Content-Type": "application/json" },
       });
     }
+
+    console.log(`📝 Found user ID: ${user.id}, upserting token...`);
 
     // Upsert the OAuth token
     const { error: tokenError } = await supabase
@@ -53,6 +58,7 @@ Deno.serve(async (req: Request) => {
         {
           user_id: user.id,
           gmail_access_token: accessToken,
+          gmail_refresh_token: refreshToken || null,
           token_expires_at: expiresAt,
           updated_at: new Date().toISOString(),
         },
@@ -63,6 +69,7 @@ Deno.serve(async (req: Request) => {
 
     if (tokenError) {
       console.error("❌ Error storing token:", tokenError);
+      console.error("❌ Token error details:", JSON.stringify(tokenError));
       return new Response(JSON.stringify({ error: "Failed to store token" }), {
         status: 500,
         headers: { "Content-Type": "application/json" },

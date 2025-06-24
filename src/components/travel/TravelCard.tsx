@@ -37,7 +37,7 @@ export function TravelCard({ item, type, userLocation }: TravelCardProps) {
   };
 
   return (
-    <div className="rounded-md p-4 hover:shadow-md transition-shadow border border-thunder">
+    <div className="rounded-md p-4 hover:shadow-md transition-shadow border-2 border-gray-light">
       <div className="mb-3">
         {type === "flight" && (
           <div>

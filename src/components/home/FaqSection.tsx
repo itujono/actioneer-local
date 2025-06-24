@@ -69,6 +69,12 @@ export default function FAQSection() {
         "Right now, Actioneer works exclusively with Gmail through our Gmail add-on. We chose to perfect the Gmail experience first since it's the most widely used email platform. Support for other email clients like Outlook and Apple Mail is on our roadmap. Nonetheless, you can still use Actioneer even without the add-on by visiting the dashboard (https://actioneer.online/dashboard) and signing in with your Google account.",
     },
     {
+      id: "multiple-accounts",
+      question: "Can I connect multiple Gmail accounts?",
+      answer:
+        "Great question! We're currently working on multi-account support that will allow you to connect up to 2 Gmail accounts (like your personal and work emails) for a truly unified dashboard experience. This feature is coming soon and will let you see all your email insights in one centralized location. For now, Actioneer works with your primary Gmail account, but stay tuned for this game-changing update.",
+    },
+    {
       id: "pricing",
       question: "Is Actioneer free to use?",
       answer:

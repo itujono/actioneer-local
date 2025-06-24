@@ -358,14 +358,14 @@ function TravelDashboard() {
 
         {/* No destination message */}
         {!hasDestination && (
-          <div className="mt-8 bg-sandy/20 rounded-md p-8 text-center border-2 border-jade">
-            <div className="mx-auto w-16 h-16 bg-jade/10 rounded-full flex items-center justify-center mb-4">
-              <PlaneIcon className="h-8 w-8 text-jade" />
+          <div className="mt-8 bg-bittersweet rounded-md p-8 text-center">
+            <div className="mx-auto w-16 h-16 bg-gold/10 rounded-full flex items-center justify-center mb-4">
+              <PlaneIcon className="h-8 w-8 text-gold" />
             </div>
-            <h3 className="text-lg font-medium text-thunder mb-2">
+            <h3 className="text-2xl font-medium text-gold mb-2">
               Ready to Plan Your Next Adventure?
             </h3>
-            <p className="text-thunder mb-6 max-w-md mx-auto">
+            <p className="text-white mb-6 max-w-md mx-auto">
               Your travel recommendations will appear here when you analyze
               travel emails in Gmail. Check your recent travel emails below or
               head to Gmail to get started!
@@ -375,7 +375,7 @@ function TravelDashboard() {
                 href="https://mail.google.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md transition-colors bg-heliotrope text-white hover:bg-heliotrope/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-heliotrope"
+                className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md transition-colors bg-jade text-white hover:bg-jade/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-jade"
               >
                 <PlaneIcon className="h-4 w-4 mr-2" />
                 Open Gmail
@@ -419,8 +419,8 @@ function TravelDashboard() {
                 </Button>
               )}
             </div>
-            <div className="bg-white rounded-md border-2 border-thunder overflow-hidden">
-              <ul className="divide-y divide-thunder">
+            <div className="bg-white rounded-md border-2 border-gray-light overflow-hidden">
+              <ul className="divide-y divide-gray-light">
                 {savedTravels.map((travel) => {
                   // Ensure only one card is selected at a time
                   const isCurrentlySelected =

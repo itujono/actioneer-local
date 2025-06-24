@@ -64,7 +64,7 @@ export default function AutopilotSection() {
       color: "bittersweet",
       description: "We're just getting started.",
       details:
-        "We're working really hard to add more features to Actioneer; medical appointments, package deliveries, subscription renewals, event tickets, and so much more. Your inbox will become the ultimate command center for your entire digital life.",
+        "We're working really hard to add more features to Actioneer; multi-account support (so you can have a central inbox for all your accounts), medical appointments, package deliveries, subscription renewals, event tickets, and so much more. Your inbox will become the ultimate command center for your entire digital life.",
       testimonial: (
         <>
           "Feels like magic! Can't wait to see what else they'll automate!"

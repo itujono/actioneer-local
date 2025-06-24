@@ -40,20 +40,39 @@ export const JOB_APPLICATION_PATTERNS = {
 
   // Specific job application patterns
   positive: [
-    // Very specific application confirmations
-    /thank\s+you\s+for\s+your\s+application\s+(?:for|to)/i,
+    // Application acknowledgments and thank you emails
+    /thank\s+you\s+for\s+(?:your\s+)?(?:applying|application)(?:\s+for)?/i,
     /we\s+have\s+received\s+your\s+application\s+for/i,
     /your\s+application\s+for\s+the\s+(?:position|role)\s+of/i,
     /application\s+received.*position/i,
     /application\s+confirmation.*position/i,
+    /thanks\s+for\s+applying/i,
+    /appreciate\s+your\s+(?:interest|application)/i,
+
+    // Follow-up and next steps
+    /(?:as\s+)?(?:the\s+)?next\s+step/i,
+    /would\s+love\s+(?:for\s+you\s+)?to/i,
+    /we'd\s+love\s+(?:for\s+you\s+)?to/i,
+    /looking\s+forward\s+to\s+hearing\s+from\s+you/i,
+    /please\s+(?:send|share|provide)/i,
+    /impressed\s+with\s+your\s+(?:cv|resume|application)/i,
+    /get\s+to\s+know\s+you\s+better/i,
 
     // Interview specific patterns
     /interview\s+(?:invitation|request|scheduled|confirmation).*(?:position|role)/i,
     /(?:phone|video|zoom|teams)\s+interview.*(?:position|role)/i,
     /would\s+like\s+to\s+schedule.*interview/i,
     /interview\s+for\s+the\s+(?:position|role)\s+of/i,
+    /short\s+(?:\d+(?:-\d+)?\s+)?minute\s+video/i,
+    /video\s+introducing\s+yourself/i,
 
-    // Specific rejection patterns
+    // Position-specific mentions with company context
+    /(?:applying|applied)\s+for\s+the\s+[\w\s]+\s+position\s+at\s+\w+/i,
+    /position\s+at\s+[\w\s]+/i,
+    /role\s+at\s+[\w\s]+/i,
+    /this\s+role\s+at\s+\w+/i,
+
+    // Rejection patterns
     /unfortunately.*not\s+(?:selected|moving\s+forward|proceeding)/i,
     /regret\s+to\s+inform.*(?:position|application)/i,
     /decided\s+to\s+(?:proceed|move\s+forward)\s+with\s+(?:another|other)\s+candidate/i,
@@ -65,10 +84,15 @@ export const JOB_APPLICATION_PATTERNS = {
     /offer\s+of\s+employment/i,
     /congratulations.*(?:selected|chosen|offered)/i,
 
-    // Status update patterns (must be specific)
+    // Status update patterns
     /application\s+status\s+update.*(?:position|role)/i,
     /update\s+on\s+your\s+application\s+for/i,
     /status\s+of\s+your\s+application\s+for/i,
+
+    // GitHub/portfolio requests (common in tech interviews)
+    /github\s+profile/i,
+    /portfolio/i,
+    /review\s+(?:some\s+of\s+)?your\s+work/i,
   ],
 };
 
@@ -78,14 +102,18 @@ export function buildJobApplicationPrompt(emailData: EmailData): string {
     
     STRICT CRITERIA - The email MUST be:
     1. From a company/recruiter regarding a SPECIFIC job you applied to
-    2. About YOUR job application status, interview, offer, or rejection
+    2. About YOUR job application status, interview, offer, rejection, or follow-up
     3. NOT general career advice, job alerts, or promotional emails
     
     INCLUDE:
     - Application confirmations for specific positions
-    - Interview invitations/scheduling
+    - Follow-up emails asking for next steps (videos, portfolio, additional info)
+    - Interview invitations/scheduling/requests
     - Job rejection/offer emails for positions you applied to
     - Status updates on your specific applications
+    - Requests for GitHub profiles, portfolios, or additional materials
+    - "Thank you for applying" messages with next steps
+    - Positive responses expressing interest in your application
     
     EXCLUDE:
     - Job alerts from job boards (Indeed, LinkedIn, etc.)
@@ -93,6 +121,14 @@ export function buildJobApplicationPrompt(emailData: EmailData): string {
     - LinkedIn connection requests or messages
     - General "we're hiring" announcements
     - Emails about positions you didn't apply to
+    - Cold outreach emails from recruiters
+    
+    EXAMPLES OF WHAT TO INCLUDE:
+    - "Thank you for applying for the Frontend Engineer position..."
+    - "We were impressed with your CV and would love to get to know you better..."
+    - "As the next step, please send a video introducing yourself..."
+    - "Please share your GitHub profile so we can review your work..."
+    - "We'd like to schedule an interview for the position..."
     
     Email Subject: ${emailData.subject}
     From: ${emailData.from}
@@ -126,21 +162,59 @@ export function classifyJobApplication(
     (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
   );
 
-  // Additional context checks
+  // Enhanced context checks for follow-up emails and status updates
   const hasJobContext =
-    (bodyLower.includes("application") || bodyLower.includes("applied")) &&
-    (bodyLower.includes("position") ||
-      bodyLower.includes("role") ||
-      bodyLower.includes("job")) &&
-    !isFromCommonEmailProvider(fromLower) &&
-    (bodyLower.includes("your application") ||
-      bodyLower.includes("you applied") ||
-      bodyLower.includes("your interest"));
+    // Original application-related context
+    ((bodyLower.includes("application") || bodyLower.includes("applied")) &&
+      (bodyLower.includes("position") ||
+        bodyLower.includes("role") ||
+        bodyLower.includes("job")) &&
+      !isFromCommonEmailProvider(fromLower) &&
+      (bodyLower.includes("your application") ||
+        bodyLower.includes("you applied") ||
+        bodyLower.includes("your interest"))) ||
+    // Follow-up email context (like your example)
+    ((bodyLower.includes("thank you for applying") ||
+      bodyLower.includes("thanks for applying") ||
+      bodyLower.includes("appreciate your") ||
+      bodyLower.includes("impressed with your")) &&
+      (bodyLower.includes("position") ||
+        bodyLower.includes("role") ||
+        bodyLower.includes("cv") ||
+        bodyLower.includes("resume")) &&
+      !isFromCommonEmailProvider(fromLower)) ||
+    // Next steps context
+    ((bodyLower.includes("next step") ||
+      bodyLower.includes("would love") ||
+      bodyLower.includes("we'd love") ||
+      bodyLower.includes("looking forward")) &&
+      (bodyLower.includes("position") ||
+        bodyLower.includes("role") ||
+        bodyLower.includes("this role at") ||
+        bodyLower.includes("engineer") ||
+        bodyLower.includes("developer") ||
+        bodyLower.includes("analyst") ||
+        bodyLower.includes("manager")) &&
+      !isFromCommonEmailProvider(fromLower)) ||
+    // Interview/assessment requests
+    ((bodyLower.includes("video") ||
+      bodyLower.includes("github") ||
+      bodyLower.includes("portfolio") ||
+      bodyLower.includes("interview")) &&
+      (bodyLower.includes("position") ||
+        bodyLower.includes("role") ||
+        bodyLower.includes("background") ||
+        bodyLower.includes("work") ||
+        bodyLower.includes("introducing yourself")) &&
+      !isFromCommonEmailProvider(fromLower));
 
   if (hasSpecificJobPattern || hasJobContext) {
+    // Higher confidence for specific patterns, moderate for context
+    const confidence = hasSpecificJobPattern ? 0.85 : 0.75;
+
     return {
       type: "job_application",
-      confidence: hasSpecificJobPattern ? 0.8 : 0.6,
+      confidence: confidence,
       actions: getJobApplicationActions(),
       method: "pattern-based",
     };

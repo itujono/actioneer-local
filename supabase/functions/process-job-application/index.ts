@@ -278,9 +278,9 @@ async function extractJobDataWithAI(
       "company": "Company name (extracted from email domain, subject, or body)",
       "position": "Job position/title mentioned in the email",
       "status": "One of: applied, next_step, interview, offer, rejected, accepted",
-      "appliedDate": "Date in YYYY-MM-DD format (use today's date if not found)",
+      "appliedDate": "ACTUAL date when the application was submitted or email was sent in YYYY-MM-DD format (DO NOT use today's date - extract from email content or leave null)",
       "confidence": "Your confidence level (0-1) in the extraction",
-      "countryCode": "ISO 3166-1 alpha-2 country code if mentioned/determinable from company (e.g., US, GB, CA)",
+      "countryCode": "ISO 3166-1 alpha-2 country code ONLY if explicitly mentioned or determinable from company location (e.g., US, GB, CA) - leave null if uncertain",
       "details": {
         "workLocation": "Remote/On-site/Hybrid if mentioned",
         "salary": "Salary range if mentioned",
@@ -356,11 +356,9 @@ async function extractJobDataWithAI(
       company: jobData.company || extractCompanyFromEmail(from),
       position: jobData.position || "Unknown Position",
       status: validateStatus(jobData.status) || "applied",
-      appliedDate:
-        validateDate(jobData.appliedDate) ||
-        new Date().toISOString().split("T")[0],
+      appliedDate: validateDate(jobData.appliedDate) || null,
       confidence: jobData.confidence || 0.5,
-      countryCode: jobData.countryCode || extractCountryFromEmail(from) || null,
+      countryCode: jobData.countryCode || null,
       details: jobData.details || {},
     };
   } catch (error) {
@@ -386,9 +384,9 @@ function fallbackJobExtraction(
     company: company || "Unknown Company",
     position: position || "Unknown Position",
     status: status || "applied",
-    appliedDate: new Date().toISOString().split("T")[0],
+    appliedDate: null,
     confidence: 0.3,
-    countryCode: extractCountryFromEmail(from) || null,
+    countryCode: null,
     details: {
       extractionMethod: "fallback",
       emailFrom: from,

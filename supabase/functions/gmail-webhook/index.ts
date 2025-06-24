@@ -31,6 +31,57 @@ const supabase = createClient(
 // Gmail API configuration
 const GMAIL_API_BASE_URL = "https://gmail.googleapis.com/gmail/v1";
 
+async function tryRefreshToken(
+  user: any,
+  emailAddress: string
+): Promise<boolean> {
+  try {
+    console.log(`🔄 Attempting to refresh OAuth token for ${emailAddress}`);
+
+    // Call our refresh token Edge Function
+    const refreshResponse = await fetch(
+      `${Deno.env.get("SUPABASE_URL")}/functions/v1/refresh-oauth-token`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
+        },
+        body: JSON.stringify({
+          userEmail: emailAddress,
+        }),
+      }
+    );
+
+    if (!refreshResponse.ok) {
+      const errorText = await refreshResponse.text();
+      console.log(
+        `❌ Token refresh failed: ${refreshResponse.status} - ${errorText}`
+      );
+      return false;
+    }
+
+    const refreshResult = await refreshResponse.json();
+
+    if (refreshResult.success) {
+      console.log("✅ Token refreshed successfully");
+      return true;
+    } else {
+      console.log(`❌ Token refresh failed: ${refreshResult.error}`);
+
+      // Check if re-authentication is required
+      if (refreshResult.requiresReauth) {
+        console.log("🔐 Re-authentication required via Gmail add-on");
+      }
+
+      return false;
+    }
+  } catch (error) {
+    console.error("💥 Error during token refresh:", error);
+    return false;
+  }
+}
+
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
     return new Response("ok", { headers: corsHeaders });
@@ -199,9 +250,25 @@ async function processNewEmailsForUser(
       "📨 Starting webhook-based email processing for:",
       emailAddress
     );
-    console.log("🚀 Triggering Apps Script processing...");
 
-    // Get Apps Script webhook URL from environment
+    // Try direct processing first since Apps Script webhook has OAuth limitations
+    console.log(
+      "🔄 Attempting direct email processing via Supabase Edge Function..."
+    );
+
+    try {
+      await processEmailsDirectly(user, emailAddress, historyId);
+      console.log("✅ Direct processing completed successfully");
+      return;
+    } catch (directError) {
+      console.error(
+        "⚠️ Direct processing failed, trying Apps Script webhook as fallback:",
+        directError.message
+      );
+      console.error("🔍 Direct processing error stack:", directError.stack);
+    }
+
+    // Fallback to Apps Script webhook (if configured)
     const appsScriptWebhookUrl = Deno.env.get("APPS_SCRIPT_WEBHOOK_URL");
 
     if (
@@ -209,7 +276,7 @@ async function processNewEmailsForUser(
       appsScriptWebhookUrl === "placeholder_for_now"
     ) {
       console.log(
-        "⚠️ Apps Script webhook URL not configured yet, logging notification for manual processing"
+        "⚠️ Apps Script webhook URL not configured, logging notification for manual processing"
       );
       console.log(
         "💡 You can manually run 'testProcessRecentEmails()' in Apps Script to process emails"
@@ -217,6 +284,8 @@ async function processNewEmailsForUser(
       await logNotificationOnly(user, emailAddress);
       return;
     }
+
+    console.log("🚀 Trying Apps Script webhook as fallback...");
 
     // Trigger Apps Script to process recent emails
     const webhookPayload = {
@@ -254,7 +323,10 @@ async function processNewEmailsForUser(
         const { processedCount, jobApplicationsFound } = result.result;
 
         if (processedCount < 1) {
-          console.log("🔄 No emails processed, skipping");
+          console.log(
+            "🔄 No emails processed by Apps Script, falling back to direct processing"
+          );
+          await processEmailsDirectly(user, emailAddress, historyId);
           return;
         }
 
@@ -273,6 +345,7 @@ async function processNewEmailsForUser(
               processedCount: processedCount,
               jobApplicationsFound: jobApplicationsFound,
               triggeredByWebhook: true,
+              method: "apps_script",
             },
           })
           .eq("user_id", user.id)
@@ -281,27 +354,13 @@ async function processNewEmailsForUser(
           .limit(1);
       } else {
         console.error("❌ Apps Script processing failed:", result);
-        await supabase
-          .from("email_notifications")
-          .update({
-            processed: true,
-            processed_at: new Date().toISOString(),
-            processing_result: {
-              success: false,
-              error: result.error || "Unknown error",
-              triggeredByWebhook: true,
-            },
-          })
-          .eq("user_id", user.id)
-          .eq("email_address", emailAddress)
-          .order("created_at", { ascending: false })
-          .limit(1);
+        console.log("🔄 Falling back to direct processing");
+        await processEmailsDirectly(user, emailAddress, historyId);
       }
     } catch (fetchError) {
       console.error("💥 Error calling Apps Script webhook:", fetchError);
-
-      // Fall back to notification logging
-      await logNotificationOnly(user, emailAddress);
+      console.log("🔄 Falling back to direct processing");
+      await processEmailsDirectly(user, emailAddress, historyId);
     }
 
     console.log("✅ Webhook processing completed");
@@ -317,28 +376,155 @@ async function processEmailsDirectly(
 ) {
   try {
     console.log("🔄 Processing emails directly via Supabase Edge Function");
+    console.log("👤 User ID:", user.id);
+    console.log("📧 Email address:", emailAddress);
+    console.log("📊 History ID:", historyId);
 
     // Get access token for the user
+    console.log("🔑 Fetching OAuth token for user...");
     const { data: authData, error: authError } = await supabase
       .from("user_auth_tokens")
-      .select("gmail_access_token")
+      .select("gmail_access_token, token_expires_at")
       .eq("user_id", user.id)
       .single();
 
+    console.log("🔍 Auth query result - Error:", authError);
+    console.log("🔍 Auth query result - Data exists:", !!authData);
+
     if (authError || !authData?.gmail_access_token) {
-      console.error("❌ No valid access token found for user:", authError);
-      await logNotificationOnly(user, emailAddress);
-      return;
+      console.error(
+        "❌ No valid access token found for user:",
+        authError?.message || "Token not found"
+      );
+
+      // Try to find a recently stored token
+      const { data: recentToken } = await supabase
+        .from("user_auth_tokens")
+        .select("gmail_access_token, token_expires_at, created_at")
+        .eq("user_id", user.id)
+        .order("created_at", { ascending: false })
+        .limit(1)
+        .single();
+
+      if (!recentToken?.gmail_access_token) {
+        console.log(
+          "💡 No OAuth token available - user needs to use Gmail add-on first to authorize"
+        );
+        await logNotificationOnly(user, emailAddress);
+        return;
+      }
+
+      // Check if the recent token is expired
+      const expiresAt = new Date(recentToken.token_expires_at);
+      const now = new Date();
+
+      if (expiresAt <= now) {
+        console.log(
+          "⏰ Most recent OAuth token has expired - attempting automatic refresh..."
+        );
+
+        // Try to refresh the token automatically
+        const refreshSuccess = await tryRefreshToken(user, emailAddress);
+
+        if (refreshSuccess) {
+          console.log(
+            "✅ Token refreshed successfully, continuing with processing"
+          );
+          // Get the refreshed token
+          const { data: refreshedAuth } = await supabase
+            .from("user_auth_tokens")
+            .select("gmail_access_token")
+            .eq("user_id", user.id)
+            .single();
+
+          if (refreshedAuth?.gmail_access_token) {
+            authData.gmail_access_token = refreshedAuth.gmail_access_token;
+          }
+        } else {
+          console.log(
+            "❌ Token refresh failed - user needs to re-authorize via Gmail add-on"
+          );
+          await logNotificationOnly(user, emailAddress);
+          return;
+        }
+      } else {
+        console.log("✅ Found recent valid token, proceeding with that");
+        authData.gmail_access_token = recentToken.gmail_access_token;
+      }
+    } else {
+      // Check if current token is expired
+      const expiresAt = new Date(authData.token_expires_at);
+      const now = new Date();
+
+      if (expiresAt <= now) {
+        console.log(
+          "⏰ OAuth token has expired - attempting automatic refresh..."
+        );
+
+        // Try to refresh the token automatically
+        const refreshSuccess = await tryRefreshToken(user, emailAddress);
+
+        if (refreshSuccess) {
+          console.log(
+            "✅ Token refreshed successfully, continuing with processing"
+          );
+          // Get the refreshed token
+          const { data: refreshedAuth } = await supabase
+            .from("user_auth_tokens")
+            .select("gmail_access_token")
+            .eq("user_id", user.id)
+            .single();
+
+          if (refreshedAuth?.gmail_access_token) {
+            authData.gmail_access_token = refreshedAuth.gmail_access_token;
+          }
+        } else {
+          console.log(
+            "❌ Token refresh failed - user needs to re-authorize via Gmail add-on"
+          );
+          console.log("📝 Logging notification without processing");
+          await logNotificationOnly(user, emailAddress);
+          return;
+        }
+      }
     }
 
+    console.log("🔑 Using valid OAuth token for Gmail API access");
+    console.log("📧 Token expires at:", authData.token_expires_at);
+
     // Fetch recent emails from Gmail
+    console.log("📮 Fetching recent emails from Gmail API...");
     const emailRefs = await fetchRecentEmails(
       authData.gmail_access_token,
       historyId
     );
+
+    console.log("📬 Found", emailRefs.length, "recent emails to process");
+    if (emailRefs.length === 0) {
+      console.log("📭 No recent emails found to process");
+      await supabase
+        .from("email_notifications")
+        .update({
+          processed: true,
+          processed_at: new Date().toISOString(),
+          processing_result: {
+            success: true,
+            processedCount: 0,
+            message: "No recent emails found",
+            method: "direct_processing",
+          },
+        })
+        .eq("user_id", user.id)
+        .eq("email_address", emailAddress)
+        .order("created_at", { ascending: false })
+        .limit(1);
+      return;
+    }
+
     console.log(`📧 Found ${emailRefs.length} recent emails to process`);
 
     let processedCount = 0;
+    let jobApplicationsFound = 0;
     let receiptsFound = 0;
 
     // Process each email
@@ -407,8 +593,11 @@ async function processEmailsDirectly(
           console.log("💰 Receipt processed successfully");
         } else if (classification.type === "job_application") {
           await processJobApplicationEmail(user, emailContent, storedEmail.id);
+          jobApplicationsFound++;
+          console.log("💼 Job application processed successfully");
         } else if (classification.type === "travel") {
           await processTravelEmail(user, emailContent, storedEmail.id);
+          console.log("✈️ Travel email processed successfully");
         }
       } catch (emailError) {
         console.error(`Error processing email ${emailRef.id}:`, emailError);
@@ -425,7 +614,8 @@ async function processEmailsDirectly(
           success: true,
           processedCount: processedCount,
           receiptsFound: receiptsFound,
-          processedDirectly: true,
+          jobApplicationsFound: jobApplicationsFound,
+          method: "direct_processing",
         },
       })
       .eq("user_id", user.id)
@@ -434,7 +624,7 @@ async function processEmailsDirectly(
       .limit(1);
 
     console.log(
-      `🎉 Direct processing completed: ${processedCount} emails processed, ${receiptsFound} receipts found`
+      `🎉 Direct processing completed: ${processedCount} emails processed, ${receiptsFound} receipts found, ${jobApplicationsFound} job applications found`
     );
   } catch (error) {
     console.error("Error in direct email processing:", error);
@@ -472,14 +662,20 @@ async function fetchRecentEmails(accessToken: string, historyId?: string) {
     // If we have a history ID, we can fetch only emails since that point
     if (historyId) {
       url = `${GMAIL_API_BASE_URL}/users/me/history?startHistoryId=${historyId}&maxResults=10`;
+      console.log("📊 Using history ID approach with URL:", url);
+    } else {
+      console.log("📬 Using recent emails approach with URL:", url);
     }
 
+    console.log("📡 Making Gmail API request...");
     const response = await fetch(url, {
       headers: {
         Authorization: `Bearer ${accessToken}`,
         "Content-Type": "application/json",
       },
     });
+
+    console.log("📨 Gmail API response status:", response.status);
 
     if (!response.ok) {
       if (response.status === 401) {
@@ -493,20 +689,53 @@ async function fetchRecentEmails(accessToken: string, historyId?: string) {
     }
 
     const data = await response.json();
+    console.log("🔍 Gmail API response keys:", Object.keys(data));
+    console.log("🔍 Has history field:", !!data.history);
 
-    if (historyId && data.history) {
-      // Extract message IDs from history
-      const messageIds: { id: string }[] = [];
-      for (const historyItem of data.history) {
-        if (historyItem.messagesAdded) {
-          for (const messageAdded of historyItem.messagesAdded) {
-            messageIds.push({ id: messageAdded.message.id });
+    // Try history approach first if we have historyId
+    if (historyId) {
+      if (data.history && data.history.length > 0) {
+        // Extract message IDs from history
+        const messageIds: { id: string }[] = [];
+        for (const historyItem of data.history) {
+          if (historyItem.messagesAdded) {
+            for (const messageAdded of historyItem.messagesAdded) {
+              messageIds.push({ id: messageAdded.message.id });
+            }
           }
         }
+        console.log(`📊 History approach found ${messageIds.length} messages`);
+
+        if (messageIds.length > 0) {
+          return messageIds;
+        }
       }
-      return messageIds;
+
+      // History approach failed or returned no messages - always fall back to recent emails
+      console.log(
+        "🔄 History approach failed/empty, falling back to recent emails"
+      );
+      const fallbackUrl = `${GMAIL_API_BASE_URL}/users/me/messages?maxResults=10&q=newer_than:1h`;
+
+      const fallbackResponse = await fetch(fallbackUrl, {
+        headers: {
+          Authorization: `Bearer ${accessToken}`,
+          "Content-Type": "application/json",
+        },
+      });
+
+      if (fallbackResponse.ok) {
+        const fallbackData = await fallbackResponse.json();
+        console.log(
+          `🔄 Fallback approach found ${
+            (fallbackData.messages || []).length
+          } messages`
+        );
+        return fallbackData.messages || [];
+      }
     }
 
+    // Non-history approach (shouldn't reach here in webhook context)
     return data.messages || [];
   } catch (error) {
     console.error("Error fetching recent emails:", error);
@@ -777,8 +1006,23 @@ async function processJobApplicationEmail(
         company: jobData.company || "Unknown Company",
         position: jobData.position || "Unknown Position",
         status: jobData.status || "applied",
-        applied_date:
-          jobData.appliedDate || new Date().toISOString().split("T")[0],
+        applied_date: (() => {
+          // Ensure we always have a valid date - never allow null
+          if (jobData.appliedDate && jobData.appliedDate !== null) {
+            return jobData.appliedDate;
+          }
+
+          // Fallback to email date
+          try {
+            return new Date(emailContent.date).toISOString().split("T")[0];
+          } catch (dateError) {
+            console.warn(
+              "⚠️ Invalid email date, using current date:",
+              emailContent.date
+            );
+            return new Date().toISOString().split("T")[0];
+          }
+        })(),
         country_code: jobData.countryCode || null,
         country: jobData.countryCode
           ? getCountryName(jobData.countryCode)
@@ -1244,9 +1488,9 @@ async function extractJobDataWithAI(
       "company": "Company name (extracted from email domain, subject, or body)",
       "position": "Job position/title mentioned in the email",
       "status": "One of: applied, next_step, interview, offer, rejected, accepted",
-      "appliedDate": "Date in YYYY-MM-DD format (use today's date if not found)",
+      "appliedDate": "ACTUAL date when the application was submitted or email was sent in YYYY-MM-DD format (DO NOT use today's date - extract from email content or leave null)",
       "confidence": "Your confidence level (0-1) in the extraction",
-      "countryCode": "ISO 3166-1 alpha-2 country code if mentioned/determinable from company (e.g., US, GB, CA)",
+      "countryCode": "ISO 3166-1 alpha-2 country code ONLY if explicitly mentioned or determinable from company location (e.g., US, GB, CA) - leave null if uncertain",
       "details": {
         "workLocation": "Remote/On-site/Hybrid if mentioned",
         "salary": "Salary range if mentioned",
@@ -1255,6 +1499,21 @@ async function extractJobDataWithAI(
         "nextSteps": "Next steps mentioned in the email"
       }
     }
+    
+    EXTRACTION GUIDELINES:
+    
+    Company Name:
+    - Look for patterns like "Role at Company Name", "Position Role at Company Name"
+    - Check email signatures (company name often appears there)
+    - Look after "at", "from", "with", or before "team/careers/hiring"
+    - Extract from email domain if not from common providers (gmail, yahoo, etc.)
+    - Examples: "Senior Developer Role at The Puzzlers" → company: "The Puzzlers"
+    
+    Position/Role:
+    - Look for job titles like "Senior Developer", "Software Engineer", "Product Manager", etc.
+    - Check subject lines for patterns like "Final Step for Name - Position Role"
+    - Look for titles before "at Company" or "role/position"
+    - Examples: "Senior Developer Role at Company" → position: "Senior Developer"
     
     Status determination rules:
     - "applied": Initial application confirmation, acknowledgment only
@@ -1275,10 +1534,16 @@ async function extractJobDataWithAI(
     - Any progression beyond initial application receipt
     
     For country detection, consider:
-    - Company headquarters location if known
-    - Domain TLD (.co.uk = GB, .ca = CA, etc.)
+    - Company headquarters location if explicitly known
+    - Domain TLD (.co.uk = GB, .ca = CA, etc.) - BUT only if clearly indicating country
     - Explicit country mentions in email
-    - Office locations mentioned
+    - Office locations mentioned in email content
+    - IMPORTANT: If uncertain, leave countryCode as null - DO NOT guess or default to any country
+    
+    For appliedDate:
+    - Look for actual dates mentioned in the email (application submission dates, dates referenced in email content)
+    - Check email headers or timestamps if available
+    - If no specific application date is found, leave as null - DO NOT use current/today's date
     
     IMPORTANT: Respond with ONLY valid JSON, no markdown formatting or code blocks.
   `;
@@ -1322,11 +1587,25 @@ async function extractJobDataWithAI(
       company: jobData.company || extractCompanyFromEmail(from),
       position: jobData.position || "Unknown Position",
       status: validateStatus(jobData.status) || "applied",
-      appliedDate:
-        validateDate(jobData.appliedDate) ||
-        new Date().toISOString().split("T")[0],
+      appliedDate: (() => {
+        // Ensure we always have a valid date - never allow null
+        if (jobData.appliedDate && jobData.appliedDate !== null) {
+          return jobData.appliedDate;
+        }
+
+        // Fallback to email date
+        try {
+          return new Date(emailContent.date).toISOString().split("T")[0];
+        } catch (dateError) {
+          console.warn(
+            "⚠️ Invalid email date, using current date:",
+            emailContent.date
+          );
+          return new Date().toISOString().split("T")[0];
+        }
+      })(),
       confidence: jobData.confidence || 0.5,
-      countryCode: jobData.countryCode || extractCountryFromEmail(from) || null,
+      countryCode: jobData.countryCode || null, // Ensure this is null if not found
       details: jobData.details || {},
     };
   } catch (error) {
@@ -1352,9 +1631,9 @@ function fallbackJobExtraction(
     company: company || "Unknown Company",
     position: position || "Unknown Position",
     status: status || "applied",
-    appliedDate: new Date().toISOString().split("T")[0],
+    appliedDate: null, // Changed from using today's date to null
     confidence: 0.3,
-    countryCode: extractCountryFromEmail(from) || null,
+    countryCode: null, // Ensure this is null by default
     details: {
       extractionMethod: "fallback",
       emailFrom: from,
@@ -1386,41 +1665,67 @@ function extractCompanyFromEmail(from: string): string | null {
 
 function extractCompanyFromText(text: string): string | null {
   const companyPatterns = [
+    // Match "at Company Name" format (very common in job emails) - with better boundaries
+    /(?:role|position)\s+at\s+([A-Za-z\s&'.,-]+?)(?:\s+(?:hi|hello|dear|team|careers|hr|\n|$))/i,
+    // Match "Role at Company Name" format - with better boundaries
+    /\w+\s+(?:role|position|developer|engineer|manager|analyst|specialist)\s+at\s+([A-Za-z\s&'.,-]+?)(?:\s+(?:hi|hello|dear|team|careers|hr|\n|$))/i,
     // Match "Company Name" at end of subject after dash
-    /-\s*([A-Za-z\s&]+)\s*$/i,
+    /-\s*([A-Za-z\s&'.,-]+)\s*$/i,
     // Match "from Company Name team"
-    /from\s+([A-Za-z\s&]+)(?:\s+team|\s+careers|\s+hr)/i,
-    // Match "at Company Name"
-    /at\s+([A-Za-z\s&]+)(?:\s+team|\s+careers|\s+hr)/i,
+    /from\s+([A-Za-z\s&'.,-]+)(?:\s+team|\s+careers|\s+hr)/i,
+    // Match "at Company Name" (general) - with better boundaries
+    /\bat\s+([A-Za-z\s&'.,-]+?)(?:\s+(?:hi|hello|dear|team|careers|hr|and|\.|\n|$))/i,
     // Match "Company Name team"
-    /([A-Za-z\s&]+)\s+team/i,
+    /([A-Za-z\s&'.,-]+)\s+team/i,
     // Match "Company Name careers"
-    /([A-Za-z\s&]+)\s+careers/i,
+    /([A-Za-z\s&'.,-]+)\s+careers/i,
     // Match "Company Name hiring"
-    /([A-Za-z\s&]+)\s+hiring/i,
+    /([A-Za-z\s&'.,-]+)\s+hiring/i,
     // Match company name before "and your interest"
     /to\s+the\s+([^,\n\.]+)\s+and\s+your\s+interest/i,
     // Match "Best Regards, Company Name"
-    /best\s+regards,\s*([A-Za-z\s&]+)/i,
+    /best\s+regards,\s*([A-Za-z\s&'.,-]+)/i,
   ];
 
   for (const pattern of companyPatterns) {
     const match = text.match(pattern);
     if (match && match[1] && match[1].trim().length > 2) {
-      const company = match[1].trim();
-      // Filter out common non-company words
+      let company = match[1].trim();
+
+      // Clean up common trailing words and greetings
+      company = company.replace(
+        /\s+(team|careers|hr|hiring|department|hi|hello|dear)$/i,
+        ""
+      );
+
+      // Filter out common non-company words and ensure reasonable length
       const skipWords = [
+        "position",
+        "role",
+        "application",
+        "job",
+        "opportunity",
+        "opening",
+        "the team",
+        "our team",
         "team",
         "careers",
         "hr",
         "hiring",
         "department",
-        "position",
-        "role",
-        "application",
-        "job",
+        "hi",
+        "hello",
+        "dear",
       ];
-      if (!skipWords.some((word) => company.toLowerCase().includes(word))) {
+
+      if (
+        !skipWords.some(
+          (word) => company.toLowerCase() === word.toLowerCase()
+        ) &&
+        company.length > 1 &&
+        company.length < 50
+      ) {
+        // Add max length check
         return company;
       }
     }
@@ -1511,6 +1816,10 @@ function getCountryName(countryCode: string): string | null {
 
 function extractPositionFromText(text: string): string | null {
   const positionPatterns = [
+    // Match "Position Role at Company" format (very common)
+    /(?:for\s+)?([A-Za-z\s]+(?:Developer|Engineer|Manager|Analyst|Specialist|Designer|Coordinator|Director|Lead|Senior|Junior|Principal)(?:\s+Role|\s+Position)?)\s+at\s+[A-Za-z\s&'.,-]+/i,
+    // Match "Final Step for Name - Position Role"
+    /final\s+step\s+for\s+\w+\s*-\s*([A-Za-z\s]+(?:Developer|Engineer|Manager|Analyst|Specialist|Designer|Coordinator|Director|Lead|Senior|Junior|Principal)(?:\s+Role|\s+Position)?)/i,
     // Match "Position (Details) - Company" format
     /to\s+the\s+([^,\n\-]+?)(?:\s*\([^)]*\))?\s*-\s*[A-Za-z\s&]+\s+and/i,
     // Match "for the Position position"
@@ -1523,20 +1832,24 @@ function extractPositionFromText(text: string): string | null {
     /applying\s+for\s+([^,\n\.]+)/i,
     // Match "application to the Position"
     /application\s+to\s+the\s+([^,\n\.]+)/i,
+    // Match common job titles anywhere in text
+    /((?:Senior|Junior|Lead|Principal|Associate|Staff)\s+)?(?:Software\s+)?(?:Developer|Engineer|Manager|Analyst|Specialist|Designer|Coordinator|Director|Architect|Consultant)(?:\s+(?:Role|Position))?/i,
   ];
 
   for (const pattern of positionPatterns) {
     const match = text.match(pattern);
     if (match && match[1] && match[1].trim().length > 2) {
-      const position = match[1].trim();
+      let position = match[1].trim();
+
       // Clean up the position text
-      const cleanPosition = position
+      position = position
         .replace(/\s*\([^)]*\)\s*/g, "") // Remove parenthetical content
         .replace(/\s*-\s*.*$/, "") // Remove everything after dash
+        .replace(/\s+(role|position)$/i, "") // Remove trailing "role" or "position"
         .trim();
 
-      if (cleanPosition.length > 2) {
-        return cleanPosition;
+      if (position.length > 2) {
+        return position;
       }
     }
   }

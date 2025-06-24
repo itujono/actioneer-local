@@ -923,3 +923,176 @@ function fixStaleApiKey() {
     console.error("❌ Error fixing API key:", error);
   }
 }
+
+/**
+ * Test Gmail watch setup and webhook connectivity
+ */
+function testGmailWatchSetup() {
+  console.log("🧪 === TESTING GMAIL WATCH SETUP ===");
+  
+  try {
+    // 1. Check current watch status
+    console.log("1️⃣ Checking current Gmail watch status...");
+    const watchStatus = getGmailWatchStatus();
+    console.log("Watch status:", JSON.stringify(watchStatus, null, 2));
+    
+    // 2. Get user email
+    const userEmail = Session.getActiveUser().getEmail();
+    console.log("2️⃣ User email:", userEmail);
+    
+    // 3. Check if user API key exists
+    const userApiKey = PropertiesService.getUserProperties().getProperty("USER_API_KEY");
+    console.log("3️⃣ User API key exists:", !!userApiKey);
+    
+    // 4. Test webhook endpoint connectivity
+    console.log("4️⃣ Testing webhook endpoint...");
+    const webhookUrl = "https://whnvhuusxtnuvkhgfxnu.supabase.co/functions/v1/gmail-webhook";
+    try {
+      const response = UrlFetchApp.fetch(webhookUrl, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json"
+        },
+        payload: JSON.stringify({
+          test: true,
+          source: "apps-script-test",
+          timestamp: new Date().toISOString()
+        })
+      });
+      console.log("Webhook response:", response.getResponseCode(), response.getContentText());
+    } catch (webhookError) {
+      console.error("Webhook test failed:", webhookError);
+    }
+    
+    // 5. If no watch is active, try to set one up
+    if (!watchStatus.active) {
+      console.log("5️⃣ No active watch found, attempting to set up...");
+      const setupResult = setupGmailWatch();
+      console.log("Setup result:", JSON.stringify(setupResult, null, 2));
+    } else {
+      console.log("5️⃣ Gmail watch is already active - no setup needed");
+    }
+    
+    console.log("✅ Gmail watch test completed");
+    return {
+      success: true,
+      userEmail: userEmail,
+      watchStatus: watchStatus,
+      hasApiKey: !!userApiKey
+    };
+    
+  } catch (error) {
+    console.error("❌ Gmail watch test failed:", error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+}
+
+/**
+ * Test OAuth token storage process step by step
+ */
+function testOAuthTokenStorage() {
+  console.log("🧪 === TESTING OAUTH TOKEN STORAGE ==");
+  
+  try {
+    // 1. Check if we can get the current user
+    console.log("1️⃣ Getting current user...");
+    const userEmail = Session.getActiveUser().getEmail();
+    console.log("✅ Current user:", userEmail);
+    
+    // 2. Check if we can get OAuth token
+    console.log("2️⃣ Getting OAuth token...");
+    const accessToken = ScriptApp.getOAuthToken();
+    if (accessToken) {
+      console.log("✅ OAuth token obtained (length:", accessToken.length, ")");
+      console.log("🔍 Token preview:", accessToken.substring(0, 20) + "...");
+    } else {
+      console.log("❌ No OAuth token available");
+      return { success: false, error: "No OAuth token" };
+    }
+    
+    // 3. Check if user API key exists
+    console.log("3️⃣ Checking user API key...");
+    const userApiKey = getUserApiKeyByEmail(userEmail);
+    if (userApiKey) {
+      console.log("✅ User API key found");
+    } else {
+      console.log("❌ No user API key found");
+      return { success: false, error: "No user API key" };
+    }
+    
+    // 4. Test the store-oauth-token endpoint directly
+    console.log("4️⃣ Testing store-oauth-token endpoint...");
+    
+    const payload = {
+      userEmail: userEmail,
+      accessToken: accessToken,
+      expiresAt: new Date(Date.now() + 3600000).toISOString() // 1 hour from now
+    };
+    
+    console.log("📤 Payload being sent:", {
+      userEmail: payload.userEmail,
+      hasAccessToken: !!payload.accessToken,
+      expiresAt: payload.expiresAt
+    });
+    
+    const response = UrlFetchApp.fetch(BACKEND_API_URL + "/store-oauth-token", {
+      method: "POST",
+      headers: getEdgeFunctionHeaders(),
+      payload: JSON.stringify(payload)
+    });
+    
+    const responseCode = response.getResponseCode();
+    const responseText = response.getContentText();
+    
+    console.log("📨 Response code:", responseCode);
+    console.log("📨 Response text:", responseText);
+    
+    if (responseCode === 200) {
+      console.log("✅ OAuth token stored successfully!");
+      
+      // 5. Verify it was stored by trying to retrieve it
+      console.log("5️⃣ Verifying token was stored...");
+      const retrieveResponse = UrlFetchApp.fetch(BACKEND_API_URL + "/get-oauth-token", {
+        method: "POST",
+        headers: getEdgeFunctionHeaders(),
+        payload: JSON.stringify({ userEmail: userEmail })
+      });
+      
+      const retrieveCode = retrieveResponse.getResponseCode();
+      const retrieveText = retrieveResponse.getContentText();
+      
+      console.log("📥 Retrieve response code:", retrieveCode);
+      console.log("📥 Retrieve response text:", retrieveText);
+      
+      if (retrieveCode === 200) {
+        const retrieveData = JSON.parse(retrieveText);
+        if (retrieveData.success && retrieveData.accessToken) {
+          console.log("✅ Token successfully retrieved! OAuth storage is working.");
+          return { 
+            success: true, 
+            message: "OAuth token storage and retrieval working correctly",
+            userEmail: userEmail,
+            tokenStored: true,
+            tokenRetrieved: true
+          };
+        } else {
+          console.log("❌ Token was stored but couldn't be retrieved");
+          return { success: false, error: "Token storage succeeded but retrieval failed" };
+        }
+      } else {
+        console.log("❌ Token was stored but retrieval failed with code:", retrieveCode);
+        return { success: false, error: "Token retrieval failed: " + retrieveText };
+      }
+    } else {
+      console.log("❌ Failed to store OAuth token");
+      return { success: false, error: "Token storage failed: " + responseText };
+    }
+    
+  } catch (error) {
+    console.error("💥 Error in OAuth token storage test:", error);
+    return { success: false, error: error.toString() };
+  }
+}

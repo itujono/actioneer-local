@@ -73,8 +73,8 @@ export function TravelEmailCard({
     <li
       className={`px-6 py-4 cursor-pointer transition-all duration-200 border-l-4 ${
         isSelected
-          ? "bg-jade/10 border-jade shadow-sm ring-1 ring-jade/20 hover:bg-jade/15"
-          : "border-transparent hover:bg-concrete hover:border-jade/50"
+          ? "bg-concrete/50 border-gray-light shadow-sm hover:bg-concrete/80"
+          : "border-transparent hover:bg-concrete hover:border-gray-light"
       }`}
       onClick={() => onSelect(travel)}
     >

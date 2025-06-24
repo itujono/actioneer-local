@@ -365,25 +365,42 @@ function storeUserOAuthToken(userEmail) {
     // Only store token when running interactively (has OAuth session)
     const currentUser = Session.getActiveUser().getEmail();
     if (currentUser.toLowerCase() === userEmail.toLowerCase()) {
+      console.log("🔑 Getting OAuth tokens with refresh capability...");
+      
+      // Get user API key to make the request
+      const userApiKey = getUserApiKeyByEmail(userEmail);
+      if (!userApiKey) {
+        console.log("❌ Cannot store token: No user API key found");
+        return;
+      }
+      
+      // For Apps Script, we need to use ScriptApp.getOAuthToken() but enhance the flow
+      // Unfortunately, Apps Script doesn't directly provide refresh tokens
+      // So we'll implement a hybrid approach:
+      // 1. Use ScriptApp.getOAuthToken() for immediate access
+      // 2. Store it with a longer expiration (Apps Script handles refresh internally)
+      // 3. Add logic to detect when tokens are invalid and re-authenticate
+      
       const accessToken = ScriptApp.getOAuthToken();
       if (accessToken) {
         console.log("🔑 Storing OAuth token for future webhook use...");
         
-        // Get user API key to make the request
-        const userApiKey = getUserApiKeyByEmail(userEmail);
-        if (!userApiKey) {
-          console.log("❌ Cannot store token: No user API key found");
-          return;
-        }
+        // Apps Script OAuth tokens typically last longer than 1 hour
+        // We'll set a 6-hour expiration and add refresh logic
+        const expirationTime = new Date(Date.now() + 6 * 60 * 60 * 1000); // 6 hours from now
         
-        // Store token in Supabase
+        // For Apps Script, we'll use a special marker to indicate this is an Apps Script managed token
+        const refreshToken = "apps_script_managed_" + Date.now();
+        
+        // Store both access and refresh tokens in Supabase
         const payload = {
           userEmail: userEmail,
           accessToken: accessToken,
-          expiresAt: new Date(Date.now() + 3600000).toISOString() // 1 hour from now
+          refreshToken: refreshToken, // Special marker for Apps Script managed tokens
+          expiresAt: expirationTime.toISOString()
         };
         
-        const response = UrlFetchApp.fetch(SUPABASE_URL + "/functions/v1/store-oauth-token", {
+        const response = UrlFetchApp.fetch(BACKEND_API_URL + "/store-oauth-token", {
           method: "POST",
           headers: getEdgeFunctionHeaders(),
           payload: JSON.stringify(payload)
@@ -391,9 +408,12 @@ function storeUserOAuthToken(userEmail) {
         
         if (response.getResponseCode() === 200) {
           console.log("✅ OAuth token stored successfully for webhook use");
+          console.log("🔄 Token will expire at:", expirationTime.toISOString());
         } else {
           console.log("⚠️ Failed to store OAuth token:", response.getContentText());
         }
+      } else {
+        console.log("❌ No access token available from ScriptApp.getOAuthToken()");
       }
     }
   } catch (error) {
@@ -409,7 +429,7 @@ function getStoredOAuthToken(userEmail) {
     const userApiKey = getUserApiKeyByEmail(userEmail);
     if (!userApiKey) return null;
     
-    const response = UrlFetchApp.fetch(SUPABASE_URL + "/functions/v1/get-oauth-token", {
+    const response = UrlFetchApp.fetch(BACKEND_API_URL + "/get-oauth-token", {
       method: "POST",
       headers: getEdgeFunctionHeaders(),
       payload: JSON.stringify({ userEmail: userEmail })
@@ -751,6 +771,36 @@ function ensureUserApiKey() {
     if (userApiKey) {
       console.log("Using existing user API key");
       if (validateUserApiKey(userApiKey)) {
+        // User has valid API key - ensure Gmail watch is set up
+        console.log("🔔 Checking Gmail watch status...");
+        const watchStatus = getGmailWatchStatus();
+        if (!watchStatus.active) {
+          console.log("📡 Setting up Gmail watch for automatic processing...");
+          try {
+            const watchResult = setupGmailWatch();
+            if (watchResult.success) {
+              console.log("✅ Gmail watch setup successful");
+            } else {
+              console.warn("⚠️ Gmail watch setup failed:", watchResult.error);
+            }
+          } catch (watchError) {
+            console.warn("⚠️ Gmail watch setup error:", watchError);
+            // Don't fail the main flow if watch setup fails
+          }
+        } else {
+          console.log("✅ Gmail watch already active");
+        }
+
+        // Store OAuth token for webhook use
+        console.log("🔑 Storing OAuth token for webhook processing...");
+        try {
+          const userEmail = Session.getActiveUser().getEmail();
+          storeUserOAuthToken(userEmail);
+        } catch (tokenError) {
+          console.warn("⚠️ Failed to store OAuth token:", tokenError);
+          // Don't fail the main flow if token storage fails
+        }
+
         return userApiKey;
       } else {
         console.log("Existing API key is invalid, generating new one...");
@@ -758,24 +808,50 @@ function ensureUserApiKey() {
       }
     }
 
-    console.log("Generating new user API key...");
+    // Generate new API key
     const userEmail = Session.getActiveUser().getEmail();
-    const userName = userEmail.split("@")[0]; // Use email prefix as name
+    const userProfile = getUserProfile();
+    const userName = userProfile?.name || userEmail.split("@")[0];
+
+    console.log(`Generating new API key for: ${userName} (${userEmail})`);
+
     userApiKey = generateUserApiKey(userEmail, userName);
 
-    if (userApiKey) {
-      PropertiesService.getUserProperties().setProperty(
-        "USER_API_KEY",
-        userApiKey
-      );
-      console.log("User API key generated and stored successfully");
-      return userApiKey;
+    if (!userApiKey) {
+      console.error("Failed to generate user API key");
+      return null;
     }
 
-    console.error("Failed to generate user API key");
-    return null;
+    // Store the new API key
+    PropertiesService.getUserProperties().setProperty("USER_API_KEY", userApiKey);
+    console.log("✅ New user API key generated and stored");
+
+    // Set up Gmail watch for new users
+    console.log("🔔 Setting up Gmail watch for new user...");
+    try {
+      const watchResult = setupGmailWatch();
+      if (watchResult.success) {
+        console.log("✅ Gmail watch setup successful for new user");
+      } else {
+        console.warn("⚠️ Gmail watch setup failed for new user:", watchResult.error);
+      }
+    } catch (watchError) {
+      console.warn("⚠️ Gmail watch setup error for new user:", watchError);
+      // Don't fail the main flow if watch setup fails
+    }
+
+    // Store OAuth token for new users
+    console.log("🔑 Storing OAuth token for new user...");
+    try {
+      storeUserOAuthToken(userEmail);
+    } catch (tokenError) {
+      console.warn("⚠️ Failed to store OAuth token for new user:", tokenError);
+      // Don't fail the main flow if token storage fails
+    }
+
+    return userApiKey;
   } catch (error) {
-    console.error("Error ensuring user API key:", error);
+    console.error("Error in ensureUserApiKey:", error);
     return null;
   }
 }
