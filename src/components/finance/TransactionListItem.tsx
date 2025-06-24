@@ -24,11 +24,12 @@ export function TransactionListItem({
   return (
     <div className="p-4 hover:bg-concrete transition-colors duration-150">
       <div className="flex items-center justify-between">
-        {/* Left side: Icon, merchant, and description */}
         <section className="flex items-center space-x-4 flex-1 min-w-0">
           <div
             className={`flex-shrink-0 p-2 rounded-lg ${
-              transaction.type === "revenue" ? "bg-emerald-100" : "bg-red-100"
+              transaction.type === "revenue"
+                ? "bg-jade/20"
+                : "bg-bittersweet/20"
             }`}
           >
             {transaction.type === "revenue"
@@ -88,8 +89,7 @@ export function TransactionListItem({
           </div>
         </section>
 
-        {/* Right side: Amount and currency conversion */}
-        <div className="flex-shrink-0 text-right">
+        <section className="flex-shrink-0 text-right">
           <div
             className={`text-sm font-semibold ${
               transaction.type === "revenue" ? "text-jade" : "text-bittersweet"
@@ -106,7 +106,7 @@ export function TransactionListItem({
                 .toFixed(2)}
             </div>
           )}
-        </div>
+        </section>
       </div>
     </div>
   );

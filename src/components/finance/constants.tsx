@@ -67,8 +67,8 @@ export const categoryColors: Record<string, string> = {
   groceries: "bg-jade/10 text-jade",
   housing: "bg-concrete/20 text-thunder",
   transport: "bg-gold/10 text-gold",
-  other: "bg-concrete text-white",
-  default: "bg-concrete text-black",
+  other: "bg-thunder text-white",
+  default: "bg-concrete text-thunder",
 };
 
 // Revenue colors using our vibrant palette

@@ -105,7 +105,7 @@ export function TransactionsList({
       <div className="space-y-8">
         {Object.entries(groupedTransactions).map(
           ([dateString, transactionsForDay]) => (
-            <div key={dateString} className="space-y-2 px-8">
+            <div key={dateString} className="space-y-2">
               {/* Date Header with Daily Summary */}
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-black">
@@ -150,9 +150,7 @@ export function TransactionsList({
                 </div>
               </div>
 
-              {/* Conditional Rendering: Cards or List View */}
               {displayMode === "cards" ? (
-                /* Transaction Cards Grid */
                 <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-5 gap-4">
                   {transactionsForDay.map((transaction: any) => (
                     <TransactionCard

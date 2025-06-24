@@ -35,7 +35,9 @@ export function TransactionCard({
         <div className="flex items-center space-x-3">
           <div
             className={`flex-shrink-0 p-2 rounded-lg ${
-              transaction.type === "revenue" ? "bg-emerald-100" : "bg-red-100"
+              transaction.type === "revenue"
+                ? "bg-jade/20"
+                : "bg-bittersweet/20"
             }`}
           >
             {transaction.type === "revenue"

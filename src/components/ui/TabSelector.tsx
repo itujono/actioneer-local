@@ -41,7 +41,7 @@ export function TabSelector({
     <div className={`flex items-center space-x-2 ${className}`}>
       {label && <span className="text-sm font-medium text-black">{label}</span>}
       <div
-        className={`flex bg-concrete/20 rounded-lg ${containerSizeClasses[size]}`}
+        className={`flex bg-concrete/80 rounded-lg ${containerSizeClasses[size]}`}
       >
         {options.map((option) => (
           <button

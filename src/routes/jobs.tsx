@@ -515,18 +515,18 @@ function JobsDashboard() {
   const getStatusBadgeColor = (status: string) => {
     switch (status.toLowerCase()) {
       case "applied":
-        return "bg-bittersweet/10 text-bittersweet";
+        return "bg-bittersweet/20 text-bittersweet";
       case "next_step":
-        return "bg-purple-100 text-purple-800";
+        return "bg-heliotrope/20 text-heliotrope";
       case "interview":
       case "interviewing":
-        return "bg-yellow-100 text-yellow-800";
+        return "bg-yellow-200 text-yellow";
       case "offer":
       case "accepted":
-        return "bg-green-100 text-green-800";
+        return "bg-jade/20 text-jade";
       case "rejected":
       case "declined":
-        return "bg-red-100 text-red-800";
+        return "bg-bittersweet/20 text-bittersweet";
       default:
         return "bg-concrete text-thunder";
     }
