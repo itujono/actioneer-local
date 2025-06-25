@@ -1,4 +1,4 @@
-import { Calendar } from "lucide-react";
+import { Calendar, Trash2 } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { EditableCustomFieldCell } from "./custom-fields/CustomFieldInput";
 import {
@@ -7,6 +7,18 @@ import {
   getStatusBadgeColor,
   GmailButton,
 } from "./constants";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+  Button,
+} from "../ui";
 import type { JobTableRowProps } from "./types";
 
 export function JobTableRow({
@@ -15,6 +27,7 @@ export function JobTableRow({
   customFields,
   getCustomFieldValue,
   updateJobApplicationMutation,
+  onDeleteApplication,
 }: JobTableRowProps) {
   return (
     <tr key={application.id} className="hover:bg-concrete">
@@ -117,10 +130,51 @@ export function JobTableRow({
                 key={cellKey}
                 className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
               >
-                <GmailButton
-                  emailId={application.email_id}
-                  application={application}
-                />
+                <div className="flex items-center justify-end space-x-2">
+                  {/* <GmailButton
+                    emailId={application.email_id}
+                    application={application}
+                  /> */}
+                  {onDeleteApplication && (
+                    <AlertDialog>
+                      <AlertDialogTrigger asChild>
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="text-bittersweet hover:text-bittersweet/80"
+                          title="Delete job application"
+                        >
+                          <Trash2 className="h-4 w-4" />
+                        </Button>
+                      </AlertDialogTrigger>
+                      <AlertDialogContent>
+                        <AlertDialogHeader>
+                          <AlertDialogTitle>
+                            Delete Job Application
+                          </AlertDialogTitle>
+                          <AlertDialogDescription>
+                            Are you sure you want to delete the job application
+                            for <strong>{application.position}</strong> at{" "}
+                            <strong>{application.company}</strong>?
+                            <br />
+                            <br />
+                            This action cannot be undone and will permanently
+                            remove the application from your records.
+                          </AlertDialogDescription>
+                        </AlertDialogHeader>
+                        <AlertDialogFooter>
+                          <AlertDialogCancel>Cancel</AlertDialogCancel>
+                          <AlertDialogAction
+                            onClick={() => onDeleteApplication(application.id)}
+                            className="bg-red-600 hover:bg-red-700"
+                          >
+                            Delete Application
+                          </AlertDialogAction>
+                        </AlertDialogFooter>
+                      </AlertDialogContent>
+                    </AlertDialog>
+                  )}
+                </div>
               </td>
             );
 

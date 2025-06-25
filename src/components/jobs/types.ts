@@ -51,6 +51,7 @@ export interface JobsTableProps {
   startItem: number;
   endItem: number;
   onEditCustomField?: (fieldId: string) => void;
+  onDeleteApplication?: (applicationId: string) => void;
 }
 
 export interface JobTableRowProps {
@@ -59,4 +60,5 @@ export interface JobTableRowProps {
   customFields: any[];
   getCustomFieldValue: (details: any, fieldName: string) => any;
   updateJobApplicationMutation: any;
+  onDeleteApplication?: (applicationId: string) => void;
 }

@@ -29,6 +29,7 @@ export function JobsTable({
   startItem,
   endItem,
   onEditCustomField,
+  onDeleteApplication,
 }: JobsTableProps) {
   if (isLoading) {
     return (
@@ -119,6 +120,7 @@ export function JobsTable({
                     customFields={customFields}
                     getCustomFieldValue={getCustomFieldValue}
                     updateJobApplicationMutation={updateJobApplicationMutation}
+                    onDeleteApplication={onDeleteApplication}
                   />
                 ))}
               </tbody>

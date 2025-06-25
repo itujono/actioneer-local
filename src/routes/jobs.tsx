@@ -47,8 +47,7 @@ function JobsDashboard() {
   const [currentPage, setCurrentPage] = useState(1);
   const [pageSize, setPageSize] = useState(20);
 
-  // Use TanStack Query for auth management
-  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
 
   // Custom fields hook
   const {
@@ -111,7 +110,7 @@ function JobsDashboard() {
       key: "created_at",
       sortable: true,
     },
-    // { id: "actions", label: "Find Email", key: "actions", fixed: true }, // Fixed column
+    { id: "actions", label: "", key: "actions", fixed: true }, // Fixed column with no header name
   ];
 
   // Add custom fields to columns
@@ -202,6 +201,39 @@ function JobsDashboard() {
       });
     },
   });
+
+  // Mutation to delete job application
+  const deleteJobApplicationMutation = useMutation({
+    mutationFn: async (jobId: string) => {
+      if (!user) {
+        throw new Error("User not authenticated");
+      }
+
+      // Delete from database
+      const { error } = await supabase
+        .from("job_applications")
+        .delete()
+        .eq("id", jobId)
+        .eq("user_id", user.id); // Extra safety check
+
+      if (error) {
+        throw error;
+      }
+
+      return jobId;
+    },
+    onSuccess: () => {
+      // Invalidate and refetch job applications
+      queryClient.invalidateQueries({
+        queryKey: ["job-applications", user?.id],
+      });
+    },
+  });
+
+  // Handler for deleting job application
+  const handleDeleteApplication = (applicationId: string) => {
+    deleteJobApplicationMutation.mutate(applicationId);
+  };
 
   // Fetch job applications only when authenticated
   const {
@@ -472,6 +504,7 @@ function JobsDashboard() {
             startItem={startItem}
             endItem={endItem}
             onEditCustomField={handleEditCustomField}
+            onDeleteApplication={handleDeleteApplication}
           />
         </div>
       </div>
@@ -509,14 +542,6 @@ function JobsDashboard() {
         tableName="job_applications"
         userId={user?.id || ""}
       />
-
-      {/* Debug info for custom fields (to be removed) */}
-      {process.env.NODE_ENV === "development" && (
-        <div style={{ display: "none" }}>
-          {/* This prevents linter errors while we're developing */}
-          {customFields.length} {getCustomFieldValue({}, "test")}
-        </div>
-      )}
     </div>
   );
 }
