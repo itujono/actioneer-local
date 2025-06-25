@@ -9,9 +9,19 @@ import {
   DraggableTableHeader,
   DraggableCustomFieldHeader,
 } from "./DraggableTableHeader";
-import { JobTableRow } from "./JobTableRow";
+import { JobTableRow, GroupedJobTableRow } from "./JobTableRow";
 import { Button } from "../ui/button";
-import type { JobsTableProps } from "./types";
+import type { JobsTableProps, JobApplicationGroup } from "./types";
+
+// Update JobsTableProps to support grouped data
+export interface ExtendedJobsTableProps
+  extends Omit<JobsTableProps, "filteredAndSortedApplications"> {
+  filteredAndSortedApplications: {
+    data: any[]; // Can be JobApplication[] or empty when grouped
+    totalCount: number;
+    groups?: JobApplicationGroup[]; // Optional grouped data
+  };
+}
 
 export function JobsTable({
   isLoading,
@@ -30,7 +40,14 @@ export function JobsTable({
   endItem,
   onEditCustomField,
   onDeleteApplication,
-}: JobsTableProps) {
+}: ExtendedJobsTableProps) {
+  const isGroupedMode =
+    filteredAndSortedApplications.groups &&
+    filteredAndSortedApplications.groups.length > 0;
+  const hasData = isGroupedMode
+    ? filteredAndSortedApplications.groups!.length > 0
+    : filteredAndSortedApplications.data.length > 0;
+
   if (isLoading) {
     return (
       <div className="overflow-hidden">
@@ -42,7 +59,7 @@ export function JobsTable({
     );
   }
 
-  if (filteredAndSortedApplications.data.length === 0) {
+  if (!hasData) {
     return (
       <div className="overflow-hidden">
         <div className="py-12 text-center">
@@ -75,6 +92,10 @@ export function JobsTable({
                   strategy={horizontalListSortingStrategy}
                 >
                   <tr>
+                    {/* Tree connector column header */}
+                    <th className="w-8 py-3 text-left text-xs font-medium text-thunder/70 uppercase tracking-wider border-b border-concrete/20">
+                      {/* Empty header for tree connector */}
+                    </th>
                     {columnOrder.map((column) => {
                       // Check if this is a custom field column
                       if (column.id.startsWith("custom-")) {
@@ -112,17 +133,35 @@ export function JobsTable({
                 </SortableContext>
               </thead>
               <tbody className="bg-white divide-y divide-gray-light">
-                {filteredAndSortedApplications.data.map((application) => (
-                  <JobTableRow
-                    key={application.id}
-                    application={application}
-                    columnOrder={columnOrder}
-                    customFields={customFields}
-                    getCustomFieldValue={getCustomFieldValue}
-                    updateJobApplicationMutation={updateJobApplicationMutation}
-                    onDeleteApplication={onDeleteApplication}
-                  />
-                ))}
+                {isGroupedMode
+                  ? // Render grouped rows
+                    filteredAndSortedApplications.groups!.map((group) => (
+                      <GroupedJobTableRow
+                        key={group.groupKey}
+                        group={group}
+                        columnOrder={columnOrder}
+                        customFields={customFields}
+                        getCustomFieldValue={getCustomFieldValue}
+                        updateJobApplicationMutation={
+                          updateJobApplicationMutation
+                        }
+                        onDeleteApplication={onDeleteApplication}
+                      />
+                    ))
+                  : // Render individual rows
+                    filteredAndSortedApplications.data.map((application) => (
+                      <JobTableRow
+                        key={application.id}
+                        application={application}
+                        columnOrder={columnOrder}
+                        customFields={customFields}
+                        getCustomFieldValue={getCustomFieldValue}
+                        updateJobApplicationMutation={
+                          updateJobApplicationMutation
+                        }
+                        onDeleteApplication={onDeleteApplication}
+                      />
+                    ))}
               </tbody>
             </table>
           </DndContext>
@@ -164,7 +203,7 @@ export function JobsTable({
                   <span className="font-medium">
                     {filteredAndSortedApplications.totalCount}
                   </span>{" "}
-                  results
+                  {isGroupedMode ? "groups" : "results"}
                 </p>
               </div>
               <div>

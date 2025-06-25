@@ -8,7 +8,7 @@ import {
   Mail,
 } from "lucide-react";
 import { Button } from "../ui/button";
-import type { JobApplication } from "./types";
+import type { JobApplication, JobApplicationGroup } from "./types";
 
 // Helper function to get flag emoji from country code
 export const getFlagEmoji = (countryCode?: string): string => {
@@ -190,3 +190,107 @@ export const GmailButton = ({
     <ExternalLink className="h-3 w-3 ml-1" />
   </Button>
 );
+
+// Utility functions for job application grouping
+export const normalizeCompanyName = (company: string): string => {
+  return (
+    company
+      .toLowerCase()
+      .trim()
+      // Remove common company suffixes
+      .replace(/\b(inc|llc|ltd|corp|corporation|company|co)\b\.?/g, "")
+      // Remove special characters and extra spaces
+      .replace(/[^\w\s]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+  );
+};
+
+export const normalizePosition = (position: string): string => {
+  return (
+    position
+      .toLowerCase()
+      .trim()
+      // Normalize common variations
+      .replace(/\b(sr|senior)\b/g, "senior")
+      .replace(/\b(jr|junior)\b/g, "junior")
+      .replace(/\bdeveloper\b/g, "developer")
+      .replace(/\bengineer\b/g, "engineer")
+      .replace(/\bsoftware\b/g, "software")
+      // Remove special characters and extra spaces
+      .replace(/[^\w\s]/g, "")
+      .replace(/\s+/g, " ")
+      .trim()
+  );
+};
+
+export const generateGroupKey = (company: string, position: string): string => {
+  const normalizedCompany = normalizeCompanyName(company);
+  const normalizedPosition = normalizePosition(position);
+  return `${normalizedCompany}|||${normalizedPosition}`;
+};
+
+export const groupJobApplications = (
+  applications: JobApplication[]
+): JobApplicationGroup[] => {
+  const groups = new Map<string, JobApplication[]>();
+
+  // Group applications by normalized company + position
+  applications.forEach((app) => {
+    const groupKey = generateGroupKey(app.company, app.position);
+    if (!groups.has(groupKey)) {
+      groups.set(groupKey, []);
+    }
+    groups.get(groupKey)!.push(app);
+  });
+
+  // Convert groups to JobApplicationGroup objects
+  return Array.from(groups.entries()).map(([groupKey, apps]) => {
+    // Sort applications by date (newest first)
+    const sortedApps = [...apps].sort(
+      (a, b) =>
+        new Date(b.created_at).getTime() - new Date(a.created_at).getTime()
+    );
+
+    // Create status history sorted by date
+    const statusHistory = sortedApps.map((app) => ({
+      status: app.status,
+      date: app.created_at,
+      application: app,
+    }));
+
+    const latestApp = sortedApps[0];
+
+    return {
+      groupKey,
+      company: latestApp.company, // Use the latest application's company name
+      position: latestApp.position, // Use the latest application's position name
+      applications: sortedApps,
+      latestStatus: latestApp.status,
+      latestDate: latestApp.created_at,
+      statusHistory,
+      isGrouped: apps.length > 1, // True if this group contains multiple applications
+    };
+  });
+};
+
+export const shouldGroupApplications = (
+  app1: JobApplication,
+  app2: JobApplication
+): boolean => {
+  const key1 = generateGroupKey(app1.company, app1.position);
+  const key2 = generateGroupKey(app2.company, app2.position);
+
+  // Basic grouping: same normalized company + position
+  if (key1 !== key2) return false;
+
+  // Additional checks for edge cases
+  const timeDiff = Math.abs(
+    new Date(app1.created_at).getTime() - new Date(app2.created_at).getTime()
+  );
+  const sixMonthsInMs = 6 * 30 * 24 * 60 * 60 * 1000; // ~6 months
+
+  // Don't group if applications are more than 6 months apart
+  // (probably different application cycles)
+  return timeDiff <= sixMonthsInMs;
+};

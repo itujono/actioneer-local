@@ -12,6 +12,27 @@ export type JobApplication = {
   created_at: string;
 };
 
+// New types for grouping feature
+export type JobApplicationGroup = {
+  groupKey: string; // normalized company + position
+  company: string;
+  position: string;
+  applications: JobApplication[];
+  latestStatus: string;
+  latestDate: string;
+  statusHistory: Array<{
+    status: string;
+    date: string;
+    application: JobApplication;
+  }>;
+  isGrouped: boolean;
+};
+
+export type GroupedJobApplications = {
+  data: JobApplicationGroup[];
+  totalCount: number;
+};
+
 export type SortConfig = {
   key: keyof JobApplication;
   direction: "asc" | "desc";
@@ -25,6 +46,8 @@ export interface JobsControlsProps {
   uniqueStatuses: string[];
   pageSize: number;
   setPageSize: (size: number) => void;
+  groupSimilarApplications: boolean;
+  setGroupSimilarApplications: (grouped: boolean) => void;
 }
 
 export interface JobsStatsProps {

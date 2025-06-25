@@ -190,6 +190,8 @@ interface EditableCustomFieldCellProps {
   value: any;
   onSave: (newValue: any) => Promise<void>;
   disabled?: boolean;
+  isGrouped?: boolean;
+  groupCount?: number;
 }
 
 export function EditableCustomFieldCell({
@@ -197,10 +199,13 @@ export function EditableCustomFieldCell({
   value,
   onSave,
   disabled = false,
+  isGrouped = false,
+  groupCount = 1,
 }: EditableCustomFieldCellProps) {
   const [isEditing, setIsEditing] = React.useState(false);
   const [editValue, setEditValue] = React.useState(value);
   const [error, setError] = React.useState<string | null>(null);
+  const [isSaving, setIsSaving] = React.useState(false);
   const [containerWidth, setContainerWidth] = React.useState<number | null>(
     null
   );
@@ -223,7 +228,7 @@ export function EditableCustomFieldCell({
   }, [isEditing]);
 
   const handleEdit = () => {
-    if (disabled) return;
+    if (disabled || isSaving) return;
 
     // Capture the current width before switching to edit mode
     if (displayContainerRef.current) {
@@ -252,11 +257,14 @@ export function EditableCustomFieldCell({
     }
 
     try {
+      setIsSaving(true);
       await onSave(editValue);
       setIsEditing(false);
       setContainerWidth(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
+    } finally {
+      setIsSaving(false);
     }
   };
 
@@ -303,8 +311,9 @@ export function EditableCustomFieldCell({
   const containerBaseClasses = "group flex items-center space-x-2 relative";
   const cellBaseClasses =
     "w-full h-[34px] px-3 py-1.5 text-sm bg-white border-2 border-transparent rounded-md flex items-center";
-  const inputClasses =
-    "w-full h-[34px] px-3 py-1.5 text-sm bg-white border-2 border-concrete rounded-md focus:outline-none focus:ring-0 focus:border-heliotrope transition-colors";
+  const inputClasses = `w-full h-[34px] px-3 py-1.5 text-sm bg-white border-2 border-concrete rounded-md focus:outline-none focus:ring-0 focus:border-heliotrope transition-colors ${
+    isSaving ? "opacity-50" : ""
+  }`;
 
   const renderEditInput = () => {
     switch (field.field_type) {
@@ -441,8 +450,8 @@ export function EditableCustomFieldCell({
   return (
     <div
       className={`${containerBaseClasses} ${
-        disabled ? "" : "cursor-pointer hover:bg-concrete rounded px-1"
-      }`}
+        disabled || isSaving ? "" : "cursor-pointer rounded px-1"
+      } ${isSaving ? "opacity-75" : ""}`}
       onClick={handleEdit}
       ref={displayContainerRef}
       style={
@@ -455,26 +464,33 @@ export function EditableCustomFieldCell({
         // Edit mode - maintain exact same width as display mode
         <>
           <div className="flex-1">{renderEditInput()}</div>
-          {/* Invisible spacer to maintain consistent layout - matches icon width */}
-          <div className="h-3 w-3 flex-shrink-0 opacity-0">
-            <svg className="h-3 w-3" viewBox="0 0 24 24">
-              <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-            </svg>
-          </div>
+          {/* Show group indicator when saving */}
+          {isSaving && isGrouped && groupCount > 1 ? (
+            <div className="h-3 w-3 flex-shrink-0 flex items-center justify-center">
+              <div className="w-2 h-2 bg-heliotrope rounded-full animate-pulse"></div>
+            </div>
+          ) : (
+            /* Invisible spacer to maintain consistent layout - matches icon width */
+            <div className="h-3 w-3 flex-shrink-0 opacity-0">
+              <svg className="h-3 w-3" viewBox="0 0 24 24">
+                <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </div>
+          )}
         </>
       ) : (
         // Display mode - natural width that gets measured
         <>
           <div
             className={`${cellBaseClasses} ${
-              disabled ? "" : "hover:border-concrete"
-            } min-w-0 max-w-40 flex-1`}
+              disabled || isSaving ? "" : "hover:border-concrete"
+            } min-w-0 max-w-40 flex-1 ${isGrouped && groupCount > 1 ? "" : ""}`}
           >
             <span className="text-sm text-thunder truncate">
               {formatDisplayValue()}
             </span>
           </div>
-          {!disabled && (
+          {!disabled && !isSaving && (
             <svg
               className="h-3 w-3 text-concrete opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
               fill="none"
@@ -489,8 +505,29 @@ export function EditableCustomFieldCell({
               />
             </svg>
           )}
-          {/* Render invisible icon for disabled state to maintain consistent spacing */}
-          {disabled && (
+          {/* Show group indicator for grouped fields */}
+          {isGrouped && groupCount > 1 && !isSaving && (
+            <div
+              className="h-3 w-3 flex-shrink-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
+              title={`Updates all ${groupCount} applications`}
+            >
+              <svg
+                className="h-3 w-3 text-heliotrope"
+                fill="none"
+                stroke="currentColor"
+                viewBox="0 0 24 24"
+              >
+                <path
+                  strokeLinecap="round"
+                  strokeLinejoin="round"
+                  strokeWidth={2}
+                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
+                />
+              </svg>
+            </div>
+          )}
+          {/* Render invisible icon for disabled state or single items to maintain consistent spacing */}
+          {(disabled || !isGrouped || groupCount === 1) && !isSaving && (
             <div className="h-3 w-3 flex-shrink-0 opacity-0">
               <svg className="h-3 w-3" viewBox="0 0 24 24">
                 <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
@@ -505,6 +542,15 @@ export function EditableCustomFieldCell({
         <div className="absolute top-full left-0 mt-1 z-20">
           <p className="text-xs text-red-600 bg-white px-1 py-0.5 rounded shadow-sm border">
             {error}
+          </p>
+        </div>
+      )}
+
+      {/* Group update feedback */}
+      {isSaving && isGrouped && groupCount > 1 && (
+        <div className="absolute top-full left-0 mt-1 z-20">
+          <p className="text-xs text-heliotrope bg-white px-2 py-1 rounded shadow-sm border border-heliotrope/20">
+            Updating {groupCount} applications...
           </p>
         </div>
       )}

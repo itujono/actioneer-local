@@ -16,7 +16,12 @@ import {
   JobsControls,
   JobsTable,
 } from "../components/jobs";
-import type { JobApplication, SortConfig } from "../components/jobs/types";
+import type {
+  JobApplication,
+  SortConfig,
+  JobApplicationGroup,
+} from "../components/jobs/types";
+import { groupJobApplications } from "../components/jobs/constants";
 import {
   Button,
   Dialog,
@@ -42,6 +47,8 @@ function JobsDashboard() {
     string | null
   >(null);
   const [showCustomFieldsManager, setShowCustomFieldsManager] = useState(false);
+  const [groupSimilarApplications, setGroupSimilarApplications] =
+    useState(true);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -302,9 +309,9 @@ function JobsDashboard() {
     enabled: !!user && !authLoading, // Only run when user is authenticated
   });
 
-  // Filter and sort applications
+  // Filter and sort applications with grouping support
   const filteredAndSortedApplications = useMemo(() => {
-    if (!jobApplications) return { data: [], totalCount: 0 };
+    if (!jobApplications) return { data: [], totalCount: 0, groups: [] };
 
     let filtered = jobApplications.filter((app: JobApplication) => {
       const matchesSearch =
@@ -342,12 +349,40 @@ function JobsDashboard() {
 
     const totalCount = filtered.length;
 
+    // Group applications if enabled
+    let groups: JobApplicationGroup[] = [];
+    let finalData: JobApplication[] = filtered;
+
+    if (groupSimilarApplications) {
+      groups = groupJobApplications(filtered);
+
+      // Sort groups by the latest application date
+      groups.sort((a, b) => {
+        const aDate = new Date(a.latestDate).getTime();
+        const bDate = new Date(b.latestDate).getTime();
+        return sortConfig.direction === "asc" ? aDate - bDate : bDate - aDate;
+      });
+    }
+
     // Apply pagination
+    const itemsToPage = groupSimilarApplications ? groups : filtered;
     const startIndex = (currentPage - 1) * pageSize;
     const endIndex = startIndex + pageSize;
-    const paginatedData = filtered.slice(startIndex, endIndex);
+    const paginatedItems = itemsToPage.slice(startIndex, endIndex);
 
-    return { data: paginatedData, totalCount };
+    if (groupSimilarApplications) {
+      return {
+        data: [],
+        totalCount: groups.length,
+        groups: paginatedItems as JobApplicationGroup[],
+      };
+    } else {
+      return {
+        data: paginatedItems as JobApplication[],
+        totalCount,
+        groups: [],
+      };
+    }
   }, [
     jobApplications,
     searchTerm,
@@ -355,6 +390,7 @@ function JobsDashboard() {
     sortConfig,
     currentPage,
     pageSize,
+    groupSimilarApplications,
   ]);
 
   // Calculate pagination info
@@ -485,6 +521,8 @@ function JobsDashboard() {
           uniqueStatuses={uniqueStatuses}
           pageSize={pageSize}
           setPageSize={setPageSize}
+          groupSimilarApplications={groupSimilarApplications}
+          setGroupSimilarApplications={setGroupSimilarApplications}
         />
 
         <div className="mt-8 bg-concrete/50">
