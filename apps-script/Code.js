@@ -1489,22 +1489,51 @@ function classifyEmailClientSide(emailData) {
     };
   }
 
-  // Receipt patterns (more specific)
-  const specificReceiptPatterns = [
-    /receipt.*(?:purchase|order|payment)/i,
-    /invoice.*(?:payment|due|amount)/i,
-    /payment\s+(?:confirmation|receipt|successful)/i,
-    /order\s+(?:confirmation|receipt|summary)/i,
-    /transaction\s+(?:receipt|confirmation|summary)/i,
-    /purchase\s+(?:confirmation|receipt|summary)/i,
-    /your\s+(?:receipt|invoice|bill)/i,
+  // FIRST: Check for future/reminder patterns - EXCLUDE these immediately
+  const futureNotificationPatterns = [
+    /(?:will|going\s+to|about\s+to)\s+(?:renew|charge|bill|auto-renew)/i,
+    /subscription\s+(?:will|is\s+about\s+to)\s+renew/i,
+    /(?:upcoming|next|future)\s+(?:billing|payment|charge|renewal)/i,
+    /(?:reminder|notice|heads?\s*up).*(?:renewal|billing|payment)/i,
+    /(?:renew|charge|bill).*(?:soon|tomorrow|next\s+\w+|on\s+\w+\s+\d+)/i,
+    /(?:expir|renew).*(?:on|in)\s+\d+/i,
+    /payment\s+method.*(?:update|change|expires?)/i,
+    /billing\s+information.*(?:update|change|expires?)/i,
   ];
+
+  const isFutureNotification = futureNotificationPatterns.some(
+    (pattern) => pattern.test(subject) || pattern.test(body)
+  );
+
+  if (isFutureNotification) {
+    console.log("🚫 Client-side: Excluded as future billing notification/reminder");
+    return {
+      type: "other",
+      confidence: 0.9,
+      actions: [],
+      method: "client-side-excluded-future",
+    };
+  }
+
+  // Receipt patterns (more specific - must have completion indicators)
+  const specificReceiptPatterns = [
+    /(?:thank\s+you|thanks).*(?:purchase|payment|order)/i,
+    /payment.*(?:successful|completed|processed|confirmed)/i,
+    /(?:purchase|order).*(?:confirmation|completed|successful)/i,
+    /transaction.*(?:receipt|completed|successful|confirmed)/i,
+    /(?:receipt|invoice).*(?:paid|processed|completed)/i,
+    /your.*(?:receipt|invoice).*(?:for|#)/i,
+  ];
+
+  const hasCompletionIndicators = 
+    /(?:thank\s+you|thanks|successful|completed|processed|confirmed|received|paid|charged).*(?:payment|purchase|order|transaction)/i.test(body) ||
+    /(?:payment|purchase|order|transaction).*(?:successful|completed|processed|confirmed|received|paid)/i.test(body);
 
   const hasSpecificReceiptPattern = specificReceiptPatterns.some(
     (pattern) => pattern.test(subject) || pattern.test(body)
   );
 
-  if (hasSpecificReceiptPattern) {
+  if (hasSpecificReceiptPattern && hasCompletionIndicators) {
     console.log("✅ Client-side classification: receipt");
     return {
       type: "receipt",

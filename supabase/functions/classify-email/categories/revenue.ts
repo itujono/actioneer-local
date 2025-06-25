@@ -77,6 +77,17 @@ export const REVENUE_PATTERNS = {
     /google\s+pay.*received/i,
   ],
 
+  // EXCLUSION PATTERNS - Future notifications, pending transfers, failed transactions
+  future_notifications: [
+    /(?:will|going\s+to|about\s+to)\s+(?:receive|transfer|send|deposit)/i,
+    /(?:upcoming|next|future)\s+(?:payment|transfer|deposit|payout)/i,
+    /(?:pending|processing|in\s+progress).*(?:transfer|payment|deposit)/i,
+    /(?:failed|declined|rejected).*(?:transfer|payment|deposit)/i,
+    /(?:scheduled|planned).*(?:transfer|payment|deposit)/i,
+    /transfer.*(?:on\s+hold|delayed|suspended)/i,
+    /payment.*(?:method|verification).*(?:required|needed)/i,
+  ],
+
   // Cryptocurrency and withdrawal patterns
   crypto_withdrawals: [
     /withdrawal\s+(?:successful|completed|processed)/i,
@@ -160,48 +171,58 @@ export function buildRevenuePrompt(emailData: EmailData): string {
   return `
     Analyze this email to determine if it represents incoming money/revenue.
     
-    REVENUE EMAIL TYPES:
-    - Payment received confirmations (clients, customers, etc.)
-    - Refunds and reimbursements from merchants
-    - Business income (invoices paid, freelance payments, commissions)
-    - Investment income (dividends, interest, trading profits)
-    - Government payments (tax refunds, benefits, stimulus)
-    - Digital platform income (PayPal, Venmo, Stripe received payments)
-    - Cryptocurrency withdrawals to bank accounts (money coming to you)
-    - Sales income (marketplace sales, product sales)
-    - Insurance payouts and settlements
-    - Rental income payments
-    - Cryptocurrency gains and profits
+    ⚠️ CRITICAL: ONLY classify as revenue if money has ALREADY been received/deposited (past tense).
     
-    SPECIFIC PATTERNS TO LOOK FOR:
-    - "Payment received" or "Money received"
-    - "Refund issued" or "Credit applied"
-    - "Funds deposited" or "Transfer completed"
-    - "Invoice #ABC-123 paid"
-    - "Tax refund processed"
-    - "Dividend payment"
-    - "Sale completed" or "Item sold"
-    - "Insurance claim approved"
-    - "Withdrawal successful" or "Successfully withdrawn"
-    - "Transferred to your bank account"
+    REVENUE EMAIL TYPES (COMPLETED TRANSACTIONS ONLY):
+    - Payment received confirmations (clients, customers, etc.) - money already in account
+    - Refunds and reimbursements from merchants - refund already processed
+    - Business income (invoices paid, freelance payments, commissions) - payment completed
+    - Investment income (dividends, interest, trading profits) - already credited
+    - Government payments (tax refunds, benefits, stimulus) - funds already deposited
+    - Digital platform income (PayPal, Venmo, Stripe received payments) - money received
+    - Cryptocurrency withdrawals to bank accounts - transfer already completed
+    - Sales income (marketplace sales, product sales) - payment already received
+    - Insurance payouts and settlements - claim already paid
+    - Rental income payments - rent already received
+    - Cryptocurrency gains and profits - already realized
+    
+    SPECIFIC PATTERNS TO LOOK FOR (PAST TENSE ONLY):
+    - "Payment received" or "Money has been received"
+    - "Refund has been issued" or "Credit applied to your account"
+    - "Funds deposited" or "Transfer completed successfully"
+    - "Invoice #ABC-123 has been paid"
+    - "Tax refund processed and deposited"
+    - "Dividend payment credited"
+    - "Sale completed" or "Item sold - payment received"
+    - "Insurance claim approved and paid"
+    - "Withdrawal successful" or "Successfully withdrawn to your account"
+    - "Transferred to your bank account" or "Deposit completed"
     - "Crypto withdrawal completed"
     
-    INCLUDE:
-    - Any notification that money is coming INTO your account
-    - Refunds for previous purchases
-    - Payments for services rendered
-    - Investment returns and gains
-    - Government payments and refunds
-    - Marketplace and platform payouts
-    - Cryptocurrency withdrawals to your bank account
-    - Money transfers from digital platforms to your bank
+    INCLUDE ONLY:
+    - Notifications that money has ALREADY arrived in your account (past tense)
+    - Completed refunds with confirmation language
+    - Payments for services already rendered and confirmed received
+    - Investment returns and gains already credited
+    - Government payments and refunds already deposited
+    - Marketplace and platform payouts already completed
+    - Cryptocurrency withdrawals already completed to your bank
     
-    EXCLUDE:
+    🚫 STRICTLY EXCLUDE:
+    - Future payment notifications ("will receive", "upcoming payment", "scheduled transfer")
+    - Pending transactions ("processing", "in progress", "pending approval")
+    - Failed or declined transactions
+    - Payment due reminders or invoices
     - Marketing emails about potential earnings
     - Investment loss notifications
-    - Payment due reminders
     - Account maintenance fees
     - Outgoing payment confirmations
+    - Any email talking about FUTURE income
+    
+    TEMPORAL INDICATORS TO CHECK:
+    - Past tense: "received", "deposited", "completed", "credited", "transferred", "paid"
+    - Future tense: "will receive", "upcoming", "scheduled", "pending"
+    - Failure indicators: "failed", "declined", "rejected", "on hold"
     
     Email Subject: ${emailData.subject}
     From: ${emailData.from}
@@ -215,6 +236,16 @@ export function classifyRevenue(emailData: EmailData): Classification | null {
   const subjectLower = emailData.subject.toLowerCase();
   const fromLower = emailData.from.toLowerCase();
   const bodyLower = emailData.body.toLowerCase();
+
+  // FIRST: Check for future/pending/failed patterns - EXCLUDE these immediately
+  const isFutureNotification = REVENUE_PATTERNS.future_notifications.some(
+    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
+  );
+
+  if (isFutureNotification) {
+    console.log("🚫 Excluded as future/pending/failed payment notification");
+    return null; // This is a future notification, not actual revenue
+  }
 
   // Check for revenue domains
   const isFromRevenueDomain = REVENUE_PATTERNS.revenue_domains.some((pattern) =>
