@@ -4,7 +4,7 @@ export function FinanceHeader() {
   return (
     <PageTitle
       title="Financial Dashboard"
-      description="Track your complete financial picture across all currencies"
+      description="Monitor expenses and income across all your financial activities"
     />
   );
 }

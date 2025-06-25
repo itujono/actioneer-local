@@ -25,7 +25,7 @@ export default function DashboardCard({
         <div className="flex items-center">
           <div className={`flex-shrink-0 rounded-md p-3 ${iconBackground}`}>
             {React.cloneElement(icon as React.ReactElement, {
-              className: "h-6 w-6 text-jade",
+              className: "h-6 w-6 text-thunder",
             })}
           </div>
           <div className="ml-5 w-0 flex-1">

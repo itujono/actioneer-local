@@ -213,10 +213,9 @@ function Dashboard() {
             }
             description="Total spending tracked"
             icon={<ReceiptIcon className="h-6 w-6" />}
-            iconBackground="bg-bittersweet/10"
-            link="/receipts"
+            iconBackground="bg-gold/15"
+            link="/finance"
           />
-
           <DashboardCard
             title="Travel Plans"
             value={
@@ -226,10 +225,9 @@ function Dashboard() {
             }
             description="Upcoming trips"
             icon={<PlaneIcon className="h-6 w-6" />}
-            iconBackground="bg-jade/10"
+            iconBackground="bg-jade/15"
             link="/travel"
           />
-
           <DashboardCard
             title="Job Applications"
             value={
@@ -239,7 +237,7 @@ function Dashboard() {
             }
             description="Active applications"
             icon={<BriefcaseIcon className="h-6 w-6" />}
-            iconBackground="bg-heliotrope/10"
+            iconBackground="bg-heliotrope/15"
             link="/jobs"
           />
         </div>
@@ -295,7 +293,7 @@ function Dashboard() {
                     <li key={trip.id} className="py-4">
                       <div className="flex items-center space-x-4">
                         <div className="flex-shrink-0">
-                          <div className="h-10 w-10 rounded-full bg-jade/10 flex items-center justify-center">
+                          <div className="h-10 w-10 rounded-full bg-jade/15 flex items-center justify-center">
                             <PlaneIcon className="h-6 w-6 text-jade" />
                           </div>
                         </div>
@@ -347,8 +345,8 @@ function Dashboard() {
                     <li key={receipt.id} className="py-4">
                       <div className="flex items-center space-x-4">
                         <div className="flex-shrink-0">
-                          <div className="h-10 w-10 rounded-full bg-concrete/20 flex items-center justify-center">
-                            <ReceiptIcon className="h-6 w-6 text-daisy" />
+                          <div className="h-10 w-10 rounded-full bg-lime/15 flex items-center justify-center">
+                            <ReceiptIcon className="h-6 w-6 text-thunder" />
                           </div>
                         </div>
                         <div className="flex-1 min-w-0">
@@ -360,7 +358,7 @@ function Dashboard() {
                             {new Date(receipt.date).toLocaleDateString()}
                           </p>
                         </div>
-                        <div className="text-sm font-medium text-daisy">
+                        <div className="text-sm font-medium text-thunder">
                           {receipt.currency} {receipt.amount.toFixed(2)}
                         </div>
                       </div>

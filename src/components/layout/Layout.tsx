@@ -85,11 +85,11 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 to="/dashboard"
                 className={`group flex items-center px-2 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/dashboard"
-                    ? "bg-heliotrope/10 text-heliotrope"
-                    : "text-thunder hover:bg-concrete hover:text-thunder"
+                    ? "bg-thunder/10 text-thunder font-semibold"
+                    : "text-thunder/70 hover:bg-concrete hover:text-thunder"
                 }`}
               >
-                <LayoutDashboard className="mr-4 h-6 w-6 text-heliotrope" />
+                <LayoutDashboard className="mr-4 h-6 w-6 text-thunder/70" />
                 Dashboard
               </Link>
 
@@ -97,11 +97,11 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 to="/finance"
                 className={`group flex items-center px-2 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/finance"
-                    ? "bg-gold/10 text-gold"
-                    : "text-thunder hover:bg-concrete hover:text-thunder"
+                    ? "bg-thunder/10 text-thunder font-semibold"
+                    : "text-thunder/70 hover:bg-concrete hover:text-thunder"
                 }`}
               >
-                <Receipt className="mr-4 h-6 w-6 text-gold" />
+                <Receipt className="mr-4 h-6 w-6 text-thunder/70" />
                 Finance
               </Link>
 
@@ -109,11 +109,11 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 to="/travel"
                 className={`group flex items-center px-2 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/travel"
-                    ? "bg-jade/10 text-jade"
-                    : "text-thunder hover:bg-concrete hover:text-thunder"
+                    ? "bg-thunder/10 text-thunder font-semibold"
+                    : "text-thunder/70 hover:bg-concrete hover:text-thunder"
                 }`}
               >
-                <Plane className="mr-4 h-6 w-6 text-jade" />
+                <Plane className="mr-4 h-6 w-6 text-thunder/70" />
                 Travel
               </Link>
 
@@ -121,11 +121,11 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 to="/jobs"
                 className={`group flex items-center px-2 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/jobs"
-                    ? "bg-bittersweet/10 text-bittersweet"
-                    : "text-thunder hover:bg-concrete hover:text-thunder"
+                    ? "bg-thunder/10 text-thunder font-semibold"
+                    : "text-thunder/70 hover:bg-concrete hover:text-thunder"
                 }`}
               >
-                <Briefcase className="mr-4 h-6 w-6 text-bittersweet" />
+                <Briefcase className="mr-4 h-6 w-6 text-thunder/70" />
                 Job Applications
               </Link>
 
@@ -133,11 +133,11 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 to="/settings"
                 className={`group flex items-center px-2 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/settings"
-                    ? "bg-lavender/10 text-lavender"
-                    : "text-thunder hover:bg-concrete hover:text-thunder"
+                    ? "bg-thunder/10 text-thunder font-semibold"
+                    : "text-thunder/70 hover:bg-concrete hover:text-thunder"
                 }`}
               >
-                {/* <Settings className="mr-4 h-6 w-6 text-lavender" /> */}
+                {/* <Settings className="mr-4 h-6 w-6 text-thunder/70" /> */}
                 Settings
               </Link>
             </nav>
@@ -175,55 +175,56 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 to="/dashboard"
                 className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/dashboard"
-                    ? "bg-heliotrope/10 text-heliotrope"
-                    : "text-thunder hover:bg-concrete hover:text-thunder"
+                    ? "bg-thunder/10 text-thunder font-semibold"
+                    : "text-thunder/70 hover:bg-concrete hover:text-thunder"
                 }`}
               >
-                <LayoutDashboard className="mr-3 h-6 w-6 text-heliotrope" />
+                <LayoutDashboard className="mr-3 h-6 w-6 text-thunder/70" />
                 Dashboard
               </Link>
               <Link
                 to="/finance"
                 className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/finance"
-                    ? "bg-gold/10 text-gold"
-                    : "text-thunder hover:bg-concrete hover:text-thunder"
+                    ? "bg-thunder/10 text-thunder font-semibold"
+                    : "text-thunder/70 hover:bg-concrete hover:text-thunder"
                 }`}
               >
-                <Receipt className="mr-3 h-6 w-6 text-gold" />
+                <Receipt className="mr-3 h-6 w-6 text-thunder/70" />
                 Finance
               </Link>
               <Link
                 to="/travel"
                 className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/travel"
-                    ? "bg-jade/10 text-jade"
-                    : "text-thunder hover:bg-concrete hover:text-thunder"
+                    ? "bg-thunder/10 text-thunder font-semibold"
+                    : "text-thunder/70 hover:bg-concrete hover:text-thunder"
                 }`}
               >
-                <Plane className="mr-3 h-6 w-6 text-jade" />
+                <Plane className="mr-3 h-6 w-6 text-thunder/70" />
                 Travel
               </Link>
               <Link
                 to="/jobs"
-                className={`group flex items-center px-2 py-2 pb-4 mb-2 text-sm font-medium rounded-md transition-colors duration-200 ${
+                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/jobs"
-                    ? "bg-bittersweet/10 text-bittersweet"
-                    : "text-thunder hover:bg-concrete hover:text-thunder"
+                    ? "bg-thunder/10 text-thunder font-semibold"
+                    : "text-thunder/70 hover:bg-concrete hover:text-thunder"
                 }`}
               >
-                <Briefcase className="mr-3 h-6 w-6 text-bittersweet" />
+                <Briefcase className="mr-3 h-6 w-6 text-thunder/70" />
                 Job Applications
               </Link>
+              <div className="h-10 my-4 py-4" />
               <Link
                 to="/settings"
-                className={`group flex items-center px-2 py-4 mt-4 text-sm font-medium transition-colors duration-200 border-t border-gray-light ${
+                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
                   location.pathname === "/settings"
-                    ? "bg-lavender/10 text-lavender"
-                    : "text-thunder hover:bg-concrete hover:text-thunder"
+                    ? "bg-thunder/10 text-thunder font-semibold"
+                    : "text-thunder/70 hover:bg-concrete hover:text-thunder"
                 }`}
               >
-                {/* <Settings className="mr-3 h-6 w-6 text-lavender" /> */}
+                {/* <Settings className="mr-3 h-6 w-6 text-thunder/70" /> */}
                 Settings
               </Link>
             </nav>

@@ -362,7 +362,7 @@ function TravelDashboard() {
             <div className="mx-auto w-16 h-16 bg-gold/10 rounded-full flex items-center justify-center mb-4">
               <PlaneIcon className="h-8 w-8 text-gold" />
             </div>
-            <h3 className="text-2xl font-medium text-gold mb-2">
+            <h3 className="text-2xl font-bold text-gold mb-2">
               Ready to Plan Your Next Adventure?
             </h3>
             <p className="text-white mb-6 max-w-md mx-auto">
@@ -375,7 +375,7 @@ function TravelDashboard() {
                 href="https://mail.google.com"
                 target="_blank"
                 rel="noopener noreferrer"
-                className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md transition-colors bg-jade text-white hover:bg-jade/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-jade"
+                className="inline-flex items-center justify-center px-4 py-2 text-sm font-medium rounded-md transition-colors bg-thunder text-white hover:bg-jade/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-jade"
               >
                 <PlaneIcon className="h-4 w-4 mr-2" />
                 Open Gmail
