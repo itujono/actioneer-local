@@ -20,7 +20,7 @@ export function JobsControls({
           <div className="flex-1 max-w-lg">
             <Input
               type="text"
-              leftIcon={<Search className="h-5 w-5" />}
+              leftIcon={<Search className="h-4 w-4" />}
               placeholder="Search companies or positions..."
               value={searchTerm}
               onChange={(e: React.ChangeEvent<HTMLInputElement>) =>

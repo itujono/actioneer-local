@@ -1,4 +1,3 @@
-import React from "react";
 import { Calendar } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { EditableCustomFieldCell } from "../CustomFieldInput";

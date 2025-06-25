@@ -259,7 +259,7 @@ export function EditableCustomFieldCell({
 
   const formatDisplayValue = () => {
     if (value === null || value === undefined || value === "") {
-      return <span className="text-concrete">—</span>;
+      return <span className="text-heliotrope font-medium">Set</span>;
     }
 
     switch (field.field_type) {

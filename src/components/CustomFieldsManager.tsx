@@ -72,6 +72,7 @@ export function CustomFieldsManager({
     createField,
     updateField,
     deleteField,
+    deleteFieldWithConfirmation,
     isCreating,
     isUpdating,
     isDeleting,
@@ -184,14 +185,25 @@ export function CustomFieldsManager({
                     <div className="flex items-center space-x-2">
                       <button
                         onClick={() => setEditingField(field.id)}
-                        className="p-2 text-concrete hover:text-thunder"
+                        className="p-2 text-thunder hover:text-jade"
                       >
                         <Edit className="h-4 w-4" />
                       </button>
                       <button
-                        onClick={() => deleteField(field.id)}
+                        onClick={async () => {
+                          try {
+                            await deleteFieldWithConfirmation(
+                              field.id,
+                              field.field_name,
+                              field.field_label
+                            );
+                          } catch (error) {
+                            console.error("Error deleting field:", error);
+                            alert("Failed to delete field. Please try again.");
+                          }
+                        }}
                         disabled={isDeleting}
-                        className="p-2 text-red-400 hover:text-red-600 disabled:opacity-50"
+                        className="p-2 text-thunder hover:text-bittersweet disabled:opacity-50"
                       >
                         <Trash2 className="h-4 w-4" />
                       </button>

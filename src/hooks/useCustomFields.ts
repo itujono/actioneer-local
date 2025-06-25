@@ -39,6 +39,41 @@ export function useCustomFields({ tableName, userId }: UseCustomFieldsOptions) {
     enabled: !!userId,
   });
 
+  // Function to check if a custom field has values in use
+  const checkFieldUsage = async (
+    fieldName: string
+  ): Promise<{ hasValues: boolean; count: number }> => {
+    if (!userId) return { hasValues: false, count: 0 };
+
+    try {
+      // Query the table to check if any records have values for this custom field
+      const { data, error } = await supabase
+        .from(tableName)
+        .select("details")
+        .eq("user_id", userId)
+        .not("details->>custom_fields", "is", null);
+
+      if (error) throw error;
+
+      let count = 0;
+      if (data) {
+        // Check each record to see if it has a value for this field
+        count = data.filter((record) => {
+          const customFields = record.details?.custom_fields;
+          if (!customFields || typeof customFields !== "object") return false;
+
+          const value = customFields[fieldName];
+          return value !== null && value !== undefined && value !== "";
+        }).length;
+      }
+
+      return { hasValues: count > 0, count };
+    } catch (error) {
+      console.error("Error checking field usage:", error);
+      return { hasValues: false, count: 0 };
+    }
+  };
+
   // Create custom field mutation
   const createFieldMutation = useMutation({
     mutationFn: async (
@@ -86,7 +121,57 @@ export function useCustomFields({ tableName, userId }: UseCustomFieldsOptions) {
     },
   });
 
-  // Delete custom field mutation
+  // Enhanced delete custom field function with usage check and confirmation
+  const deleteFieldWithConfirmation = async (
+    fieldId: string,
+    fieldName: string,
+    fieldLabel: string
+  ): Promise<boolean> => {
+    try {
+      // First check if the field has any values in use
+      const usage = await checkFieldUsage(fieldName);
+
+      if (usage.hasValues) {
+        const message =
+          usage.count === 1
+            ? `"${fieldLabel}" is currently being used by 1 record. Deleting this field will permanently remove all its data. Are you sure you want to continue?`
+            : `"${fieldLabel}" is currently being used by ${usage.count} records. Deleting this field will permanently remove all its data. Are you sure you want to continue?`;
+
+        const confirmed = window.confirm(message);
+        if (!confirmed) {
+          return false; // User cancelled
+        }
+      } else {
+        // Field has no values, just confirm deletion
+        const confirmed = window.confirm(
+          `Are you sure you want to delete the "${fieldLabel}" field?`
+        );
+        if (!confirmed) {
+          return false; // User cancelled
+        }
+      }
+
+      // Proceed with deletion
+      const { error } = await supabase
+        .from("custom_fields")
+        .update({ is_active: false })
+        .eq("id", fieldId);
+
+      if (error) throw error;
+
+      // Invalidate cache
+      queryClient.invalidateQueries({
+        queryKey: ["custom-fields", tableName, userId],
+      });
+
+      return true; // Successfully deleted
+    } catch (error) {
+      console.error("Error deleting field:", error);
+      throw error;
+    }
+  };
+
+  // Original delete field mutation (kept for backwards compatibility)
   const deleteFieldMutation = useMutation({
     mutationFn: async (fieldId: string) => {
       const { error } = await supabase
@@ -187,7 +272,9 @@ export function useCustomFields({ tableName, userId }: UseCustomFieldsOptions) {
     // Mutations
     createField: createFieldMutation.mutate,
     updateField: updateFieldMutation.mutate,
-    deleteField: deleteFieldMutation.mutate,
+    deleteField: deleteFieldMutation.mutate, // Keep original for backwards compatibility
+    deleteFieldWithConfirmation, // New enhanced version
+    checkFieldUsage,
     isCreating: createFieldMutation.isPending,
     isUpdating: updateFieldMutation.isPending,
     isDeleting: deleteFieldMutation.isPending,

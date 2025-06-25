@@ -134,18 +134,18 @@ export const openGmailUrl = (emailId: string, application?: JobApplication) => {
 export const getStatusIcon = (status: string) => {
   switch (status.toLowerCase()) {
     case "applied":
-      return <Clock className="h-4 w-4 text-bittersweet" />;
+      return <Clock className="h-4 w-4 text-thunder" />;
     case "next_step":
-      return <AlertCircle className="h-4 w-4 text-purple-500" />;
+      return <AlertCircle className="h-4 w-4 text-heliotrope" />;
     case "interview":
     case "interviewing":
-      return <AlertCircle className="h-4 w-4 text-yellow-500" />;
+      return <AlertCircle className="h-4 w-4 text-jade" />;
     case "offer":
     case "accepted":
-      return <CheckCircle className="h-4 w-4 text-green-500" />;
+      return <CheckCircle className="h-4 w-4 text-jade" />;
     case "rejected":
     case "declined":
-      return <XCircle className="h-4 w-4 text-red-500" />;
+      return <XCircle className="h-4 w-4 text-thunder" />;
     default:
       return <Clock className="h-4 w-4 text-thunder" />;
   }
@@ -154,12 +154,12 @@ export const getStatusIcon = (status: string) => {
 export const getStatusBadgeColor = (status: string) => {
   switch (status.toLowerCase()) {
     case "applied":
-      return "bg-bittersweet/20 text-bittersweet";
+      return "bg-concrete text-thunder";
     case "next_step":
       return "bg-heliotrope/20 text-heliotrope";
     case "interview":
     case "interviewing":
-      return "bg-yellow-200 text-yellow";
+      return "bg-jade/20 text-jade";
     case "offer":
     case "accepted":
       return "bg-jade/20 text-jade";
