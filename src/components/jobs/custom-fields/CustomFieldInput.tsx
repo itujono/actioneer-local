@@ -1,6 +1,6 @@
 import React from "react";
-import { CustomFieldDefinition } from "../supabase/types";
-import { Input, Select, Checkbox } from "./ui";
+import { CustomFieldDefinition } from "../../../supabase/types";
+import { Input, Select, Checkbox } from "../../ui";
 
 interface CustomFieldInputProps {
   field: CustomFieldDefinition;
@@ -201,7 +201,11 @@ export function EditableCustomFieldCell({
   const [isEditing, setIsEditing] = React.useState(false);
   const [editValue, setEditValue] = React.useState(value);
   const [error, setError] = React.useState<string | null>(null);
+  const [containerWidth, setContainerWidth] = React.useState<number | null>(
+    null
+  );
   const inputRef = React.useRef<HTMLInputElement | HTMLSelectElement>(null);
+  const displayContainerRef = React.useRef<HTMLDivElement>(null);
 
   // Reset edit value when value prop changes
   React.useEffect(() => {
@@ -220,6 +224,13 @@ export function EditableCustomFieldCell({
 
   const handleEdit = () => {
     if (disabled) return;
+
+    // Capture the current width before switching to edit mode
+    if (displayContainerRef.current) {
+      const width = displayContainerRef.current.getBoundingClientRect().width;
+      setContainerWidth(width);
+    }
+
     setIsEditing(true);
     setError(null);
   };
@@ -228,6 +239,7 @@ export function EditableCustomFieldCell({
     setIsEditing(false);
     setEditValue(value);
     setError(null);
+    setContainerWidth(null);
   };
 
   const handleSave = async () => {
@@ -242,6 +254,7 @@ export function EditableCustomFieldCell({
     try {
       await onSave(editValue);
       setIsEditing(false);
+      setContainerWidth(null);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Failed to save");
     }
@@ -286,11 +299,14 @@ export function EditableCustomFieldCell({
     }
   };
 
-  const renderEditInput = () => {
-    const baseInputClasses = `w-full px-2 py-1 text-sm border rounded focus:ring-heliotrope focus:border-heliotrope bg-white min-h-[28px] ${
-      error ? "border-red-300" : "border-concrete"
-    }`;
+  // Shared classes for consistent dimensions between display and edit modes
+  const containerBaseClasses = "group flex items-center space-x-2 relative";
+  const cellBaseClasses =
+    "w-full h-[34px] px-3 py-1.5 text-sm bg-white border-2 border-transparent rounded-md flex items-center";
+  const inputClasses =
+    "w-full h-[34px] px-3 py-1.5 text-sm bg-white border-2 border-concrete rounded-md focus:outline-none focus:ring-0 focus:border-heliotrope transition-colors";
 
+  const renderEditInput = () => {
     switch (field.field_type) {
       case "text":
         return (
@@ -302,7 +318,7 @@ export function EditableCustomFieldCell({
             onKeyDown={handleKeyDown}
             onBlur={handleSave}
             placeholder={field.field_options.placeholder}
-            className={baseInputClasses}
+            className={inputClasses}
           />
         );
 
@@ -319,16 +335,18 @@ export function EditableCustomFieldCell({
             onBlur={handleSave}
             min={field.field_options.min}
             max={field.field_options.max}
-            className={baseInputClasses}
+            className={inputClasses}
           />
         );
 
       case "currency":
         return (
-          <div className="relative w-full h-full">
-            <span className="absolute left-2 top-1/2 transform -translate-y-1/2 text-thunder text-xs z-10">
-              {field.field_options.currency || "USD"}
-            </span>
+          <div className="relative w-full min-w-0 max-w-40">
+            <div className="absolute inset-y-0 left-0 flex items-center pl-3">
+              <span className="text-thunder text-sm font-medium">
+                {field.field_options.currency || "$"}
+              </span>
+            </div>
             <input
               ref={inputRef as React.RefObject<HTMLInputElement>}
               type="number"
@@ -341,8 +359,8 @@ export function EditableCustomFieldCell({
               min={field.field_options.min || 0}
               max={field.field_options.max}
               step="0.01"
-              className={`${baseInputClasses} pl-10`}
               placeholder="0.00"
+              className={`${inputClasses} pl-12`}
             />
           </div>
         );
@@ -356,7 +374,7 @@ export function EditableCustomFieldCell({
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={handleSave}
-            className={baseInputClasses}
+            className={inputClasses}
           />
         );
 
@@ -368,9 +386,9 @@ export function EditableCustomFieldCell({
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={handleSave}
-            className={baseInputClasses}
+            className={inputClasses}
           >
-            <option value="">Select an option...</option>
+            <option value="">Select...</option>
             {field.field_options.options?.map((option) => (
               <option key={option} value={option}>
                 {option}
@@ -397,7 +415,7 @@ export function EditableCustomFieldCell({
             }
             onKeyDown={handleKeyDown}
             onBlur={handleSave}
-            className={baseInputClasses}
+            className={inputClasses}
           >
             <option value="">Select...</option>
             <option value="true">Yes</option>
@@ -414,7 +432,7 @@ export function EditableCustomFieldCell({
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={handleSave}
-            className={baseInputClasses}
+            className={inputClasses}
           />
         );
     }
@@ -422,20 +440,40 @@ export function EditableCustomFieldCell({
 
   return (
     <div
-      className={`group flex items-center space-x-2 min-h-[28px] relative ${
-        disabled ? "" : "cursor-pointer hover:bg-concrete rounded px-1 py-1"
+      className={`${containerBaseClasses} ${
+        disabled ? "" : "cursor-pointer hover:bg-concrete rounded px-1"
       }`}
       onClick={handleEdit}
+      ref={displayContainerRef}
+      style={
+        isEditing && containerWidth
+          ? { width: `${containerWidth}px` }
+          : undefined
+      }
     >
       {isEditing ? (
-        // Edit mode - replace the content entirely
-        <div className="flex-1 min-w-0">{renderEditInput()}</div>
-      ) : (
-        // Display mode
+        // Edit mode - maintain exact same width as display mode
         <>
-          <span className="text-sm text-thunder min-w-0 flex-1 py-1">
-            {formatDisplayValue()}
-          </span>
+          <div className="flex-1">{renderEditInput()}</div>
+          {/* Invisible spacer to maintain consistent layout - matches icon width */}
+          <div className="h-3 w-3 flex-shrink-0 opacity-0">
+            <svg className="h-3 w-3" viewBox="0 0 24 24">
+              <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
+          </div>
+        </>
+      ) : (
+        // Display mode - natural width that gets measured
+        <>
+          <div
+            className={`${cellBaseClasses} ${
+              disabled ? "" : "hover:border-concrete"
+            } min-w-0 max-w-40 flex-1`}
+          >
+            <span className="text-sm text-thunder truncate">
+              {formatDisplayValue()}
+            </span>
+          </div>
           {!disabled && (
             <svg
               className="h-3 w-3 text-concrete opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
@@ -450,6 +488,14 @@ export function EditableCustomFieldCell({
                 d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
               />
             </svg>
+          )}
+          {/* Render invisible icon for disabled state to maintain consistent spacing */}
+          {disabled && (
+            <div className="h-3 w-3 flex-shrink-0 opacity-0">
+              <svg className="h-3 w-3" viewBox="0 0 24 24">
+                <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </div>
           )}
         </>
       )}

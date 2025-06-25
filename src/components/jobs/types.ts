@@ -49,6 +49,7 @@ export interface JobsTableProps {
   totalPages: number;
   startItem: number;
   endItem: number;
+  onEditCustomField?: (fieldId: string) => void;
 }
 
 export interface JobTableRowProps {

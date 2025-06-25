@@ -1,6 +1,6 @@
 import { Calendar } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
-import { EditableCustomFieldCell } from "../CustomFieldInput";
+import { EditableCustomFieldCell } from "./custom-fields/CustomFieldInput";
 import {
   getFlagEmoji,
   getStatusIcon,

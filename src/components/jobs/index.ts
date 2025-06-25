@@ -3,4 +3,8 @@ export { JobsControls } from "./JobsControls";
 export { JobsStats } from "./JobsStats";
 export { JobsTable } from "./JobsTable";
 export { JobTableRow } from "./JobTableRow";
+export { CustomFieldsManager } from "./custom-fields/CustomFieldsManager";
+export { CustomFieldForm } from "./custom-fields/CustomFieldForm";
+export { CustomFieldItem } from "./custom-fields/CustomFieldItem";
+export { EditableCustomFieldCell } from "./custom-fields/CustomFieldInput";
 export * from "./constants";

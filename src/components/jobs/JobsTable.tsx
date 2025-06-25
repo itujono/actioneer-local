@@ -5,7 +5,10 @@ import {
   SortableContext,
   horizontalListSortingStrategy,
 } from "@dnd-kit/sortable";
-import { DraggableTableHeader } from "../DraggableTableHeader";
+import {
+  DraggableTableHeader,
+  DraggableCustomFieldHeader,
+} from "./DraggableTableHeader";
 import { JobTableRow } from "./JobTableRow";
 import { Button } from "../ui/button";
 import type { JobsTableProps } from "./types";
@@ -25,6 +28,7 @@ export function JobsTable({
   totalPages,
   startItem,
   endItem,
+  onEditCustomField,
 }: JobsTableProps) {
   if (isLoading) {
     return (
@@ -70,14 +74,39 @@ export function JobsTable({
                   strategy={horizontalListSortingStrategy}
                 >
                   <tr>
-                    {columnOrder.map((column) => (
-                      <DraggableTableHeader
-                        key={column.id}
-                        column={column}
-                        sortConfig={sortConfig}
-                        onSort={handleSort}
-                      />
-                    ))}
+                    {columnOrder.map((column) => {
+                      // Check if this is a custom field column
+                      if (column.id.startsWith("custom-")) {
+                        const customFieldId = column.id.replace("custom-", "");
+                        const customField = customFields.find(
+                          (field) => field.id === customFieldId
+                        );
+
+                        return (
+                          <DraggableCustomFieldHeader
+                            key={column.id}
+                            fieldId={customFieldId}
+                            fieldLabel={
+                              customField?.field_label || column.label
+                            }
+                            columnOrder={columnOrder}
+                            sortConfig={sortConfig}
+                            onSort={handleSort}
+                            onEditCustomField={onEditCustomField}
+                          />
+                        );
+                      }
+
+                      // Regular column
+                      return (
+                        <DraggableTableHeader
+                          key={column.id}
+                          column={column}
+                          sortConfig={sortConfig}
+                          onSort={handleSort}
+                        />
+                      );
+                    })}
                   </tr>
                 </SortableContext>
               </thead>

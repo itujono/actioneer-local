@@ -1,8 +1,8 @@
 import React from "react";
 import { useSortable } from "@dnd-kit/sortable";
 import { CSS } from "@dnd-kit/utilities";
-import { SortAsc, SortDesc, GripVertical } from "lucide-react";
-import { ColumnConfig } from "../hooks/useColumnOrder";
+import { SortAsc, SortDesc, GripVertical, PencilIcon } from "lucide-react";
+import type { ColumnConfig } from "../../hooks/useColumnOrder";
 
 interface DraggableTableHeaderProps {
   column: ColumnConfig;
@@ -111,6 +111,7 @@ interface DraggableCustomFieldHeaderProps {
     direction: "asc" | "desc";
   };
   onSort?: (key: string) => void;
+  onEditCustomField?: (fieldId: string) => void;
 }
 
 export function DraggableCustomFieldHeader({
@@ -119,18 +120,35 @@ export function DraggableCustomFieldHeader({
   columnOrder,
   sortConfig,
   onSort,
+  onEditCustomField,
 }: DraggableCustomFieldHeaderProps) {
   // Find the column config for this custom field
   const column = columnOrder.find((col) => col.id === `custom-${fieldId}`);
+
+  const handleEditClick = (e: React.MouseEvent) => {
+    e.stopPropagation(); // Prevent sort when clicking edit icon
+    onEditCustomField?.(fieldId);
+  };
 
   if (!column) {
     // Fallback for custom fields not in column order
     return (
       <th
         scope="col"
-        className="px-6 py-3 text-left text-xs font-medium text-thunder uppercase tracking-wider"
+        className="px-6 py-3 text-left text-xs font-medium text-thunder uppercase tracking-wider group"
       >
-        {fieldLabel}
+        <div className="flex items-center justify-between">
+          <span>{fieldLabel}</span>
+          {onEditCustomField && (
+            <button
+              onClick={handleEditClick}
+              className="ml-2 p-1 hover:bg-concrete rounded"
+              title="Edit custom field"
+            >
+              <PencilIcon className="h-3 w-3 text-thunder hover:text-heliotrope" />
+            </button>
+          )}
+        </div>
       </th>
     );
   }
@@ -140,6 +158,16 @@ export function DraggableCustomFieldHeader({
       column={column}
       sortConfig={sortConfig}
       onSort={onSort}
-    />
+    >
+      {onEditCustomField && (
+        <button
+          onClick={handleEditClick}
+          className="ml-1 p-1 hover:bg-concrete rounded"
+          title="Edit custom field"
+        >
+          <PencilIcon className="h-3 w-3 text-thunder hover:text-heliotrope" />
+        </button>
+      )}
+    </DraggableTableHeader>
   );
 }

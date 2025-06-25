@@ -5,7 +5,7 @@ import React, { useState, useMemo } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { XCircle } from "lucide-react";
 import { supabase } from "../supabase/client";
-import { CustomFieldsManager } from "../components/CustomFieldsManager";
+import { CustomFieldForm } from "../components/jobs";
 import { useCustomFields } from "../hooks/useCustomFields";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DragEndEvent } from "@dnd-kit/core";
@@ -32,7 +32,9 @@ function JobsDashboard() {
     key: "applied_date",
     direction: "desc",
   });
-  const [showCustomFieldsManager, setShowCustomFieldsManager] = useState(false);
+  const [editingCustomFieldId, setEditingCustomFieldId] = useState<
+    string | null
+  >(null);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -42,11 +44,46 @@ function JobsDashboard() {
   const { user, isLoading: authLoading, isAuthenticated } = useAuth();
 
   // Custom fields hook
-  const { customFields, getCustomFieldValue, setCustomFieldValue } =
-    useCustomFields({
-      tableName: "job_applications",
-      userId: user?.id,
-    });
+  const {
+    customFields,
+    getCustomFieldValue,
+    setCustomFieldValue,
+    updateField,
+    isUpdating,
+  } = useCustomFields({
+    tableName: "job_applications",
+    userId: user?.id,
+  });
+
+  // Find the custom field being edited
+  const editingCustomField = customFields.find(
+    (field) => field.id === editingCustomFieldId
+  );
+
+  // Handler for editing a specific custom field
+  const handleEditCustomField = (fieldId: string) => {
+    setEditingCustomFieldId(fieldId);
+  };
+
+  // Handler for saving custom field changes
+  const handleSaveCustomField = (formData: any) => {
+    if (!editingCustomFieldId) return;
+
+    const updates = {
+      field_label: formData.field_label,
+      field_type: formData.field_type,
+      field_options: formData.field_options,
+      is_required: formData.is_required,
+    };
+
+    updateField({ id: editingCustomFieldId, updates });
+    setEditingCustomFieldId(null);
+  };
+
+  // Handler for cancelling custom field edit
+  const handleCancelEditCustomField = () => {
+    setEditingCustomFieldId(null);
+  };
 
   // Define default columns configuration
   const defaultColumns: ColumnConfig[] = [
@@ -171,38 +208,11 @@ function JobsDashboard() {
         throw new Error("User not authenticated");
       }
 
-      console.log("📊 Fetching job applications for user:", user.id);
-      console.log("📧 User email:", user.email);
-
       // Let's also check what users exist in the custom users table with this email
-      const { data: customUsers, error: customUsersError } = await supabase
+      const { data: customUsers } = await supabase
         .from("users")
         .select("id, email, source, created_at")
         .eq("email", user.email);
-
-      console.log("🔍 Custom users with this email:", customUsers);
-
-      // Let's also check if there are ANY job applications in the database
-      const { data: allJobApps, error: allJobAppsError } = await supabase
-        .from("job_applications")
-        .select("id, user_id, company, position, created_at");
-
-      console.log(
-        "🔍 All job applications in database (first 10):",
-        allJobApps?.slice(0, 10)
-      );
-
-      // Let's specifically look for job applications with the custom user ID we saw in logs
-      const { data: customUserJobApps, error: customUserJobAppsError } =
-        await supabase
-          .from("job_applications")
-          .select("*")
-          .eq("user_id", "5591725b-bd0e-4651-abf2-5fdb00b1a7fb");
-
-      console.log(
-        "🔍 Job applications with custom user ID 5591725b-bd0e-4651-abf2-5fdb00b1a7fb:",
-        customUserJobApps
-      );
 
       // First try direct query with Supabase auth user ID
       const { data: directData, error: directError } = await supabase
@@ -216,8 +226,6 @@ function JobsDashboard() {
         throw directError;
       }
 
-      console.log("🔍 Direct query results:", directData?.length || 0);
-
       // Also try querying with custom user ID as fallback for old data
       let customUserData = [];
       if (customUsers && customUsers.length > 0) {
@@ -229,7 +237,6 @@ function JobsDashboard() {
 
         if (!customError && customData) {
           customUserData = customData;
-          console.log("🔍 Custom user query results:", customData?.length || 0);
         }
       }
 
@@ -247,7 +254,6 @@ function JobsDashboard() {
         throw error;
       }
 
-      console.log("✅ Job applications fetched:", data?.length || 0);
       return data as JobApplication[];
     },
     enabled: !!user && !authLoading, // Only run when user is authenticated
@@ -422,7 +428,7 @@ function JobsDashboard() {
     <div className="py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
         <JobsHeader
-          onShowCustomFieldsManager={() => setShowCustomFieldsManager(true)}
+          onShowCustomFieldsManager={() => console.log("Add new field")}
           onResetColumnOrder={resetColumnOrder}
         />
 
@@ -454,17 +460,31 @@ function JobsDashboard() {
             totalPages={totalPages}
             startItem={startItem}
             endItem={endItem}
+            onEditCustomField={handleEditCustomField}
           />
         </div>
       </div>
 
-      {/* Custom Fields Manager Modal */}
-      <CustomFieldsManager
-        isOpen={showCustomFieldsManager}
-        onClose={() => setShowCustomFieldsManager(false)}
-        tableName="job_applications"
-        userId={user?.id || ""}
-      />
+      {/* Custom Field Edit Form Modal */}
+      {editingCustomField && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden">
+            <div className="p-6">
+              <h2 className="text-xl font-semibold text-thunder mb-4">
+                Edit Custom Field
+              </h2>
+              <CustomFieldForm
+                mode="edit"
+                field={editingCustomField}
+                onSave={handleSaveCustomField}
+                onCancel={handleCancelEditCustomField}
+                isLoading={isUpdating}
+                tableName="job_applications"
+              />
+            </div>
+          </div>
+        </div>
+      )}
 
       {/* Debug info for custom fields (to be removed) */}
       {process.env.NODE_ENV === "development" && (

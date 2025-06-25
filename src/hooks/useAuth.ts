@@ -53,21 +53,10 @@ export function useAuth(): UseAuthReturn {
           const { data: refreshData } = await supabase.auth.refreshSession();
           const user = refreshData?.session?.user || null;
 
-          console.log("🔍 Auth status (after refresh):", {
-            authenticated: !!user,
-            userId: user?.id,
-            email: user?.email,
-          });
-
           return user;
         }
 
         const user = session?.user || null;
-        console.log("🔍 Auth status:", {
-          authenticated: !!user,
-          userId: user?.id,
-          email: user?.email,
-        });
 
         return user;
       } catch (error) {
@@ -86,18 +75,12 @@ export function useAuth(): UseAuthReturn {
       data: { subscription },
     } = supabase.auth.onAuthStateChange((_event, session) => {
       const user = session?.user || null;
-      console.log("🔄 Auth state changed:", {
-        authenticated: !!user,
-        userId: user?.id,
-        email: user?.email,
-      });
 
       // Update the query cache with new auth state
       queryClient.setQueryData(["auth", "session"], user);
 
       // Redirect to login if user logged out
       if (!user) {
-        console.log("🔒 User logged out, redirecting to login...");
         navigate({ to: "/auth" });
       }
     });
@@ -110,7 +93,6 @@ export function useAuth(): UseAuthReturn {
   // Redirect to login if not authenticated
   useEffect(() => {
     if (!authLoading && !user && !authError) {
-      console.log("🔒 User not authenticated, redirecting to login...");
       navigate({ to: "/auth" });
     }
   }, [authLoading, user, authError, navigate]);
