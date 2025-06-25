@@ -5,7 +5,7 @@ import { useState, useEffect } from "react";
 import { PlaneIcon } from "lucide-react";
 import { supabase } from "../supabase/client";
 import { useAuth } from "../hooks/useAuth";
-import { PageTitle } from "../components/ui";
+import { PageTitle } from "../components/dashboard/PageTitle";
 import { Button } from "../components/ui/button";
 import {
   TravelSection,

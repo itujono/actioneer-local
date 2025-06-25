@@ -43,6 +43,9 @@ export default {
         'pulse-slow': 'pulse 3s infinite',
         'wiggle': 'wiggle 1s ease-in-out infinite',
         'float': 'float 3s ease-in-out infinite',
+        // Dialog animations
+        'in': 'in 0.2s ease-out',
+        'out': 'out 0.2s ease-in forwards',
       },
       keyframes: {
         wiggle: {
@@ -52,6 +55,15 @@ export default {
         float: {
           '0%, 100%': { transform: 'translateY(0px)' },
           '50%': { transform: 'translateY(-10px)' },
+        },
+        // Dialog keyframes
+        in: {
+          '0%': { opacity: '0', transform: 'translate(-50%, -48%) scale(0.95)' },
+          '100%': { opacity: '1', transform: 'translate(-50%, -50%) scale(1)' },
+        },
+        out: {
+          '0%': { opacity: '1', transform: 'translate(-50%, -50%) scale(1)' },
+          '100%': { opacity: '0', transform: 'translate(-50%, -48%) scale(0.95)' },
         },
       },
       fontFamily: {

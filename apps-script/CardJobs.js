@@ -85,9 +85,7 @@ function createJobProcessedCard(gmailMessage, emailData) {
   card.addSection(statusSection);
 
   // Add enhanced action buttons
-  const actionSection = CardService.newCardSection().setHeader(
-    "🎯 Quick Actions"
-  );
+  const actionSection = CardService.newCardSection()
   
   actionSection.addWidget(
     CardService.newTextButton()

@@ -341,7 +341,6 @@ function addTravelActionSection(card, emailData, travelData) {
  */
 function addCachedTravelActionSection(card, emailData, travelData) {
   const section = CardService.newCardSection()
-    .setHeader("🎯 Quick Actions");
   
   // Primary action - Travel Dashboard
   section.addWidget(

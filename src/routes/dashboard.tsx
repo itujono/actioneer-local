@@ -13,7 +13,7 @@ import { useAuth } from "../hooks/useAuth";
 import DashboardCard from "../components/dashboard/DashboardCard";
 import RecentActivityCard from "../components/dashboard/RecentActivityCard";
 import { formatDistanceToNow } from "date-fns";
-import { PageTitle } from "../components/ui";
+import { PageTitle } from "../components/dashboard/PageTitle";
 
 export const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -41,7 +41,7 @@ export const dashboardRoute = createRoute({
 
 function Dashboard() {
   // Use TanStack Query for auth management
-  const { user, isLoading: authLoading, isAuthenticated } = useAuth();
+  const { user, isLoading: authLoading } = useAuth();
 
   // Fetch recent emails only when authenticated
   const { data: recentEmails, isLoading: emailsLoading } = useQuery({

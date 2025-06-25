@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Save, XCircle } from "lucide-react";
+import { Save, X } from "lucide-react";
 import {
   CustomFieldType,
   CustomFieldDefinition,
@@ -149,7 +149,7 @@ export function CustomFieldForm({
               Save
             </Button>
             <Button onClick={onCancel} variant="outline" size="sm">
-              <XCircle className="h-4 w-4 mr-1" />
+              <X className="h-4 w-4 mr-1" />
               Cancel
             </Button>
           </div>

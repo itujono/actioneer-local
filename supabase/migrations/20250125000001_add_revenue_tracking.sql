@@ -78,4 +78,13 @@ AS $$
     AND e.date <= p_end_date
   WHERE u.id = p_user_id
   GROUP BY u.id;
-$$; 
+$$;
+
+-- Add country and website fields to job_applications table
+ALTER TABLE job_applications 
+  ADD COLUMN IF NOT EXISTS country_code text,
+  ADD COLUMN IF NOT EXISTS country text,
+  ADD COLUMN IF NOT EXISTS website text DEFAULT '-';
+
+-- Create index for website column
+CREATE INDEX IF NOT EXISTS idx_job_applications_website ON job_applications(website); 

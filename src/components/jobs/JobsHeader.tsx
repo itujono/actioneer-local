@@ -1,6 +1,5 @@
-import React from "react";
 import { Plus, Columns, GripVertical } from "lucide-react";
-import { PageTitle } from "../ui";
+import { PageTitle } from "../dashboard/PageTitle";
 import { Button } from "../ui/button";
 
 interface JobsHeaderProps {

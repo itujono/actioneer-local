@@ -1,8 +1,15 @@
 import { useState } from "react";
-import { X, Plus } from "lucide-react";
+import { Plus } from "lucide-react";
 import { CustomFieldDefinition } from "../../../supabase/types";
 import { useCustomFields } from "../../../hooks/useCustomFields";
 import { Button } from "../../ui";
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+  DialogDescription,
+} from "../../ui/dialog";
 import { CustomFieldForm } from "./CustomFieldForm";
 import { CustomFieldItem } from "./CustomFieldItem";
 
@@ -93,37 +100,25 @@ export function CustomFieldsManager({
     await deleteFieldWithConfirmation(fieldId, fieldName, fieldLabel);
   };
 
-  if (!isOpen) return null;
-
   return (
-    <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-      <div className="bg-white rounded-lg max-w-4xl w-full mx-4 max-h-[90vh] overflow-hidden">
-        {/* Header */}
-        <div className="flex items-center justify-between p-6 border-b border-concrete">
-          <div>
-            <h2 className="text-xl font-semibold text-thunder">
-              Manage Custom Fields for{" "}
-              {tableName
-                .replace("_", " ")
-                .replace(/\b\w/g, (l) => l.toUpperCase())}
-            </h2>
-            <p className="text-sm text-thunder mt-1 max-w-xl">
-              Custom fields are used to track additional information Actioneer
-              doesn't automatically track, such as salary range, interview date,
-              etc.
-            </p>
-          </div>
-          <button
-            title="Close"
-            onClick={onClose}
-            className="text-thunder hover:text-heliotrope relative bottom-6"
-          >
-            <X className="h-4 w-4" />
-          </button>
-        </div>
+    <Dialog open={isOpen} onOpenChange={onClose}>
+      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
+        <DialogHeader>
+          <DialogTitle>
+            Manage Custom Fields for{" "}
+            {tableName
+              .replace("_", " ")
+              .replace(/\b\w/g, (l) => l.toUpperCase())}
+          </DialogTitle>
+          <DialogDescription className="max-w-xl">
+            Custom fields are used to track additional information Actioneer
+            doesn't automatically track, such as salary range, interview date,
+            etc.
+          </DialogDescription>
+        </DialogHeader>
 
         {/* Content */}
-        <div className="p-6 overflow-y-auto max-h-[calc(90vh-200px)]">
+        <div className="overflow-y-auto max-h-[calc(90vh-200px)]">
           {/* Existing Fields */}
           <div className="space-y-4 mb-6">
             <h3 className="text-lg font-medium text-thunder">
@@ -200,7 +195,7 @@ export function CustomFieldsManager({
             </div>
           )}
         </div>
-      </div>
-    </div>
+      </DialogContent>
+    </Dialog>
   );
 }

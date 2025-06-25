@@ -1,6 +1,6 @@
 import { createRoute } from "@tanstack/react-router";
 import { rootRoute } from "./root";
-import { PageTitle } from "../components/ui";
+import { PageTitle } from "../components/dashboard/PageTitle";
 
 export const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,

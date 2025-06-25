@@ -7,6 +7,7 @@ export type JobApplication = {
   applied_date: string;
   country_code?: string;
   country?: string;
+  website?: string;
   details: any;
   created_at: string;
 };

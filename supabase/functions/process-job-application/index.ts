@@ -142,6 +142,7 @@ Deno.serve(async (req) => {
         country: jobData.countryCode
           ? getCountryName(jobData.countryCode)
           : null,
+        website: jobData.website || "-",
         details: {
           ...jobData,
           originalEmail: {
@@ -281,6 +282,7 @@ async function extractJobDataWithAI(
       "appliedDate": "ACTUAL date when the application was submitted or email was sent in YYYY-MM-DD format (DO NOT use today's date - extract from email content or leave null)",
       "confidence": "Your confidence level (0-1) in the extraction",
       "countryCode": "ISO 3166-1 alpha-2 country code ONLY if explicitly mentioned or determinable from company location (e.g., US, GB, CA) - leave null if uncertain",
+      "website": "Company website URL if found in email signature, footer, or body (extract from signatures, contact info, or explicit mentions) - use '-' if not found",
       "details": {
         "workLocation": "Remote/On-site/Hybrid if mentioned",
         "salary": "Salary range if mentioned",
@@ -309,10 +311,24 @@ async function extractJobDataWithAI(
     - Any progression beyond initial application receipt
     
     For country detection, consider:
-    - Company headquarters location if known
+    - Company headquarters location if explicitly mentioned
     - Domain TLD (.co.uk = GB, .ca = CA, etc.)
-    - Explicit country mentions in email
-    - Office locations mentioned
+    - Explicit country mentions in email signatures or content
+    - Office locations mentioned in email signatures
+    - Location pin emoji (📍) followed by city and country (e.g., "📍 Beth, United Kingdom" → GB)
+    - Address information in signatures
+    - Country names in contact information
+    - Company location mentions (e.g., "London-based", "based in Germany")
+    - IMPORTANT: Look for patterns like "📍 City, Country", "Location: Country", "Based in Country"
+    
+    For website extraction, look for:
+    - URLs in email signatures (like www.company.com, https://company.com)
+    - Company website mentions in contact information
+    - Email footer links
+    - Company domain from email address (if not from common providers like gmail.com)
+    - Links to company careers pages or main site
+    - Remove mailto:, tel:, and other non-web protocols
+    - Prefer main company website over specific career page URLs
     
     IMPORTANT: Respond with ONLY valid JSON, no markdown formatting or code blocks.
   `;
@@ -358,7 +374,11 @@ async function extractJobDataWithAI(
       status: validateStatus(jobData.status) || "applied",
       appliedDate: validateDate(jobData.appliedDate) || null,
       confidence: jobData.confidence || 0.5,
-      countryCode: jobData.countryCode || null,
+      countryCode:
+        jobData.countryCode ||
+        extractCountryFromEmail(from) ||
+        extractCountryFromEmailBody(emailBody),
+      website: jobData.website || extractWebsiteFromEmail(from, emailBody),
       details: jobData.details || {},
     };
   } catch (error) {
@@ -379,6 +399,7 @@ function fallbackJobExtraction(
     extractCompanyFromText(subject + " " + emailBody);
   const position = extractPositionFromText(subject + " " + emailBody);
   const status = extractStatusFromText(subject + " " + emailBody);
+  const website = extractWebsiteFromEmail(from, emailBody);
 
   return {
     company: company || "Unknown Company",
@@ -386,7 +407,9 @@ function fallbackJobExtraction(
     status: status || "applied",
     appliedDate: null,
     confidence: 0.3,
-    countryCode: null,
+    countryCode:
+      extractCountryFromEmail(from) || extractCountryFromEmailBody(emailBody),
+    website: website,
     details: {
       extractionMethod: "fallback",
       emailFrom: from,
@@ -458,6 +481,91 @@ function extractCountryFromEmail(from: string): string | null {
   // Check for .co.uk pattern specifically
   if (from.includes(".co.uk")) {
     return "GB";
+  }
+
+  return null;
+}
+
+function extractCountryFromEmailBody(emailBody: string): string | null {
+  // Extract country from email body content (signatures, addresses, etc.)
+  const text = emailBody.toLowerCase();
+
+  // Fast lookup for most common countries (90%+ of cases)
+  const commonCountryMapping: Record<string, string> = {
+    "united kingdom": "GB",
+    "great britain": "GB",
+    england: "GB",
+    scotland: "GB",
+    wales: "GB",
+    uk: "GB",
+    "united states": "US",
+    usa: "US",
+    america: "US",
+    canada: "CA",
+    australia: "AU",
+    germany: "DE",
+    france: "FR",
+    japan: "JP",
+    "south korea": "KR",
+    korea: "KR",
+    india: "IN",
+    brazil: "BR",
+    mexico: "MX",
+    netherlands: "NL",
+    sweden: "SE",
+    switzerland: "CH",
+    italy: "IT",
+    spain: "ES",
+    indonesia: "ID",
+    "new zealand": "NZ",
+    singapore: "SG",
+    "hong kong": "HK",
+    taiwan: "TW",
+    philippines: "PH",
+    "south africa": "ZA",
+    malaysia: "MY",
+    thailand: "TH",
+    vietnam: "VN",
+    nigeria: "NG",
+  };
+
+  // Patterns to look for country mentions
+  const countryPatterns = [
+    // Location pin emoji followed by location
+    /📍\s*[^,\n]*,\s*([^,\n]+)/g,
+    // Based in pattern
+    /based\s+in\s+([^,\n\.]+)/gi,
+    // Location patterns
+    /location[:\s]+([^,\n\.]+)/gi,
+    // Address patterns (City, Country)
+    /,\s*([^,\n]{4,25})(?:\s|$)/g,
+    // Office in pattern
+    /office\s+in\s+([^,\n\.]+)/gi,
+  ];
+
+  for (const pattern of countryPatterns) {
+    const matches = text.matchAll(pattern);
+    for (const match of matches) {
+      if (match[1]) {
+        const location = match[1].trim().toLowerCase();
+
+        // First, check common countries for fast lookup
+        for (const [countryName, countryCode] of Object.entries(
+          commonCountryMapping
+        )) {
+          if (location.includes(countryName)) {
+            console.log(
+              `🌍 Found country from common mapping: ${location} → ${countryCode}`
+            );
+            return countryCode;
+          }
+        }
+
+        // For less common countries, we could use REST Countries API
+        // But for now, let's keep it simple and fast
+        // TODO: Consider adding REST Countries API fallback for comprehensive coverage
+      }
+    }
   }
 
   return null;
@@ -705,6 +813,151 @@ async function getOrCreateAuthUser(email: string): Promise<string | null> {
     return null;
   } catch (error) {
     console.error("Error in getOrCreateAuthUser:", error);
+    return null;
+  }
+}
+
+function extractWebsiteFromEmail(from: string, emailBody: string): string {
+  // Extract website from email signature, footer, or body
+  const text = emailBody.toLowerCase();
+
+  // Common website patterns in email signatures
+  const websitePatterns = [
+    // Full URLs with protocol
+    /https?:\/\/(?:www\.)?([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g,
+    // URLs without protocol
+    /(?:^|\s)(?:www\.)([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?:\s|$|\/)/g,
+    // Company website mentions
+    /(?:website|site|visit us|learn more):\s*(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi,
+    // Globe emoji pattern (🌐 followed by website)
+    /🌐\s*([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/g,
+    // Web/URL indicators followed by domain
+    /(?:web|url|link):\s*(?:https?:\/\/)?(?:www\.)?([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})/gi,
+    // Plain domain patterns in signatures (more flexible)
+    /(?:^|\s)([a-zA-Z0-9.-]+\.[a-zA-Z]{2,})(?:\s|$)/g,
+  ];
+
+  const foundUrls = new Set<string>();
+
+  // Extract URLs using patterns
+  for (const pattern of websitePatterns) {
+    const matches = text.matchAll(pattern);
+    for (const match of matches) {
+      const domain = match[1] || match[0];
+      if (
+        domain &&
+        !isFromCommonEmailProvider(domain) &&
+        !isCommonService(domain)
+      ) {
+        // Clean up the domain
+        const cleanDomain = domain
+          .replace(/^https?:\/\//, "")
+          .replace(/^www\./, "")
+          .split("/")[0];
+        if (cleanDomain.includes(".") && cleanDomain.length > 3) {
+          foundUrls.add(cleanDomain);
+        }
+      }
+    }
+  }
+
+  // Try to extract from email domain if no website found
+  if (foundUrls.size === 0) {
+    const emailDomain = extractDomainFromEmail(from);
+    if (emailDomain && !isFromCommonEmailProvider(emailDomain)) {
+      foundUrls.add(emailDomain);
+    }
+  }
+
+  // Return the first valid website found, prefer shorter domains (likely main company site)
+  if (foundUrls.size > 0) {
+    const sortedUrls = Array.from(foundUrls).sort(
+      (a, b) => a.length - b.length
+    );
+    return `https://${sortedUrls[0]}`;
+  }
+
+  return "-";
+}
+
+function extractDomainFromEmail(email: string): string | null {
+  const match = email.match(/@([^>]*)/);
+  if (match && match[1]) {
+    return match[1].trim();
+  }
+  return null;
+}
+
+function isCommonService(domain: string): boolean {
+  const commonServices = [
+    "youtube.com",
+    "linkedin.com",
+    "facebook.com",
+    "twitter.com",
+    "instagram.com",
+    "github.com",
+    "stackoverflow.com",
+    "medium.com",
+    "amazonaws.com",
+    "google.com",
+    "microsoft.com",
+    "apple.com",
+    "calendly.com",
+    "zoom.us",
+    "dropbox.com",
+    "slack.com",
+    "notion.so",
+    "figma.com",
+    "canva.com",
+  ];
+  return commonServices.some((service) => domain.includes(service));
+}
+
+function isFromCommonEmailProvider(fromEmail: string): boolean {
+  const commonProviders = [
+    "gmail.com",
+    "yahoo.com",
+    "outlook.com",
+    "hotmail.com",
+    "aol.com",
+    "icloud.com",
+  ];
+  return commonProviders.some((provider) =>
+    fromEmail.includes(provider.toLowerCase())
+  );
+}
+
+// Optional: REST Countries API helper for comprehensive country lookup
+// This could be used as a fallback for countries not in our common mapping
+async function lookupCountryFromAPI(
+  countryName: string
+): Promise<string | null> {
+  try {
+    // Clean the country name for API lookup
+    const cleanName = countryName.trim().replace(/[^a-zA-Z\s]/g, "");
+
+    const response = await fetch(
+      `https://restcountries.com/v3.1/name/${encodeURIComponent(
+        cleanName
+      )}?fields=cca2`
+    );
+
+    if (!response.ok) {
+      return null;
+    }
+
+    const countries = await response.json();
+
+    if (countries && countries.length > 0 && countries[0].cca2) {
+      console.log(
+        `🌐 REST Countries API: ${countryName} → ${countries[0].cca2}`
+      );
+      return countries[0].cca2;
+    }
+
+    return null;
+  } catch (error) {
+    console.warn(`⚠️ REST Countries API error for "${countryName}":`, error);
     return null;
   }
 }

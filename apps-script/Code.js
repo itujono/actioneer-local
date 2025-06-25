@@ -175,6 +175,16 @@ function processRecentEmails(userEmail, historyId = null) {
     // Store OAuth token for future webhook use (when running interactively)
     storeUserOAuthToken(userEmail);
     
+    // Check if we should proactively refresh the token
+    const lastRefresh = PropertiesService.getUserProperties().getProperty('LAST_TOKEN_REFRESH');
+    if (lastRefresh) {
+      const hoursSinceRefresh = (Date.now() - new Date(lastRefresh).getTime()) / (1000 * 60 * 60);
+      if (hoursSinceRefresh > 2) { // Refresh every 2 hours to stay ahead
+        console.log(`🔄 Last token refresh was ${hoursSinceRefresh.toFixed(1)} hours ago - refreshing proactively`);
+        refreshOAuthTokenProactively(userEmail);
+      }
+    }
+    
     // Try to get stored OAuth token for webhook mode
     const storedToken = getStoredOAuthToken(userEmail);
     let emailMessages = [];
@@ -358,14 +368,14 @@ function getRecentEmailsViaAPI(accessToken) {
 }
 
 /**
- * Store OAuth token for future webhook use
+ * Store OAuth token for future webhook use with enhanced refresh strategy
  */
 function storeUserOAuthToken(userEmail) {
   try {
     // Only store token when running interactively (has OAuth session)
     const currentUser = Session.getActiveUser().getEmail();
     if (currentUser.toLowerCase() === userEmail.toLowerCase()) {
-      console.log("🔑 Getting OAuth tokens with refresh capability...");
+      console.log("🔑 Getting OAuth tokens with enhanced refresh capability...");
       
       // Get user API key to make the request
       const userApiKey = getUserApiKeyByEmail(userEmail);
@@ -375,22 +385,19 @@ function storeUserOAuthToken(userEmail) {
       }
       
       // For Apps Script, we need to use ScriptApp.getOAuthToken() but enhance the flow
-      // Unfortunately, Apps Script doesn't directly provide refresh tokens
-      // So we'll implement a hybrid approach:
-      // 1. Use ScriptApp.getOAuthToken() for immediate access
-      // 2. Store it with a longer expiration (Apps Script handles refresh internally)
-      // 3. Add logic to detect when tokens are invalid and re-authenticate
+      // Apps Script handles token refresh internally, but we need to be smarter about expiration
       
       const accessToken = ScriptApp.getOAuthToken();
       if (accessToken) {
-        console.log("🔑 Storing OAuth token for future webhook use...");
+        console.log("🔑 Storing OAuth token with enhanced refresh strategy...");
         
-        // Apps Script OAuth tokens typically last longer than 1 hour
-        // We'll set a 6-hour expiration and add refresh logic
-        const expirationTime = new Date(Date.now() + 6 * 60 * 60 * 1000); // 6 hours from now
+        // Apps Script OAuth tokens can last longer, but we'll use a shorter expiration 
+        // to trigger our refresh logic more frequently and ensure tokens stay fresh
+        const expirationTime = new Date(Date.now() + 4 * 60 * 60 * 1000); // 4 hours from now
         
-        // For Apps Script, we'll use a special marker to indicate this is an Apps Script managed token
-        const refreshToken = "apps_script_managed_" + Date.now();
+        // Enhanced refresh token with more metadata for tracking
+        // Include timestamp for tracking token age and user email for better management
+        const refreshToken = `apps_script_managed_${userEmail.split('@')[0]}_${Date.now()}`;
         
         // Store both access and refresh tokens in Supabase
         const payload = {
@@ -407,8 +414,17 @@ function storeUserOAuthToken(userEmail) {
         });
         
         if (response.getResponseCode() === 200) {
-          console.log("✅ OAuth token stored successfully for webhook use");
+          console.log("✅ OAuth token stored successfully with 4-hour expiration");
           console.log("🔄 Token will expire at:", expirationTime.toISOString());
+          console.log("💡 Enhanced refresh strategy active - token will be refreshed automatically");
+          
+          // Store token metadata locally for quick access
+          PropertiesService.getUserProperties().setProperties({
+            'LAST_TOKEN_REFRESH': new Date().toISOString(),
+            'TOKEN_EXPIRY': expirationTime.toISOString(),
+            'REFRESH_TOKEN_ID': refreshToken
+          });
+          
         } else {
           console.log("⚠️ Failed to store OAuth token:", response.getContentText());
         }
@@ -418,6 +434,39 @@ function storeUserOAuthToken(userEmail) {
     }
   } catch (error) {
     console.log("⚠️ Could not store OAuth token (normal in webhook mode):", error.message);
+  }
+}
+
+/**
+ * Proactively refresh OAuth token before it expires
+ * This should be called periodically to maintain fresh tokens
+ */
+function refreshOAuthTokenProactively(userEmail) {
+  try {
+    console.log("🔄 Proactively refreshing OAuth token for:", userEmail);
+    
+    // Only refresh if we have an active session
+    const currentUser = Session.getActiveUser().getEmail();
+    if (currentUser.toLowerCase() !== userEmail.toLowerCase()) {
+      console.log("⚠️ Not the current user - skipping proactive refresh");
+      return false;
+    }
+    
+    // Get fresh token from Apps Script
+    const newAccessToken = ScriptApp.getOAuthToken();
+    if (!newAccessToken) {
+      console.log("❌ Could not get fresh OAuth token from Apps Script");
+      return false;
+    }
+    
+    // Store the refreshed token
+    storeUserOAuthToken(userEmail);
+    console.log("✅ OAuth token proactively refreshed");
+    return true;
+    
+  } catch (error) {
+    console.error("❌ Error during proactive token refresh:", error);
+    return false;
   }
 }
 

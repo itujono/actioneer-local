@@ -1,4 +1,4 @@
-import { PageTitle } from "../ui";
+import { PageTitle } from "../dashboard/PageTitle";
 
 export function FinanceHeader() {
   return (

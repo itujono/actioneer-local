@@ -67,6 +67,27 @@ export function JobTableRow({
               </td>
             );
 
+          case "website":
+            return (
+              <td key={cellKey} className="px-6 py-4 whitespace-nowrap">
+                <div className="text-sm text-thunder">
+                  {application.website && application.website !== "-" ? (
+                    <a
+                      href={"https://" + application.website}
+                      target="_blank"
+                      rel="noopener noreferrer"
+                      className="hover:text-heliotrope underline"
+                      title={`Visit ${application.company} website`}
+                    >
+                      {application.website}
+                    </a>
+                  ) : (
+                    <span className="text-concrete">—</span>
+                  )}
+                </div>
+              </td>
+            );
+
           case "applied_date":
             return (
               <td

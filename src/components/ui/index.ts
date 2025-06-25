@@ -1,6 +1,7 @@
-export { Button } from "./button";
-export { Select } from "./select";
-export { Input } from "./input";
-export { Checkbox } from "./checkbox";
-export { TabSelector } from "./TabSelector";
-export { PageTitle } from "./PageTitle";
+export * from "./button";
+export * from "./input";
+export * from "./select";
+export * from "./checkbox";
+export { PageTitle } from "../dashboard/PageTitle";
+export * from "./TabSelector";
+export * from "./dialog";

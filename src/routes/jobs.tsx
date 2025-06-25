@@ -5,7 +5,7 @@ import React, { useState, useMemo } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { XCircle } from "lucide-react";
 import { supabase } from "../supabase/client";
-import { CustomFieldForm } from "../components/jobs";
+import { CustomFieldForm, CustomFieldsManager } from "../components/jobs";
 import { useCustomFields } from "../hooks/useCustomFields";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DragEndEvent } from "@dnd-kit/core";
@@ -17,7 +17,13 @@ import {
   JobsTable,
 } from "../components/jobs";
 import type { JobApplication, SortConfig } from "../components/jobs/types";
-import { Button } from "../components/ui/button";
+import {
+  Button,
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
+} from "../components/ui";
 
 export const jobsRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -35,6 +41,7 @@ function JobsDashboard() {
   const [editingCustomFieldId, setEditingCustomFieldId] = useState<
     string | null
   >(null);
+  const [showCustomFieldsManager, setShowCustomFieldsManager] = useState(false);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -90,6 +97,7 @@ function JobsDashboard() {
     { id: "company", label: "Company", key: "company", sortable: true },
     { id: "position", label: "Position", key: "position", sortable: true },
     { id: "status", label: "Status", key: "status", sortable: true },
+    { id: "website", label: "Website", key: "website", sortable: true },
     // Custom fields will be added dynamically
     {
       id: "applied_date",
@@ -241,7 +249,10 @@ function JobsDashboard() {
       }
 
       // Combine both results and remove duplicates
-      const allData = [...(directData || []), ...customUserData];
+      const allData: JobApplication[] = [
+        ...(directData || []),
+        ...customUserData,
+      ];
       const uniqueData = allData.filter(
         (item, index, self) => index === self.findIndex((t) => t.id === item.id)
       );
@@ -254,7 +265,7 @@ function JobsDashboard() {
         throw error;
       }
 
-      return data as JobApplication[];
+      return data;
     },
     enabled: !!user && !authLoading, // Only run when user is authenticated
   });
@@ -428,7 +439,7 @@ function JobsDashboard() {
     <div className="py-6">
       <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
         <JobsHeader
-          onShowCustomFieldsManager={() => console.log("Add new field")}
+          onShowCustomFieldsManager={() => setShowCustomFieldsManager(true)}
           onResetColumnOrder={resetColumnOrder}
         />
 
@@ -466,25 +477,38 @@ function JobsDashboard() {
       </div>
 
       {/* Custom Field Edit Form Modal */}
-      {editingCustomField && (
-        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
-          <div className="bg-white rounded-lg max-w-2xl w-full mx-4 max-h-[90vh] overflow-hidden">
-            <div className="p-6">
-              <h2 className="text-xl font-semibold text-thunder mb-4">
-                Edit Custom Field
-              </h2>
-              <CustomFieldForm
-                mode="edit"
-                field={editingCustomField}
-                onSave={handleSaveCustomField}
-                onCancel={handleCancelEditCustomField}
-                isLoading={isUpdating}
-                tableName="job_applications"
-              />
-            </div>
-          </div>
-        </div>
-      )}
+      <Dialog
+        open={!!editingCustomFieldId}
+        onOpenChange={(open) => {
+          if (!open) {
+            setEditingCustomFieldId(null);
+          }
+        }}
+      >
+        <DialogContent className="sm:max-w-2xl">
+          <DialogHeader>
+            <DialogTitle>Edit Custom Field</DialogTitle>
+          </DialogHeader>
+          {editingCustomField && (
+            <CustomFieldForm
+              mode="edit"
+              field={editingCustomField}
+              onSave={handleSaveCustomField}
+              onCancel={handleCancelEditCustomField}
+              isLoading={isUpdating}
+              tableName="job_applications"
+            />
+          )}
+        </DialogContent>
+      </Dialog>
+
+      {/* Custom Fields Manager Modal */}
+      <CustomFieldsManager
+        isOpen={showCustomFieldsManager}
+        onClose={() => setShowCustomFieldsManager(false)}
+        tableName="job_applications"
+        userId={user?.id || ""}
+      />
 
       {/* Debug info for custom fields (to be removed) */}
       {process.env.NODE_ENV === "development" && (
