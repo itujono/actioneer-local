@@ -25,9 +25,22 @@ export interface TravelSearchParams {
 }
 
 export interface TravelEmailCardProps {
-  travel: any; // Using any for now since we don't have full type definition
-  onSelect: (travel: any) => void;
-  isSelected?: boolean;
+  travel: any;
+  onExplore: (travel: any) => void;
+}
+
+export interface TravelEmailsListProps {
+  isLoading: boolean;
+  groupedTravelEmails: Record<string, any[]>;
+  hasNextPage?: boolean;
+  isFetchingNextPage?: boolean;
+  onLoadMore?: () => void;
+  onExploreDestination: (travel: any) => void;
+}
+
+export interface TravelStatsProps {
+  travelEmails?: any[];
+  isLoading: boolean;
 }
 
 export interface AirportData {

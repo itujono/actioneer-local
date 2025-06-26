@@ -2,6 +2,9 @@
 export { TravelCard } from "./TravelCard";
 export { TravelSection } from "./TravelSection";
 export { TravelEmailCard } from "./TravelEmailCard";
+export { TravelEmailsList } from "./TravelEmailsList";
+export { TravelStats } from "./TravelStats";
+export { TravelHeader } from "./TravelHeader";
 export { TravelSectionSkeleton, TravelCardSkeleton } from "./TravelSkeletons";
 export {
   FormattedDestination,
