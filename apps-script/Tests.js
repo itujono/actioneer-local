@@ -87,6 +87,72 @@ function testEmailClassification() {
 }
 
 /**
+ * Test travel email classification specifically for "It's time to Turkey!" email
+ */
+function testTurkeyTravelEmail() {
+  console.log("=== Testing Turkey Travel Email Classification ===");
+  try {
+    // Create the exact email that was having issues
+    const turkeyEmail = {
+      messageId: "test-turkey-travel-123",
+      subject: "It's time to Turkey! 🇹🇷",
+      from: "travel@example.com",
+      body: "Discover the magic of Turkey with our exclusive travel packages. From Istanbul's historic sites to Cappadocia's fairy chimneys, your Turkish adventure awaits!",
+      date: new Date().toISOString(),
+    };
+
+    console.log("Testing Turkey email:", turkeyEmail);
+
+    // Test client-side classification first (Apps Script)
+    console.log("\n🔍 Testing client-side classification...");
+    const clientSideClassification = classifyEmailClientSide(turkeyEmail);
+    console.log("Client-side result:", clientSideClassification);
+
+    // Test destination extraction
+    console.log("\n🎯 Testing destination extraction...");
+    const travelInfo = extractBasicTravelInfo(turkeyEmail);
+    console.log("Extracted travel info:", travelInfo);
+
+    // Test full classification with API
+    console.log("\n🌐 Testing full classification...");
+    const userApiKey = PropertiesService.getUserProperties().getProperty("USER_API_KEY");
+    if (!userApiKey) {
+      console.log("No API key found, generating one first...");
+      ensureUserApiKey();
+    }
+
+    const fullClassification = classifyEmail(turkeyEmail, userApiKey);
+    console.log("Full classification result:", fullClassification);
+
+    // Test background travel processing
+    console.log("\n🔄 Testing background travel processing...");
+    if (fullClassification?.type === "travel") {
+      try {
+        processTravelInBackground(turkeyEmail, userApiKey);
+        console.log("✅ Background travel processing called successfully");
+      } catch (error) {
+        console.error("❌ Background travel processing error:", error);
+      }
+    }
+
+    // Summary
+    console.log("\n📊 SUMMARY:");
+    console.log("Client-side classification:", clientSideClassification?.type || "FAILED");
+    console.log("Destination extracted:", travelInfo?.destination || "NONE");
+    console.log("Full classification:", fullClassification?.type || "FAILED");
+
+    if (clientSideClassification?.type === "travel" && travelInfo?.destination === "Turkey") {
+      console.log("✅ Turkey travel email classification is working correctly!");
+    } else {
+      console.log("❌ Issues detected with Turkey travel email classification");
+    }
+
+  } catch (error) {
+    console.error("Test error:", error);
+  }
+}
+
+/**
  * Test API key validation
  */
 function testApiKeyValidation() {

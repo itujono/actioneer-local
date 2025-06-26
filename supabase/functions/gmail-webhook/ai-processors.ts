@@ -324,41 +324,214 @@ export async function classifyEmailWithEnhancedAI(
   emailBody: string
 ): Promise<ClassificationResult> {
   try {
-    // Call our enhanced classify-email function
-    const classifyResponse = await fetch(
-      `${Deno.env.get("SUPABASE_URL")}/functions/v1/classify-email`,
-      {
-        method: "POST",
-        headers: {
-          "Content-Type": "application/json",
-          Authorization: `Bearer ${Deno.env.get("SUPABASE_ANON_KEY")}`,
-        },
-        body: JSON.stringify({
-          emailData: {
-            subject,
-            from,
-            body: emailBody,
-          },
-        }),
-      }
-    );
+    console.log("🎯 Classifying email directly in Gmail webhook");
 
-    if (classifyResponse.ok) {
-      const classificationResult = await classifyResponse.json();
-      console.log("🎯 Enhanced classification result:", classificationResult);
-      return {
-        type: classificationResult.classification?.type || "other",
-        confidence: classificationResult.classification?.confidence || 0.5,
-        method: classificationResult.classification?.method || "enhanced-ai",
-      };
-    } else {
-      console.log("⚠️ Enhanced classification failed, using fallback");
-      return await fallbackClassification(subject, from, emailBody);
+    // Direct classification using patterns (no authentication needed)
+    const classification = classifyEmailDirect(subject, from, emailBody);
+
+    if (classification) {
+      console.log(
+        "✅ Pattern-based classification successful:",
+        classification.type
+      );
+      return classification;
     }
+
+    console.log("⚠️ Pattern-based classification failed, using AI fallback");
+    return await fallbackClassification(subject, from, emailBody);
   } catch (error) {
     console.error("Enhanced classification error:", error);
     return await fallbackClassification(subject, from, emailBody);
   }
+}
+
+/**
+ * Direct classification using patterns (no external API calls)
+ */
+function classifyEmailDirect(
+  subject: string,
+  from: string,
+  emailBody: string
+): ClassificationResult | null {
+  const subjectLower = subject.toLowerCase();
+  const fromLower = from.toLowerCase();
+  const bodyLower = emailBody.toLowerCase();
+
+  // Travel patterns
+  const TRAVEL_PATTERNS = {
+    flights: [
+      /flight\s+(?:confirmation|booking|itinerary|ticket|receipt)/i,
+      /boarding\s+pass/i,
+      /e-ticket/i,
+      /airline\s+(?:confirmation|booking)/i,
+      /check-in\s+(?:reminder|now\s+available|opens)/i,
+    ],
+    hotels: [
+      /hotel\s+(?:confirmation|booking|reservation|receipt)/i,
+      /accommodation\s+(?:confirmation|booking)/i,
+      /room\s+(?:confirmation|booking|reservation)/i,
+      /booking\.com/i,
+      /hotels\.com/i,
+      /expedia/i,
+      /airbnb/i,
+    ],
+    destinations: [
+      /(?:trip|travel|adventure|vacation|holiday|getaway)\s+to\s+[\w\s]+/i,
+      /(?:time\s+to|visit|explore|discover)\s+[\w\s]+[!🇹🇷🌍✈️🏖️]/i,
+      /your\s+(?:next|upcoming)\s+(?:trip|adventure|vacation|getaway)/i,
+      /🧳.*(?:adventure|trip|vacation|travel)/i,
+      /✈️.*(?:adventure|trip|vacation|travel)/i,
+      /🏨.*(?:stay|hotel|accommodation)/i,
+    ],
+    general: [
+      /travel\s+(?:itinerary|confirmation|booking|receipt)/i,
+      /trip\s+(?:confirmation|itinerary|summary)/i,
+      /vacation\s+(?:booking|confirmation)/i,
+      /travel\s+insurance/i,
+      /visa\s+(?:application|confirmation|approval)/i,
+    ],
+    domains: [
+      /booking\.com/i,
+      /expedia/i,
+      /priceline/i,
+      /kayak/i,
+      /tripadvisor/i,
+      /hotels\.com/i,
+      /airbnb/i,
+      /delta\.com/i,
+      /united\.com/i,
+      /american\.com/i,
+      // Enhanced travel sender domains
+      /trip\.com/i,
+      /agoda\.com/i,
+      /trivago/i,
+      /orbitz/i,
+      /travelocity/i,
+      /hotwire/i,
+      /momondo/i,
+      /skyscanner/i,
+      /southwest\.com/i,
+      /jetblue\.com/i,
+      /spirit\.com/i,
+      /frontier\.com/i,
+      /alaska\.com/i,
+      /hawaiian\.com/i,
+      /emirates\.com/i,
+      /lufthansa\.com/i,
+      /britishairways\.com/i,
+      /marriott\.com/i,
+      /hilton\.com/i,
+      /hyatt\.com/i,
+      /ihg\.com/i,
+      /accor\.com/i,
+    ],
+  };
+
+  // Check travel patterns
+  const hasFlightPattern = TRAVEL_PATTERNS.flights.some(
+    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
+  );
+  const hasHotelPattern = TRAVEL_PATTERNS.hotels.some(
+    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
+  );
+  const hasDestinationPattern = TRAVEL_PATTERNS.destinations.some(
+    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
+  );
+  const hasGeneralTravelPattern = TRAVEL_PATTERNS.general.some(
+    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
+  );
+  const isFromTravelDomain = TRAVEL_PATTERNS.domains.some((pattern) =>
+    pattern.test(fromLower)
+  );
+
+  // Calculate travel confidence
+  let travelConfidence = 0;
+  if (hasFlightPattern || hasHotelPattern) {
+    travelConfidence = 0.9;
+  } else if (hasGeneralTravelPattern) {
+    travelConfidence = 0.8;
+  } else if (hasDestinationPattern) {
+    travelConfidence = 0.7;
+  } else if (
+    isFromTravelDomain &&
+    (bodyLower.includes("booking") || bodyLower.includes("travel"))
+  ) {
+    travelConfidence = 0.65;
+  }
+
+  if (travelConfidence > 0.6) {
+    console.log(`🧳 Travel email detected with confidence ${travelConfidence}`);
+    return {
+      type: "travel",
+      confidence: travelConfidence,
+      method: "pattern-based",
+    };
+  }
+
+  // Receipt patterns
+  const RECEIPT_PATTERNS = [
+    /receipt/i,
+    /invoice/i,
+    /payment\s+confirmation/i,
+    /order\s+confirmation/i,
+    /purchase/i,
+    /subscription/i,
+    /billing/i,
+    /charged/i,
+    /paid/i,
+  ];
+
+  const hasReceiptPattern = RECEIPT_PATTERNS.some(
+    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
+  );
+
+  // Exclude future billing notifications
+  const FUTURE_BILLING_PATTERNS = [
+    /(?:will|going\s+to|about\s+to)\s+(?:renew|charge|bill)/i,
+    /subscription\s+(?:will|is\s+about\s+to)\s+renew/i,
+    /(?:reminder|notice|heads?\s*up).*(?:renewal|billing)/i,
+  ];
+
+  const isFutureBilling = FUTURE_BILLING_PATTERNS.some(
+    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
+  );
+
+  if (hasReceiptPattern && !isFutureBilling) {
+    console.log("💰 Receipt email detected");
+    return {
+      type: "receipt",
+      confidence: 0.8,
+      method: "pattern-based",
+    };
+  }
+
+  // Job application patterns
+  const JOB_PATTERNS = [
+    /application/i,
+    /interview/i,
+    /position/i,
+    /role\s+at/i,
+    /job/i,
+    /career/i,
+    /hiring/i,
+    /candidate/i,
+  ];
+
+  const hasJobPattern = JOB_PATTERNS.some(
+    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
+  );
+
+  if (hasJobPattern) {
+    console.log("💼 Job application email detected");
+    return {
+      type: "job_application",
+      confidence: 0.75,
+      method: "pattern-based",
+    };
+  }
+
+  console.log("🤷 No specific category matched - will use AI fallback");
+  return null;
 }
 
 export async function fallbackClassification(

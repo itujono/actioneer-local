@@ -175,185 +175,55 @@ export async function processTravelEmail(
   emailId: string
 ) {
   try {
-    console.log("✈️ Processing travel email (simplified approach)");
-
-    // Check if travel data already exists for this email
-    const { data: existingTravel, error: existingError } = await supabase
-      .from("travel")
-      .select("*")
-      .eq("email_id", emailContent.messageId)
-      .eq("user_id", user.id)
-      .single();
-
-    if (existingTravel && !existingError) {
-      console.log("✅ Travel data already exists for this email");
-      return;
-    }
-
-    // Extract basic travel info locally (lightweight)
-    const travelData = extractBasicTravelInfo(emailContent);
-
     console.log(
-      "🧳 Extracted travel data:",
-      JSON.stringify(travelData, null, 2)
+      "✈️ Processing travel email via process-travel Edge Function:",
+      emailContent.subject
     );
 
-    // Store travel data in database (simplified)
-    const { data: storedTravel, error: storeError } = await supabase
-      .from("travel")
-      .insert({
-        user_id: user.id,
-        email_id: emailContent.messageId,
-        destination: travelData.destination || null,
-        subject: emailContent.subject,
-        start_date: travelData.startDate || null,
-        end_date: travelData.endDate || null,
-        details: {
-          travelers: travelData.travelers || 1,
-          origin: travelData.origin || null,
-          from_email: emailContent.from,
-          email_date: emailContent.date,
-          preferences: "Extracted from email",
-          booking_reference: travelData.bookingReference || null,
-          originalEmail: {
-            subject: emailContent.subject,
-            from: emailContent.from,
-            processedAt: new Date().toISOString(),
-          },
+    // Call the same process-travel Edge Function that Apps Script uses
+    // This ensures consistent processing between manual and automatic flows
+    const payload = {
+      messageId: emailContent.messageId,
+      subject: emailContent.subject,
+      from: emailContent.from,
+      emailBody: emailContent.body,
+    };
+
+    const response = await fetch(
+      `${Deno.env.get("SUPABASE_URL")}/functions/v1/process-travel`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: Deno.env.get("SUPABASE_ANON_KEY") || "",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          "x-user-api-key": user.api_key,
         },
-      })
-      .select()
-      .single();
+        body: JSON.stringify(payload),
+      }
+    );
 
-    if (storeError) {
-      console.error("Error storing travel data:", storeError);
-      return;
+    if (response.ok) {
+      const result = await response.json();
+      console.log(
+        "✅ Travel email processed successfully via Edge Function:",
+        result.travelId
+      );
+      console.log(
+        "🏖️ Extracted data:",
+        JSON.stringify(result.extractedData, null, 2)
+      );
+    } else {
+      const errorText = await response.text();
+      console.error("❌ Travel processing failed:", errorText);
     }
-
-    console.log(`✅ Travel data stored with ID: ${storedTravel.id}`);
-    console.log(`🏖️ Destination: ${storedTravel.destination || "Unknown"}`);
   } catch (error) {
     console.error("Error processing travel email:", error);
   }
 }
 
-/**
- * Extract basic travel information from email content (local processing)
- * This is much faster than AI processing and good enough for our needs
- */
-function extractBasicTravelInfo(emailContent: EmailContent) {
-  const subject = emailContent.subject || "";
-  const body = emailContent.body || "";
-  const from = emailContent.from || "";
-
-  // Simple destination extraction patterns
-  const destinationPatterns = [
-    // Direct mentions in subject line
-    /(?:to|in|visit|destination|traveling to|flying to|trip to|booking in|hotel in|flight to)\s+([A-Z][a-zA-Z\s]{2,25})/gi,
-    // City, Country format
-    /([A-Z][a-zA-Z\s]{2,15}),\s*([A-Z][a-zA-Z\s]{2,15})/g,
-    // Airport codes (common in travel emails)
-    /\b([A-Z]{3})\s*(?:airport|to|from|-)/gi,
-    // Hotel/booking specific patterns
-    /(?:hotel|accommodation|stay|booking).*(?:in|at|near)\s+([A-Z][a-zA-Z\s]{2,25})/gi,
-    // Flight specific patterns
-    /(?:flight|ticket|booking).*(?:to|destination)\s+([A-Z][a-zA-Z\s]{2,25})/gi,
-  ];
-
-  let destination: string | null = null;
-
-  // Try to extract destination from subject first (most reliable)
-  for (const pattern of destinationPatterns) {
-    const matches = subject.match(pattern);
-    if (matches && matches.length > 0) {
-      let match = matches[0];
-
-      // Clean up the match
-      match = match
-        .replace(
-          /^(to|in|visit|destination|traveling to|flying to|trip to|booking in|hotel in|flight to|hotel|accommodation|stay|booking|flight|ticket)\s*/i,
-          ""
-        )
-        .replace(/\s*(airport|to|from|-).*$/i, "")
-        .trim();
-
-      if (
-        match.length > 2 &&
-        match.length < 50 &&
-        !match.match(/^(and|or|the|of|at|in|on)$/i)
-      ) {
-        destination = match;
-        console.log("🎯 Found destination in subject:", destination);
-        break;
-      }
-    }
-  }
-
-  // Extract traveler count
-  const travelerPatterns = [
-    /(\d+)\s*(?:traveler|passenger|guest|adult|person)/gi,
-    /(?:for|party of)\s*(\d+)/gi,
-    /(\d+)\s*(?:people|individuals)/gi,
-  ];
-
-  let travelers = 1;
-  const emailText = `${subject} ${body}`.toLowerCase();
-
-  for (const pattern of travelerPatterns) {
-    const matches = emailText.match(pattern);
-    if (matches && matches.length > 0) {
-      const numberMatch = matches[0].match(/(\d+)/);
-      if (numberMatch) {
-        const count = parseInt(numberMatch[1]);
-        if (count > 0 && count <= 20) {
-          travelers = count;
-          break;
-        }
-      }
-    }
-  }
-
-  // Simple date extraction (basic patterns)
-  const datePatterns = [
-    /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/g,
-    /(\d{4}-\d{2}-\d{2})/g,
-  ];
-
-  const foundDates: string[] = [];
-  for (const pattern of datePatterns) {
-    const matches = emailText.match(pattern);
-    if (matches) {
-      foundDates.push(...matches.slice(0, 2)); // Max 2 dates
-    }
-  }
-
-  // Extract booking reference
-  const refPatterns = [
-    /(?:confirmation|booking|reference).*?([A-Z0-9]{6,})/gi,
-    /([A-Z0-9]{6,})/g,
-  ];
-
-  let bookingReference: string | null = null;
-  for (const pattern of refPatterns) {
-    const matches = emailText.match(pattern);
-    if (matches && matches.length > 0) {
-      const ref = matches[0].replace(/.*?([A-Z0-9]{6,}).*/, "$1");
-      if (ref.length >= 6 && ref.length <= 15) {
-        bookingReference = ref;
-        break;
-      }
-    }
-  }
-
-  return {
-    destination: destination,
-    travelers: travelers,
-    startDate: foundDates.length > 0 ? foundDates[0] : null,
-    endDate: foundDates.length > 1 ? foundDates[1] : null,
-    bookingReference: bookingReference,
-    origin: null, // We'll keep this simple for now
-  };
-}
+// Note: extractBasicTravelInfo function moved to process-travel Edge Function
+// to centralize travel processing logic and avoid duplication
 
 export async function logNotificationOnly(user: any, emailAddress: string) {
   console.log("📝 Logging notification without processing");

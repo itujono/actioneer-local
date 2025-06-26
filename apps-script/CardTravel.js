@@ -156,7 +156,6 @@ function addTravelEmailSection(card, emailData, travelInfo) {
  */
 function addSimpleTravelActionSection(card, emailData, travelInfo) {
   const section = CardService.newCardSection()
-    .setHeader("🚀 Actions");
   
   // Main CTA - Get insights about destination
   const destination = travelInfo.destination || "this destination";
@@ -170,17 +169,6 @@ function addSimpleTravelActionSection(card, emailData, travelInfo) {
       .setOpenLink(
         CardService.newOpenLink()
           .setUrl(buildSimpleTravelDashboardUrl(emailData, travelInfo))
-          .setOpenAs(CardService.OpenAs.OVERLAY)
-      )
-  );
-  
-  // Secondary action - View all travel emails
-  section.addWidget(
-    CardService.newTextButton()
-      .setText("📊 View All Travel Emails")
-      .setOpenLink(
-        CardService.newOpenLink()
-          .setUrl(`${BASE_URL}/travel`)
           .setOpenAs(CardService.OpenAs.OVERLAY)
       )
   );
@@ -202,8 +190,8 @@ function extractBasicTravelInfo(emailData) {
   
   // Simple destination extraction patterns
   const destinationPatterns = [
-    // Direct mentions
-    /(?:to|in|visit|destination|traveling to|flying to|trip to)\s+([A-Z][a-zA-Z\s]{2,20})/gi,
+    // Direct mentions including "time to" pattern
+    /(?:to|in|visit|destination|traveling to|flying to|trip to|time to)\s+([A-Z][a-zA-Z\s]{2,20})/gi,
     // City, Country format
     /([A-Z][a-zA-Z\s]{2,15}),\s*([A-Z][a-zA-Z\s]{2,15})/g,
     // Airport codes
@@ -229,7 +217,7 @@ function extractBasicTravelInfo(emailData) {
   // Clean up destination
   if (destination) {
     destination = destination
-      .replace(/^(to|in|visit|destination|traveling to|flying to|trip to)\s+/i, '')
+      .replace(/^(to|in|visit|destination|traveling to|flying to|trip to|time to)\s+/i, '')
       .trim();
   }
   

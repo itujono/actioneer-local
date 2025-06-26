@@ -73,3 +73,32 @@ export interface TravelSectionSkeletonProps {
 export interface FormattedDestinationProps {
   destination: string;
 }
+
+export interface RecommendationItem {
+  id: string;
+  name: string;
+  type: "hotel" | "attraction" | "restaurant";
+  description?: string;
+  price?: {
+    amount: string;
+    currency: string;
+    perNight?: boolean;
+  };
+  rating?: number;
+  address?: string;
+  coordinates?: {
+    lat: number;
+    lng: number;
+  };
+  imageUrl?: string;
+  bookingUrl?: string;
+  category?: string;
+  rank?: number;
+  // Additional hotel-specific fields
+  amenities?: string[];
+  area?: string;
+  chain?: string;
+  starRating?: number;
+  roomType?: string;
+  cancellationPolicy?: string;
+}

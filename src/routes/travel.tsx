@@ -8,6 +8,7 @@ import {
   TravelHeader,
   TravelStats,
   TravelEmailsList,
+  TravelRecommendationsDialog,
 } from "../components/travel";
 
 export const travelRoute = createRoute({
@@ -19,173 +20,114 @@ export const travelRoute = createRoute({
 function TravelDashboard() {
   const { user, isLoading: authLoading } = useAuth();
 
-  const PAGE_SIZE = 20;
+  // State for recommendations dialog
+  const [selectedDestination, setSelectedDestination] = useState<any>(null);
+  const [isRecommendationsDialogOpen, setIsRecommendationsDialogOpen] =
+    useState(false);
 
-  // Fetch travel emails with infinite query
   const {
-    data: travelPages,
-    isLoading: travelLoading,
-    error: travelError,
-    fetchNextPage: fetchNextTravel,
-    hasNextPage: hasNextTravelPage,
-    isFetchingNextPage: isFetchingNextTravel,
-    refetch: refetchTravel,
+    data,
+    fetchNextPage,
+    hasNextPage,
+    isFetchingNextPage,
+    isLoading,
+    error,
   } = useInfiniteQuery({
-    queryKey: ["travel-emails", user?.id],
-    queryFn: async ({ pageParam }: { pageParam: number }) => {
+    queryKey: ["travel", user?.id],
+    queryFn: async ({ pageParam }) => {
       if (!user) throw new Error("User not authenticated");
 
-      console.log(
-        `✈️ Fetching travel emails page ${pageParam} for user:`,
-        user.id
-      );
-
-      let query = supabase.from("travel").select("*").eq("user_id", user.id);
-
-      query = query
+      const { data, error } = await supabase
+        .from("travel")
+        .select("*")
+        .eq("user_id", user.id)
         .order("created_at", { ascending: false })
-        .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
+        .range(pageParam, pageParam + 19);
 
-      const { data, error } = await query;
-
-      if (error) {
-        console.error("❌ Error fetching travel emails:", error);
-        throw error;
-      }
-
-      console.log(
-        `✅ Travel emails page ${pageParam} fetched:`,
-        data?.length || 0
-      );
-      return { data: data || [], pageParam };
+      if (error) throw error;
+      return data || [];
     },
     initialPageParam: 0,
-    getNextPageParam: (
-      lastPage: { data: any[]; pageParam: number },
-      pages: any[]
-    ) => {
-      if (lastPage.data.length < PAGE_SIZE) {
-        return undefined;
-      }
-      return pages.length;
+    getNextPageParam: (lastPage, pages) => {
+      if (lastPage.length < 20) return undefined;
+      return pages.length * 20;
     },
     enabled: !!user && !authLoading,
   });
 
-  // Flatten travel emails from all pages
   const travelEmails = useMemo(() => {
-    return (
-      travelPages?.pages.flatMap((page: { data: any[] }) => page.data) || []
-    );
-  }, [travelPages]);
+    return data?.pages.flatMap((page) => page) || [];
+  }, [data]);
 
-  // Group travel emails by date (similar to finance transactions)
   const groupedTravelEmails = useMemo(() => {
-    if (!travelEmails || travelEmails.length === 0) return {};
-
-    const grouped = travelEmails.reduce((groups, email) => {
+    return travelEmails.reduce((acc, email) => {
       const date = new Date(email.created_at).toDateString();
-      if (!groups[date]) {
-        groups[date] = [];
+      if (!acc[date]) {
+        acc[date] = [];
       }
-      groups[date].push(email);
-      return groups;
+      acc[date].push(email);
+      return acc;
     }, {} as Record<string, any[]>);
-
-    return grouped;
   }, [travelEmails]);
 
-  // Handle explore destination
   const handleExploreDestination = (travel: any) => {
-    // For now, we'll just log it. Later we can implement the attractions/hotels view
-    console.log("🌍 Exploring destination:", travel.destination, travel);
-
-    // TODO: Navigate to destination details or open modal with attractions/hotels
-    // This is where we'll implement the "cool things to do" feature
-    alert(
-      `Coming soon: Explore ${travel.destination}!\n\nWe'll show you cool attractions, hotels, and activities here.`
-    );
+    console.log("🌍 Exploring destination:", travel.destination);
+    setSelectedDestination(travel);
+    setIsRecommendationsDialogOpen(true);
   };
 
-  // Show auth loading state
-  if (authLoading) {
+  const closeRecommendationsDialog = () => {
+    setIsRecommendationsDialogOpen(false);
+    setSelectedDestination(null);
+  };
+
+  if (authLoading || isLoading) {
     return (
-      <div className="py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-          <div className="py-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-jade"></div>
-            <p className="mt-2 text-sm text-thunder">
-              Loading travel dashboard...
-            </p>
-          </div>
+      <div className="max-w-6xl mx-auto p-6">
+        <TravelHeader />
+        <div className="animate-pulse space-y-4 mt-8">
+          <div className="h-8 bg-gray-200 rounded w-1/3"></div>
+          <div className="h-32 bg-gray-200 rounded"></div>
+          <div className="h-32 bg-gray-200 rounded"></div>
         </div>
       </div>
     );
   }
 
-  if (!user) {
+  if (error) {
     return (
-      <div className="py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-          <div className="py-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-jade"></div>
-            <p className="mt-2 text-sm text-thunder">Redirecting to login...</p>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
-  if (travelError) {
-    return (
-      <div className="py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-          <div className="bg-bittersweet/10 border border-bittersweet rounded-lg p-6">
-            <div className="flex">
-              <div className="ml-3">
-                <h3 className="text-sm font-medium text-bittersweet">
-                  Error loading travel emails
-                </h3>
-                <p className="mt-1 text-sm text-bittersweet">
-                  {travelError?.message || "An unexpected error occurred"}
-                </p>
-                <div className="mt-2 text-xs text-bittersweet">
-                  User ID: {user?.id || "Not authenticated"}
-                  <br />
-                  Email: {user?.email || "Not authenticated"}
-                </div>
-                <div className="mt-3">
-                  <button
-                    onClick={() => refetchTravel()}
-                    className="text-bittersweet border border-bittersweet hover:bg-bittersweet/10 px-3 py-1 rounded text-sm"
-                  >
-                    Try again
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
+      <div className="max-w-6xl mx-auto p-6">
+        <TravelHeader />
+        <div className="mt-8 p-4 bg-red-50 border border-red-200 rounded-lg">
+          <p className="text-red-700">
+            Error loading travel data: {error.message}
+          </p>
         </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-concrete/10 py-6 pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        <TravelHeader />
+    <div className="max-w-6xl mx-auto p-6">
+      <TravelHeader />
+      <TravelStats travelEmails={travelEmails} isLoading={isLoading} />
+      <TravelEmailsList
+        isLoading={isLoading}
+        groupedTravelEmails={groupedTravelEmails}
+        hasNextPage={hasNextPage}
+        isFetchingNextPage={isFetchingNextPage}
+        onLoadMore={fetchNextPage}
+        onExploreDestination={handleExploreDestination}
+      />
 
-        <TravelStats travelEmails={travelEmails} isLoading={travelLoading} />
-
-        <TravelEmailsList
-          isLoading={travelLoading}
-          groupedTravelEmails={groupedTravelEmails}
-          hasNextPage={hasNextTravelPage}
-          isFetchingNextPage={isFetchingNextTravel}
-          onLoadMore={fetchNextTravel}
-          onExploreDestination={handleExploreDestination}
+      {/* TODO: Add TravelRecommendationsDialog component */}
+      {isRecommendationsDialogOpen && selectedDestination && (
+        <TravelRecommendationsDialog
+          isOpen={isRecommendationsDialogOpen}
+          onClose={closeRecommendationsDialog}
+          destination={selectedDestination}
         />
-      </div>
+      )}
     </div>
   );
 }

@@ -272,8 +272,13 @@ function processRecentEmails(userEmail, historyId = null) {
           console.error(`❌ Error processing job application ${messageId}:`, error);
         }
       } else if (classification.type === "travel") {
-        console.log("✈️ Travel email found - could be processed in future");
-        // TODO: Add travel processing when ready
+        console.log("✈️ Processing travel email...");
+        try {
+          processTravelInBackground(emailData, userApiKey);
+          console.log(`✅ Travel email processed for ${messageId}`);
+        } catch (error) {
+          console.error(`❌ Error processing travel email ${messageId}:`, error);
+        }
       } else if (classification.type === "receipt") {
         console.log("💰 Processing receipt email...");
         console.log(`💰 DEBUG: About to call processReceiptInBackground for ${messageId}`);
@@ -1456,32 +1461,82 @@ function classifyEmailClientSide(emailData) {
     };
   }
 
-  // Travel patterns (more specific)
-  const specificTravelPatterns = [
-    /flight\s+(?:confirmation|booking|itinerary|ticket)/i,
-    /boarding\s+pass/i,
-    /hotel\s+(?:confirmation|booking|reservation)/i,
-    /booking\s+confirmation.*(?:flight|hotel|car|rental)/i,
-    /itinerary.*(?:flight|hotel|trip)/i,
-    /reservation\s+confirmation/i,
-    /travel\s+itinerary/i,
-    /check-in\s+(?:reminder|now\s+available)/i,
-  ];
+  // Travel patterns (comprehensive including promotional content)
+  const travelPatterns = {
+    bookings: [
+      /flight\s+(?:confirmation|booking|itinerary|ticket)/i,
+      /boarding\s+pass/i,
+      /hotel\s+(?:confirmation|booking|reservation)/i,
+      /booking\s+confirmation.*(?:flight|hotel|car|rental)/i,
+      /itinerary.*(?:flight|hotel|trip)/i,
+      /reservation\s+confirmation/i,
+      /travel\s+itinerary/i,
+      /check-in\s+(?:reminder|now\s+available)/i,
+    ],
+    destinations: [
+      /(?:trip|travel|adventure|vacation|holiday|getaway)\s+to\s+[\w\s]+/i,
+      /(?:time\s+to|visit|explore|discover)\s+[\w\s]+[!🇹🇷🌍✈️🏖️]/i,
+      /your\s+(?:next|upcoming)\s+(?:trip|adventure|vacation|getaway)/i,
+      /🧳.*(?:adventure|trip|vacation|travel)/i,
+      /✈️.*(?:adventure|trip|vacation|travel)/i,
+      /🏨.*(?:stay|hotel|accommodation)/i,
+    ],
+    general: [
+      /travel\s+(?:itinerary|confirmation|booking|receipt)/i,
+      /trip\s+(?:confirmation|itinerary|summary)/i,
+      /vacation\s+(?:booking|confirmation)/i,
+      /travel\s+insurance/i,
+      /visa\s+(?:application|confirmation|approval)/i,
+    ],
+    domains: [
+      /booking\.com/i,
+      /expedia/i,
+      /priceline/i,
+      /kayak/i,
+      /tripadvisor/i,
+      /hotels\.com/i,
+      /airbnb/i,
+      /delta\.com/i,
+      /united\.com/i,
+      /american\.com/i,
+    ],
+  };
 
-  const hasSpecificTravelPattern = specificTravelPatterns.some(
+  // Check travel patterns with confidence scoring
+  const hasBookingPattern = travelPatterns.bookings.some(
     (pattern) => pattern.test(subject) || pattern.test(body)
   );
+  const hasDestinationPattern = travelPatterns.destinations.some(
+    (pattern) => pattern.test(subject) || pattern.test(body)
+  );
+  const hasGeneralTravelPattern = travelPatterns.general.some(
+    (pattern) => pattern.test(subject) || pattern.test(body)
+  );
+  const isFromTravelDomain = travelPatterns.domains.some((pattern) =>
+    pattern.test(from)
+  );
 
-  if (hasSpecificTravelPattern) {
-    console.log("✅ Client-side classification: travel");
+  let travelConfidence = 0;
+  if (hasBookingPattern) {
+    travelConfidence = 0.9;
+  } else if (hasGeneralTravelPattern) {
+    travelConfidence = 0.8;
+  } else if (hasDestinationPattern) {
+    travelConfidence = 0.7;
+  } else if (isFromTravelDomain && (body.includes("booking") || body.includes("travel"))) {
+    travelConfidence = 0.65;
+  }
+
+  if (travelConfidence > 0.6) {
+    console.log(`✅ Client-side classification: travel (confidence: ${travelConfidence})`);
     return {
       type: "travel",
-      confidence: 0.7,
+      confidence: travelConfidence,
       actions: [
         {
           type: "complex",
-          label: "Compare Hotel Prices",
-          handler: "openHotelComparison",
+          label: "Get Travel Insights",
+          handler: "openTravelDashboard",
           data: {},
         },
       ],
@@ -1668,6 +1723,57 @@ function processReceiptInBackground(emailData, userApiKey) {
     }
   } catch (error) {
     console.error("💥 Error in background receipt processing:", error);
+  }
+}
+
+/**
+ * Process travel email in background
+ */
+function processTravelInBackground(emailData, userApiKey) {
+  console.log("🔄 Starting background travel processing...");
+
+  try {
+    const payload = {
+      messageId: emailData.messageId,
+      subject: emailData.subject,
+      from: emailData.from,
+      emailBody: emailData.body,
+    };
+
+    // Headers required for Supabase Edge Functions
+    const headers = {
+      "Content-Type": "application/json",
+      apikey: SUPABASE_ANON_KEY,
+      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
+      "x-user-api-key": userApiKey,
+    };
+
+    // Call the travel processing Edge Function (we need to create this)
+    const response = UrlFetchApp.fetch(
+      `${BACKEND_API_URL}/process-travel`,
+      {
+        method: "POST",
+        headers: headers,
+        payload: JSON.stringify(payload),
+        muteHttpExceptions: true,
+      }
+    );
+
+    if (response.getResponseCode() === 200) {
+      const result = JSON.parse(response.getContentText());
+      console.log(
+        "✅ Travel email processed successfully:",
+        result.travelId
+      );
+      console.log(
+        "🏖️ Extracted data:",
+        JSON.stringify(result.extractedData, null, 2)
+      );
+    } else {
+      console.error("❌ Travel processing failed:", response.getContentText());
+    }
+  } catch (error) {
+    console.error("💥 Error in background travel processing:", error);
   }
 }
 
