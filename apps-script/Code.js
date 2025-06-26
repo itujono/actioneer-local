@@ -1573,7 +1573,7 @@ function processJobApplicationInBackground(emailData, userApiKey) {
       emailBody: emailData.body,
     };
 
-    // Headers required for Supabase Edge Functions (similar to travel-v2)
+    // Headers required for Supabase Edge Functions
     const headers = {
       "Content-Type": "application/json",
       apikey: SUPABASE_ANON_KEY,
