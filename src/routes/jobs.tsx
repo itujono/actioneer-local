@@ -347,14 +347,9 @@ function JobsDashboard() {
       return 0;
     });
 
-    const totalCount = filtered.length;
-
-    // Group applications if enabled
-    let groups: JobApplicationGroup[] = [];
-    let finalData: JobApplication[] = filtered;
-
+    // Apply grouping if enabled, otherwise use individual applications
     if (groupSimilarApplications) {
-      groups = groupJobApplications(filtered);
+      const groups = groupJobApplications(filtered);
 
       // Sort groups by the latest application date
       groups.sort((a, b) => {
@@ -362,24 +357,26 @@ function JobsDashboard() {
         const bDate = new Date(b.latestDate).getTime();
         return sortConfig.direction === "asc" ? aDate - bDate : bDate - aDate;
       });
-    }
 
-    // Apply pagination
-    const itemsToPage = groupSimilarApplications ? groups : filtered;
-    const startIndex = (currentPage - 1) * pageSize;
-    const endIndex = startIndex + pageSize;
-    const paginatedItems = itemsToPage.slice(startIndex, endIndex);
+      // Apply pagination to groups
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedGroups = groups.slice(startIndex, endIndex);
 
-    if (groupSimilarApplications) {
       return {
         data: [],
-        totalCount: groups.length,
-        groups: paginatedItems as JobApplicationGroup[],
+        totalCount: groups.length, // Total number of groups
+        groups: paginatedGroups,
       };
     } else {
+      // Apply pagination to individual applications
+      const startIndex = (currentPage - 1) * pageSize;
+      const endIndex = startIndex + pageSize;
+      const paginatedApplications = filtered.slice(startIndex, endIndex);
+
       return {
-        data: paginatedItems as JobApplication[],
-        totalCount,
+        data: paginatedApplications,
+        totalCount: filtered.length, // Total number of individual applications
         groups: [],
       };
     }
@@ -397,9 +394,18 @@ function JobsDashboard() {
   const totalPages = Math.ceil(
     filteredAndSortedApplications.totalCount / pageSize
   );
-  const startItem = (currentPage - 1) * pageSize + 1;
+
+  // Calculate pagination display values based on what we're actually showing
+  const actualItemsOnPage = groupSimilarApplications
+    ? filteredAndSortedApplications.groups?.length || 0
+    : filteredAndSortedApplications.data.length;
+
+  const startItem =
+    filteredAndSortedApplications.totalCount > 0
+      ? (currentPage - 1) * pageSize + 1
+      : 0;
   const endItem = Math.min(
-    currentPage * pageSize,
+    (currentPage - 1) * pageSize + actualItemsOnPage,
     filteredAndSortedApplications.totalCount
   );
 

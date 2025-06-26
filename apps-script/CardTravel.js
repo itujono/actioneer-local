@@ -25,7 +25,6 @@ function createTravelProcessedCard(gmailMessage, emailData) {
     .setHeader(
       CardService.newCardHeader()
         .setTitle("🌍 Travel Intelligence")
-        .setSubtitle("AI-powered comprehensive analysis")
         .setImageUrl(ICON_URL)
     )
     .setName("travel_processed_card");
@@ -545,7 +544,7 @@ function addComprehensiveTravelActionSection(card, emailData, travelData) {
   // Primary CTA button
   section.addWidget(
     CardService.newTextButton()
-      .setText("📊 Open Complete Travel Dashboard")
+      .setText("Open Travel Dashboard")
       .setOpenLink(
         CardService.newOpenLink()
           .setUrl(buildTravelDashboardUrl(emailData, travelData))
