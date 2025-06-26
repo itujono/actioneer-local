@@ -717,76 +717,89 @@ async function searchHotels(
   return [];
 }
 
-async function searchPointsOfInterest(
+async function searchActivities(
   coordinates: { lat: number; lng: number },
   token: string
 ): Promise<RecommendationItem[]> {
   console.log(
-    `🎯 POI search params: lat=${coordinates.lat}, lng=${coordinates.lng}`
+    `🎭 Activities search params: lat=${coordinates.lat}, lng=${coordinates.lng}`
   );
 
-  // Try multiple POI search endpoints - the API might have changed
-  const poiSearchUrls = [
-    // Current v1 endpoint
-    `${AMADEUS_BASE_URL}/v1/reference-data/locations/pois?latitude=${coordinates.lat}&longitude=${coordinates.lng}&radius=20&page%5Blimit%5D=15`,
-    // Alternative v1 endpoint format
-    `${AMADEUS_BASE_URL}/v1/reference-data/locations/pois?latitude=${coordinates.lat}&longitude=${coordinates.lng}&radius=20&page[limit]=15`,
-    // Fallback without pagination
-    `${AMADEUS_BASE_URL}/v1/reference-data/locations/pois?latitude=${coordinates.lat}&longitude=${coordinates.lng}&radius=20`,
-  ];
+  // Use the new Activities API endpoint
+  const activitiesUrl = `${AMADEUS_BASE_URL}/v1/shopping/activities?latitude=${coordinates.lat}&longitude=${coordinates.lng}&radius=10`;
 
-  for (let i = 0; i < poiSearchUrls.length; i++) {
-    const url = poiSearchUrls[i];
-    console.log(`🎯 Trying POI search URL ${i + 1}: ${url}`);
+  console.log(`🎭 Trying Activities API: ${activitiesUrl}`);
 
-    const response = await fetch(url, {
+  try {
+    const response = await fetch(activitiesUrl, {
       headers: {
         Authorization: `Bearer ${token}`,
       },
     });
 
-    console.log(`🎯 POI search ${i + 1} response status: ${response.status}`);
+    console.log(`🎭 Activities response status: ${response.status}`);
 
     if (response.ok) {
       const data = await response.json();
-      console.log(
-        `🎯 POI search ${i + 1} response:`,
-        JSON.stringify(data, null, 2)
-      );
+      console.log(`🎭 Activities response:`, JSON.stringify(data, null, 2));
 
       if (data.data && data.data.length > 0) {
-        return data.data.slice(0, 8).map(
-          (poi: any): RecommendationItem => ({
-            id: poi.id,
-            name: poi.name,
-            type: "attraction" as const,
-            description: poi.shortDescription,
-            category: poi.category,
-            rank: poi.rank,
-            coordinates: {
-              lat: parseFloat(poi.geoCode.latitude),
-              lng: parseFloat(poi.geoCode.longitude),
-            },
-          })
-        );
+        return data.data
+          .slice(0, 8)
+          .map((activity: any): RecommendationItem => {
+            // Extract price information if available
+            let price:
+              | { amount: string; currency: string; perNight: boolean }
+              | undefined = undefined;
+            if (activity.price && activity.price.amount) {
+              price = {
+                amount: activity.price.amount,
+                currency: activity.price.currencyCode || "EUR",
+                perNight: false,
+              };
+            }
+
+            // Extract rating from review scores if available
+            let rating: number | undefined = undefined;
+            if (activity.rating) {
+              rating = parseFloat(activity.rating);
+            }
+
+            return {
+              id: activity.id,
+              name: activity.name,
+              type: "attraction" as const,
+              description: activity.shortDescription || activity.description,
+              price,
+              rating,
+              category:
+                activity.categories?.[0] || activity.category || "ACTIVITY",
+              coordinates: {
+                lat: parseFloat(activity.geoCode?.latitude || coordinates.lat),
+                lng: parseFloat(activity.geoCode?.longitude || coordinates.lng),
+              },
+              bookingUrl: activity.bookingLink,
+              imageUrl: activity.pictures?.[0] || undefined,
+            };
+          });
       }
     } else {
       const errorText = await response.text();
       console.error(
-        `🎯 POI search ${i + 1} failed: ${response.status} ${
-          response.statusText
-        }`,
+        `🎭 Activities search failed: ${response.status} ${response.statusText}`,
         errorText
       );
     }
+  } catch (error) {
+    console.error(`🎭 Activities search error:`, error);
   }
 
   console.warn(
-    `🎯 All POI search attempts failed for coordinates: lat=${coordinates.lat}, lng=${coordinates.lng}`
+    `🎭 Activities search failed for coordinates: lat=${coordinates.lat}, lng=${coordinates.lng}`
   );
 
-  // Return some mock attractions if API is completely unavailable
-  console.log(`🎯 Returning mock attractions as fallback`);
+  // Return some mock activities if API is completely unavailable
+  console.log(`🎭 Returning mock activities as fallback`);
   return [
     {
       id: "mock-1",
@@ -847,9 +860,9 @@ serve(async (req) => {
 
     console.log(`🎯 Using coordinates for ${parsedDestination}:`, cityInfo);
 
-    // Focus on hotels only for now - POI API is decommissioned
+    // Search for both hotels and activities in parallel
     console.log(`🏨 Starting hotel search for ${parsedDestination}...`);
-    const hotels = await searchHotels(
+    const hotelsPromise = searchHotels(
       cityInfo,
       token,
       checkIn,
@@ -857,12 +870,23 @@ serve(async (req) => {
       travelers
     );
 
-    console.log(`📊 Results: ${hotels.length} hotels found`);
+    console.log(`🎭 Starting activities search for ${parsedDestination}...`);
+    const activitiesPromise = searchActivities(cityInfo, token);
+
+    // Wait for both searches to complete
+    const [hotels, attractions] = await Promise.all([
+      hotelsPromise,
+      activitiesPromise,
+    ]);
+
+    console.log(
+      `📊 Results: ${hotels.length} hotels, ${attractions.length} activities found`
+    );
 
     const response: RecommendationsResponse = {
       hotels,
-      attractions: [], // Temporarily empty while we focus on fixing hotels
-      overview: `Found ${hotels.length} hotel options in ${parsedDestination}. Attractions coming soon!`,
+      attractions,
+      overview: `Found ${hotels.length} hotel options and ${attractions.length} activities in ${parsedDestination}. Ready to explore!`,
       destination: parsedDestination,
       searchDate: new Date().toISOString(),
     };
