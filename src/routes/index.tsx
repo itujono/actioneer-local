@@ -29,7 +29,7 @@ function Index() {
               <div className="flex justify-center mb-4 sm:mb-6">
                 <div className="inline-flex items-center px-3 py-2 sm:px-4 sm:py-2 bg-white/20 backdrop-blur-sm rounded-full text-white font-medium text-sm sm:text-base">
                   <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-wiggle" />
-                  Install once, forget it
+                  Activate once, automate forever
                   <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 ml-2 animate-wiggle" />
                 </div>
               </div>
@@ -47,7 +47,7 @@ function Index() {
                 <strong className="text-gold">
                   Actioneer transforms every email into instant, smart actions
                 </strong>
-                —automatically, without setting up a thing.
+                —automatically, with just a simple one-time activation.
               </p>
 
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-6 sm:mb-8 px-4">
@@ -78,7 +78,7 @@ function Index() {
                 </div>
                 <div className="flex items-center">
                   <div className="w-2 h-2 bg-sandy rounded-full mr-2"></div>
-                  Privacy-first design
+                  Zero tracking policy
                 </div>
               </div>
             </div>

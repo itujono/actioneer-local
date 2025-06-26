@@ -17,7 +17,7 @@ export default function HowToInstallSection() {
       <div className="space-y-0">
         <section className="group p-4 sm:p-3 rounded-2xl transition-all duration-300 relative">
           <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">
-            Instant Start
+            Step 1: Dashboard Access
           </h3>
           <CurlyArrow />
           <p className="text-white text-base sm:text-lg mb-4 sm:mb-6 leading-relaxed">
@@ -30,17 +30,17 @@ export default function HowToInstallSection() {
             >
               https://actioneer.online/dashboard
             </a>{" "}
-            and sign in with Google. Your emails are already being monitored and
-            processed automatically!
+            and sign in with Google to access your personal dashboard where all
+            the magic happens.
           </p>
         </section>
 
         <section className="group p-4 sm:p-3 rounded-2xl transition-all duration-300 relative">
           <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">
-            Enhanced Experience
+            Step 2: Activate Processing
           </h3>
           <p className="text-white text-base sm:text-lg mb-4 sm:mb-6 leading-relaxed">
-            Get the dashboard <em>plus</em> install the{" "}
+            Install the{" "}
             <a
               href="https://workspace.google.com/marketplace"
               target="_blank"
@@ -49,18 +49,21 @@ export default function HowToInstallSection() {
             >
               Gmail add-on
             </a>{" "}
-            for smart actions directly in your inbox. See expense details and
-            travel comparisons right when you open emails!
+            and open it once in any email to activate automatic processing. This
+            enables both email intelligence <em>and</em> smart actions directly
+            in your inbox!
           </p>
         </section>
 
         <section className="group p-4 sm:p-3 rounded-2xl transition-all duration-300">
           <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">
-            You're All Set!
+            Step 3: Enjoy Automation!
           </h3>
           <p className="text-white text-base sm:text-lg mb-4 sm:mb-6 leading-relaxed">
-            Now grab your <strong className="text-gold">apple juice</strong>,
-            start that Netflix binge, and watch your emails organize themselves.
+            That's it! Now grab your{" "}
+            <strong className="text-gold">apple juice</strong>, start that
+            Netflix binge, and watch your emails organize themselves
+            automatically.
             <span className="text-xl sm:text-2xl ml-2">🍎📺✨</span>
           </p>
         </section>

@@ -152,16 +152,16 @@ function addTravelEmailSection(card, emailData, travelInfo) {
 }
 
 /**
- * Add simple action section with travel dashboard button
+ * Add simple action section with travel details button
  */
 function addSimpleTravelActionSection(card, emailData, travelInfo) {
   const section = CardService.newCardSection()
   
-  // Main CTA - Get insights about destination
+  // Main CTA - View travel details and recommendations
   const destination = travelInfo.destination || "this destination";
   const buttonText = destination !== "Unknown Destination" && destination !== "this destination" 
-    ? `Get insights about ${destination}`
-    : "View in Travel Dashboard";
+    ? `Explore ${destination}`
+    : "View Travel Details";
   
   section.addWidget(
     CardService.newTextButton()
@@ -236,17 +236,20 @@ function truncateText(text, maxLength = 120) {
 }
 
 /**
- * Build simple travel dashboard URL
+ * Build travel details page URL - links directly to the dedicated travel page
  */
 function buildSimpleTravelDashboardUrl(emailData, travelInfo) {
+  // For now, we'll link to the main travel page with query params
+  // In the future, we could fetch the specific travel email ID from the database
+  // and link directly to /travel/$id
   const baseUrl = `${BASE_URL}/travel`;
   const params = [];
   
-  // Always add basic params
+  // Always add basic params for potential future use
   params.push(`from=gmail`);
   params.push(`messageId=${encodeURIComponent(emailData.messageId)}`);
   
-  // Add destination if we found one
+  // Add destination if we found one - this could help with filtering/highlighting
   if (travelInfo.destination && travelInfo.destination !== "Unknown Destination") {
     params.push(`destination=${encodeURIComponent(travelInfo.destination)}`);
   }

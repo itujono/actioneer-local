@@ -18,8 +18,8 @@ export default function HowItWorksSection() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-10 lg:gap-12">
-        <HowItWorksItem title="Sign In & Start" number={1}>
-          Simply visit{" "}
+        <HowItWorksItem title="Sign In & Activate" number={1}>
+          Visit{" "}
           <a
             href="https://actioneer.online/dashboard"
             target="_blank"
@@ -28,12 +28,13 @@ export default function HowItWorksSection() {
           >
             https://actioneer.online/dashboard
           </a>{" "}
-          and sign in with Google. Our intelligent agent immediately starts
+          and sign in with Google. Then install the Gmail add-on and open it
+          once in any email to
           <strong className="text-heliotrope">
             {" "}
-            monitoring your incoming emails
+            activate automatic email monitoring
           </strong>{" "}
-          - no installation, no setup, no configuration, no headaches.
+          - simple one-time setup, then you're done forever.
         </HowItWorksItem>
         <HowItWorksItem title="Agent Takes Over" number={2}>
           Like having a super-smart assistant working 24/7. In every incoming

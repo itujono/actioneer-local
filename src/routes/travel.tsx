@@ -71,7 +71,7 @@ function TravelDashboard() {
     return (
       <DashboardContainer
         title="Travel Dashboard"
-        description="Track and explore your travel plans"
+        description="All your travel emails are stored here. Find the best hotels and attractions for your next trip."
       >
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-1/3"></div>
@@ -86,7 +86,7 @@ function TravelDashboard() {
     return (
       <DashboardContainer
         title="Travel Dashboard"
-        description="Track and explore your travel plans"
+        description="All your travel emails are stored here. Find the best hotels and attractions for your next trip."
       >
         <div className="p-4 bg-red-50 border border-red-200 rounded-lg">
           <p className="text-red-700">
@@ -100,7 +100,7 @@ function TravelDashboard() {
   return (
     <DashboardContainer
       title="Travel Dashboard"
-      description="Track and explore your travel plans"
+      description="All your travel emails are stored here. Find the best hotels and attractions for your next trip."
     >
       <TravelStats travelEmails={travelEmails} isLoading={isLoading} />
       <TravelEmailsList
