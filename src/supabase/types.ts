@@ -39,6 +39,38 @@ export interface CustomFieldDefinition {
 export interface Database {
   public: {
     Tables: {
+      users: {
+        Row: {
+          id: string;
+          email: string;
+          api_key: string;
+          name: string | null;
+          is_active: boolean;
+          source: string;
+          created_at: string;
+          updated_at: string;
+        };
+        Insert: {
+          id?: string;
+          email: string;
+          api_key: string;
+          name?: string | null;
+          is_active?: boolean;
+          source?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+        Update: {
+          id?: string;
+          email?: string;
+          api_key?: string;
+          name?: string | null;
+          is_active?: boolean;
+          source?: string;
+          created_at?: string;
+          updated_at?: string;
+        };
+      };
       custom_fields: {
         Row: CustomFieldDefinition;
         Insert: {

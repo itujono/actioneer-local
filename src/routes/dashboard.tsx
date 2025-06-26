@@ -13,6 +13,7 @@ import { useAuth } from "../hooks/useAuth";
 import {
   DashboardCard,
   DashboardContainer,
+  GmailAddonActivation,
   RecentActivityCard,
 } from "../components/dashboard";
 import { formatDistanceToNow } from "date-fns";
@@ -195,6 +196,9 @@ function Dashboard() {
           </div>
         </div>
       </div>
+
+      {/* Gmail Add-on Activation */}
+      <GmailAddonActivation className="mt-6" />
 
       {/* Stats Grid */}
       <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">
