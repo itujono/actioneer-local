@@ -2179,62 +2179,194 @@ function getRecentRevenue() {
 // ============================================================================
 
 /**
- * Get travel comparison data from backend
+ * Get basic travel info from email (simplified, lightweight approach)
+ * No more heavy API calls - just extract destination and email subject
  */
 function getTravelComparison(emailData) {
   try {
-    const userApiKey = ensureUserApiKey();
-    if (!userApiKey) {
-      console.error("No API key found for travel comparison");
-      return null;
-    }
-
-    const payload = {
-      emailId: emailData.messageId,
-      messageId: emailData.messageId,
-      emailBody: emailData.body,
-      subject: emailData.subject,
-      from: emailData.from,
-    };
-
-    console.log("🔍 Requesting travel comparison...");
-    console.log("🌐 BACKEND_API_URL:", BACKEND_API_URL);
-    console.log("🎯 Full URL:", `${BACKEND_API_URL}/travel-v2`);
-
-    // Headers required for Supabase Edge Functions
-    const headers = {
-      "Content-Type": "application/json",
-      apikey: SUPABASE_ANON_KEY,
-      Authorization: `Bearer ${SUPABASE_ANON_KEY}`,
-      "x-user-api-key": userApiKey,
-    };
-
-    console.log("📋 Headers being sent:", JSON.stringify(headers, null, 2));
-    console.log(
-      "🔑 User API key:",
-      userApiKey ? userApiKey.substring(0, 10) + "..." : "MISSING"
-    );
-
-    const response = UrlFetchApp.fetch(`${BACKEND_API_URL}/travel-v2`, {
-      method: "POST",
-      headers: headers,
-      payload: JSON.stringify(payload),
-      muteHttpExceptions: true,
-    });
-
-    if (response.getResponseCode() === 200) {
-      const result = JSON.parse(response.getContentText());
-      console.log(
-        "✅ Travel comparison received:",
-        JSON.stringify(result, null, 2)
-      );
-      return result;
+    console.log("🌍 Extracting basic travel info (lightweight approach)...");
+    
+    // Extract basic travel information locally (fast)
+    const basicTravelInfo = extractTravelInfoFromEmail(emailData);
+    
+    if (basicTravelInfo) {
+      console.log("✅ Basic travel info extracted:", JSON.stringify(basicTravelInfo, null, 2));
+      
+      // Structure the response in the expected format for backward compatibility
+      return {
+        travelData: basicTravelInfo,
+        type: "simplified"
+      };
     } else {
-      console.error("Travel comparison failed:", response.getContentText());
+      console.log("📭 No travel information found in email");
       return null;
     }
+    
   } catch (error) {
-    console.error("Error getting travel comparison:", error);
+    console.error("Error extracting travel info:", error);
     return null;
   }
+}
+
+/**
+ * Extract travel information from email content (local processing)
+ */
+function extractTravelInfoFromEmail(emailData) {
+  const subject = emailData.subject || "";
+  const body = emailData.body || "";
+  const from = emailData.from || "";
+  
+  // Simple destination extraction patterns
+  const destinationPatterns = [
+    // Direct mentions in subject line
+    /(?:to|in|visit|destination|traveling to|flying to|trip to|booking in|hotel in|flight to)\s+([A-Z][a-zA-Z\s]{2,25})/gi,
+    // City, Country format
+    /([A-Z][a-zA-Z\s]{2,15}),\s*([A-Z][a-zA-Z\s]{2,15})/g,
+    // Airport codes (common in travel emails)
+    /\b([A-Z]{3})\s*(?:airport|to|from|-)/gi,
+    // Hotel/booking specific patterns
+    /(?:hotel|accommodation|stay|booking).*(?:in|at|near)\s+([A-Z][a-zA-Z\s]{2,25})/gi,
+    // Flight specific patterns
+    /(?:flight|ticket|booking).*(?:to|destination)\s+([A-Z][a-zA-Z\s]{2,25})/gi
+  ];
+  
+  let destination = null;
+  
+  // Try to extract destination from subject first (most reliable)
+  for (const pattern of destinationPatterns) {
+    const matches = subject.match(pattern);
+    if (matches && matches.length > 0) {
+      let match = matches[0];
+      
+      // Clean up the match
+      match = match
+        .replace(/^(to|in|visit|destination|traveling to|flying to|trip to|booking in|hotel in|flight to|hotel|accommodation|stay|booking|flight|ticket)\s*/i, '')
+        .replace(/\s*(airport|to|from|-).*$/i, '')
+        .trim();
+      
+      if (match.length > 2 && match.length < 50 && !match.match(/^(and|or|the|of|at|in|on)$/i)) {
+        destination = match;
+        console.log("🎯 Found destination in subject:", destination);
+        break;
+      }
+    }
+  }
+  
+  // If no destination found in subject, try body (less reliable but worth trying)
+  if (!destination && body) {
+    for (const pattern of destinationPatterns) {
+      const matches = body.match(pattern);
+      if (matches && matches.length > 0) {
+        let match = matches[0];
+        
+        // Clean up the match
+        match = match
+          .replace(/^(to|in|visit|destination|traveling to|flying to|trip to|booking in|hotel in|flight to|hotel|accommodation|stay|booking|flight|ticket)\s*/i, '')
+          .replace(/\s*(airport|to|from|-).*$/i, '')
+          .trim();
+        
+        if (match.length > 2 && match.length < 50 && !match.match(/^(and|or|the|of|at|in|on)$/i)) {
+          destination = match;
+          console.log("🎯 Found destination in body:", destination);
+          break;
+        }
+      }
+    }
+  }
+  
+  // Determine travel type based on email content (simple classification)
+  let travelType = "general";
+  const lowerSubject = subject.toLowerCase();
+  const lowerBody = body.toLowerCase();
+  const emailContent = `${lowerSubject} ${lowerBody}`;
+  
+  if (emailContent.match(/flight|airline|boarding|departure|arrival|ticket/)) {
+    travelType = "flight";
+  } else if (emailContent.match(/hotel|accommodation|reservation|check.?in|check.?out|room|stay/)) {
+    travelType = "hotel";
+  } else if (emailContent.match(/tour|attraction|activity|ticket|museum|experience|adventure/)) {
+    travelType = "attraction";
+  }
+  
+  // Extract basic travel details
+  const travelers = extractTravelerCount(emailContent);
+  const dates = extractTravelDates(emailContent);
+  
+  return {
+    destination: destination || "Unknown Destination",
+    type: travelType,
+    travelers: travelers,
+    departureDate: dates.departure,
+    returnDate: dates.return,
+    checkInDate: dates.checkIn,
+    checkOutDate: dates.checkOut,
+    subject: subject,
+    from: from,
+    // Keep it simple - no heavy comparison data
+    preferences: "Basic travel email processing"
+  };
+}
+
+/**
+ * Extract traveler count from email content
+ */
+function extractTravelerCount(emailContent) {
+  const travelerPatterns = [
+    /(\d+)\s*(?:traveler|passenger|guest|adult|person)/gi,
+    /(?:for|party of)\s*(\d+)/gi,
+    /(\d+)\s*(?:people|individuals)/gi
+  ];
+  
+  for (const pattern of travelerPatterns) {
+    const matches = emailContent.match(pattern);
+    if (matches && matches.length > 0) {
+      const numberMatch = matches[0].match(/(\d+)/);
+      if (numberMatch) {
+        const count = parseInt(numberMatch[1]);
+        if (count > 0 && count <= 20) { // Reasonable range
+          return count;
+        }
+      }
+    }
+  }
+  
+  return 1; // Default to 1 traveler
+}
+
+/**
+ * Extract travel dates from email content
+ */
+function extractTravelDates(emailContent) {
+  const dates = {
+    departure: null,
+    return: null,
+    checkIn: null,
+    checkOut: null
+  };
+  
+  // Simple date patterns (keeping it lightweight)
+  const datePatterns = [
+    /(?:departure|departing|depart|leaving|check.?in).*?(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/gi,
+    /(?:return|returning|check.?out).*?(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/gi,
+    /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/g
+  ];
+  
+  // For now, keep it simple and just note that dates were found
+  // Full date parsing can be complex and error-prone
+  for (const pattern of datePatterns) {
+    const matches = emailContent.match(pattern);
+    if (matches && matches.length > 0) {
+      // We found some dates - for the simplified approach, we'll just note this
+      if (emailContent.includes("check") || emailContent.includes("hotel")) {
+        dates.checkIn = matches[0];
+        if (matches.length > 1) dates.checkOut = matches[1];
+      } else {
+        dates.departure = matches[0];
+        if (matches.length > 1) dates.return = matches[1];
+      }
+      break;
+    }
+  }
+  
+  return dates;
 }
