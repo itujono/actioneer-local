@@ -10,12 +10,8 @@ import { useCustomFields } from "../hooks/useCustomFields";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DragEndEvent } from "@dnd-kit/core";
 import { useColumnOrder, ColumnConfig } from "../hooks/useColumnOrder";
-import {
-  JobsHeader,
-  JobsStats,
-  JobsControls,
-  JobsTable,
-} from "../components/jobs";
+import { JobsStats, JobsControls, JobsTable } from "../components/jobs";
+import { DashboardContainer } from "../components/dashboard";
 import type {
   JobApplication,
   SortConfig,
@@ -510,47 +506,57 @@ function JobsDashboard() {
   }
 
   return (
-    <div className="py-6">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        <JobsHeader
-          onShowCustomFieldsManager={() => setShowCustomFieldsManager(true)}
-          onResetColumnOrder={resetColumnOrder}
+    <DashboardContainer
+      title="Job Applications"
+      description="Track and manage your job search progress"
+      headerActions={
+        <>
+          <Button
+            onClick={() => setShowCustomFieldsManager(true)}
+            variant="outline"
+            size="sm"
+          >
+            Manage Fields
+          </Button>
+          <Button onClick={resetColumnOrder} variant="outline" size="sm">
+            Reset Layout
+          </Button>
+        </>
+      }
+    >
+      <JobsStats jobApplications={jobApplications} isLoading={isLoading} />
+
+      <JobsControls
+        searchTerm={searchTerm}
+        setSearchTerm={setSearchTerm}
+        statusFilter={statusFilter}
+        setStatusFilter={setStatusFilter}
+        uniqueStatuses={uniqueStatuses}
+        pageSize={pageSize}
+        setPageSize={setPageSize}
+        groupSimilarApplications={groupSimilarApplications}
+        setGroupSimilarApplications={setGroupSimilarApplications}
+      />
+
+      <div className="mt-8 bg-concrete/50">
+        <JobsTable
+          isLoading={isLoading}
+          filteredAndSortedApplications={filteredAndSortedApplications}
+          sortConfig={sortConfig}
+          handleSort={handleSort}
+          columnOrder={columnOrder}
+          onDragEnd={onDragEnd}
+          customFields={customFields}
+          getCustomFieldValue={getCustomFieldValue}
+          updateJobApplicationMutation={updateJobApplicationMutation}
+          currentPage={currentPage}
+          setCurrentPage={setCurrentPage}
+          totalPages={totalPages}
+          startItem={startItem}
+          endItem={endItem}
+          onEditCustomField={handleEditCustomField}
+          onDeleteApplication={handleDeleteApplication}
         />
-
-        <JobsStats jobApplications={jobApplications} isLoading={isLoading} />
-
-        <JobsControls
-          searchTerm={searchTerm}
-          setSearchTerm={setSearchTerm}
-          statusFilter={statusFilter}
-          setStatusFilter={setStatusFilter}
-          uniqueStatuses={uniqueStatuses}
-          pageSize={pageSize}
-          setPageSize={setPageSize}
-          groupSimilarApplications={groupSimilarApplications}
-          setGroupSimilarApplications={setGroupSimilarApplications}
-        />
-
-        <div className="mt-8 bg-concrete/50">
-          <JobsTable
-            isLoading={isLoading}
-            filteredAndSortedApplications={filteredAndSortedApplications}
-            sortConfig={sortConfig}
-            handleSort={handleSort}
-            columnOrder={columnOrder}
-            onDragEnd={onDragEnd}
-            customFields={customFields}
-            getCustomFieldValue={getCustomFieldValue}
-            updateJobApplicationMutation={updateJobApplicationMutation}
-            currentPage={currentPage}
-            setCurrentPage={setCurrentPage}
-            totalPages={totalPages}
-            startItem={startItem}
-            endItem={endItem}
-            onEditCustomField={handleEditCustomField}
-            onDeleteApplication={handleDeleteApplication}
-          />
-        </div>
       </div>
 
       {/* Custom Field Edit Form Modal */}
@@ -586,6 +592,6 @@ function JobsDashboard() {
         tableName="job_applications"
         userId={user?.id || ""}
       />
-    </div>
+    </DashboardContainer>
   );
 }

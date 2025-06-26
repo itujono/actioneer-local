@@ -6,7 +6,12 @@ export { TravelEmailsList } from "./TravelEmailsList";
 export { TravelStats } from "./TravelStats";
 export { TravelHeader } from "./TravelHeader";
 export { TravelSectionSkeleton, TravelCardSkeleton } from "./TravelSkeletons";
-export { TravelRecommendationsDialog } from "./TravelRecommendationsDialog";
+export {
+  RecommendationCard,
+  LoadingSkeleton,
+  fetchTravelRecommendations,
+  type RecommendationItem,
+} from "./TravelRecommendationComponents";
 export {
   FormattedDestination,
   useFormattedDestination,

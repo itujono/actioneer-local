@@ -1,6 +1,6 @@
 import { createRoute, Link } from "@tanstack/react-router";
 import { rootRoute } from "./root";
-import { Sparkles, Clock, Heart } from "lucide-react";
+import { Sparkles, Clock } from "lucide-react";
 import Navbar from "../components/layout/Navbar";
 import FAQSection from "../components/home/FaqSection";
 import HowItWorksSection from "../components/home/HowItWorksSection";
@@ -52,19 +52,19 @@ function Index() {
 
               <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-6 sm:mb-8 px-4">
                 <Link
-                  href="/auth"
+                  to="/auth"
                   className="w-full sm:w-auto btn-primary bg-daisy text-lg px-6 sm:px-8 py-3 sm:py-4 text-center"
                 >
                   <Clock className="w-4 h-4 sm:w-5 sm:h-5 mr-2 inline" />
                   Start in 30 seconds
                 </Link>
-                <Link
-                  href="#proof"
+                {/* <Link
+                  to="/proof"
                   className="w-full sm:w-auto btn-secondary text-lg px-6 sm:px-8 py-3 sm:py-4 text-center"
                 >
                   <Heart className="w-4 h-4 sm:w-5 sm:h-5 mr-2 inline" />
                   See the magic
-                </Link>
+                </Link> */}
               </div>
 
               <div className="flex flex-wrap justify-center gap-4 sm:gap-6 text-white/80 text-sm px-4">

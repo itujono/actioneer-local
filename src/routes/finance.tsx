@@ -7,12 +7,12 @@ import { supabase } from "../supabase/client";
 import { currencyManager } from "../utils/currency";
 import { Button } from "../components/ui/button";
 import {
-  FinanceHeader,
   FinanceControls,
   FinanceMetrics,
   CurrencyBreakdown,
   TransactionsList,
 } from "../components/finance";
+import { DashboardContainer } from "../components/dashboard";
 
 export const financeRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -435,49 +435,50 @@ function FinancialDashboard() {
   const isLoading = receiptsLoading || revenueLoading;
 
   return (
-    <div className="min-h-screen bg-concrete/10 py-6 pb-12">
-      <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-        <div className="flex flex-col space-y-6">
-          <FinanceHeader />
-          <FinanceControls
-            viewMode={viewMode}
-            setViewMode={setViewMode}
-            timeframe={timeframe}
-            setTimeframe={setTimeframe}
-            displayMode={displayMode}
-            setDisplayMode={setDisplayMode}
-            baseCurrency={baseCurrency}
-            setBaseCurrency={setBaseCurrency}
-            showCurrencyBreakdown={showCurrencyBreakdown}
-            setShowCurrencyBreakdown={setShowCurrencyBreakdown}
-            uniqueCurrencies={metrics.uniqueCurrencies}
-          />
-        </div>
-        <FinanceMetrics
-          metrics={metrics}
-          baseCurrency={baseCurrency}
-          timeframe={timeframe}
-        />
-        <CurrencyBreakdown
-          showCurrencyBreakdown={showCurrencyBreakdown}
-          uniqueCurrencies={metrics.uniqueCurrencies}
-          currencyBreakdown={metrics.currencyBreakdown}
-          baseCurrency={baseCurrency}
-        />
-        <TransactionsList
-          isLoading={isLoading}
-          groupedTransactions={groupedTransactions}
-          displayMode={displayMode}
-          baseCurrency={baseCurrency}
+    <DashboardContainer
+      title="Financial Dashboard"
+      description="Track your expenses and revenue across all currencies"
+      className="min-h-screen bg-concrete/10 pb-12"
+    >
+      <div className="flex flex-col space-y-6">
+        <FinanceControls
           viewMode={viewMode}
-          hasNextPage={hasNextReceiptsPage || hasNextRevenuePage}
-          isFetchingNextPage={isFetchingNextReceipts || isFetchingNextRevenue}
-          onLoadMore={() => {
-            if (hasNextReceiptsPage) fetchNextReceipts();
-            if (hasNextRevenuePage) fetchNextRevenue();
-          }}
+          setViewMode={setViewMode}
+          timeframe={timeframe}
+          setTimeframe={setTimeframe}
+          displayMode={displayMode}
+          setDisplayMode={setDisplayMode}
+          baseCurrency={baseCurrency}
+          setBaseCurrency={setBaseCurrency}
+          showCurrencyBreakdown={showCurrencyBreakdown}
+          setShowCurrencyBreakdown={setShowCurrencyBreakdown}
+          uniqueCurrencies={metrics.uniqueCurrencies}
         />
       </div>
-    </div>
+      <FinanceMetrics
+        metrics={metrics}
+        baseCurrency={baseCurrency}
+        timeframe={timeframe}
+      />
+      <CurrencyBreakdown
+        showCurrencyBreakdown={showCurrencyBreakdown}
+        uniqueCurrencies={metrics.uniqueCurrencies}
+        currencyBreakdown={metrics.currencyBreakdown}
+        baseCurrency={baseCurrency}
+      />
+      <TransactionsList
+        isLoading={isLoading}
+        groupedTransactions={groupedTransactions}
+        displayMode={displayMode}
+        baseCurrency={baseCurrency}
+        viewMode={viewMode}
+        hasNextPage={hasNextReceiptsPage || hasNextRevenuePage}
+        isFetchingNextPage={isFetchingNextReceipts || isFetchingNextRevenue}
+        onLoadMore={() => {
+          if (hasNextReceiptsPage) fetchNextReceipts();
+          if (hasNextRevenuePage) fetchNextRevenue();
+        }}
+      />
+    </DashboardContainer>
   );
 }

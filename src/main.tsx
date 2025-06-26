@@ -12,6 +12,7 @@ import { authRoute } from "./routes/auth";
 import { dashboardRoute } from "./routes/dashboard";
 import { financeRoute } from "./routes/finance";
 import { travelRoute } from "./routes/travel";
+import { travelDetailRoute } from "./routes/travel.$id";
 import { jobsRoute } from "./routes/jobs";
 import { settingsRoute } from "./routes/settings";
 
@@ -31,6 +32,7 @@ const routeTree = rootRoute.addChildren([
   dashboardRoute,
   financeRoute,
   travelRoute,
+  travelDetailRoute,
   jobsRoute,
   settingsRoute,
 ]);

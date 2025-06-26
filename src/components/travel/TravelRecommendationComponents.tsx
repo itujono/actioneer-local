@@ -1,20 +1,10 @@
-import { useQuery } from "@tanstack/react-query";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "../ui/dialog";
 import { Button } from "../ui/button";
 import {
   MapPin,
   Star,
   Hotel,
   Camera,
-  Loader2,
   ExternalLink,
-  AlertCircle,
   Wifi,
   Car,
   Coffee,
@@ -25,13 +15,7 @@ import {
 } from "lucide-react";
 import { supabase } from "../../supabase/client";
 
-interface TravelRecommendationsDialogProps {
-  isOpen: boolean;
-  onClose: () => void;
-  destination: any; // Travel email object with destination info
-}
-
-interface RecommendationItem {
+export interface RecommendationItem {
   id: string;
   name: string;
   type: "hotel" | "attraction" | "restaurant";
@@ -72,7 +56,7 @@ interface RecommendationsResponse {
   searchDate: string;
 }
 
-async function fetchTravelRecommendations(
+export async function fetchTravelRecommendations(
   destination: string,
   travelers?: number
 ): Promise<RecommendationsResponse> {
@@ -126,15 +110,13 @@ function cleanHtmlFromText(text: string): string {
     .trim(); // Remove leading/trailing whitespace
 }
 
-function RecommendationCard({ item }: { item: RecommendationItem }) {
+export function RecommendationCard({ item }: { item: RecommendationItem }) {
   const isHotel = item.type === "hotel";
   const Icon = isHotel ? Hotel : Camera;
 
-  console.log({ item });
-
   return (
     <div className="border-2 border-concrete rounded-lg overflow-hidden hover:shadow-md transition-all duration-200">
-      <div className="flex flex-col md:flex-row gap-8">
+      <div className="flex flex-col md:flex-row gap-4">
         {/* Image Section */}
         {item.imageUrl && (
           <div className="relative w-56 flex-shrink-0">
@@ -253,7 +235,6 @@ function RecommendationCard({ item }: { item: RecommendationItem }) {
             {item.price ? (
               <div className="flex flex-col">
                 <div className="flex items-center gap-1 text-green-600">
-                  {/* <DollarSign className="h-4 w-4" /> */}
                   <span className="font-semibold">
                     {item.price.currency} {item.price.amount}
                     {item.price.perNight && (
@@ -282,7 +263,7 @@ function RecommendationCard({ item }: { item: RecommendationItem }) {
               }}
             >
               <ExternalLink className="h-3 w-3 mr-1" />
-              {isHotel ? "Book Now" : "View Details"}
+              {isHotel ? "Book Now" : "Book Ticket"}
             </Button>
           </div>
         </div>
@@ -291,7 +272,7 @@ function RecommendationCard({ item }: { item: RecommendationItem }) {
   );
 }
 
-function LoadingSkeleton() {
+export function LoadingSkeleton() {
   return (
     <div className="space-y-4">
       {[...Array(3)].map((_, i) => (
@@ -314,128 +295,5 @@ function LoadingSkeleton() {
         </div>
       ))}
     </div>
-  );
-}
-
-export function TravelRecommendationsDialog({
-  isOpen,
-  onClose,
-  destination,
-}: TravelRecommendationsDialogProps) {
-  const destinationName =
-    destination?.details?.origin || destination?.subject || "Unknown";
-  const travelers = destination?.details?.travelers || 2;
-
-  const {
-    data: recommendations,
-    isLoading,
-    error,
-  } = useQuery({
-    queryKey: ["travel-recommendations", destinationName, travelers],
-    queryFn: () => fetchTravelRecommendations(destinationName, travelers),
-    enabled: isOpen && !!destinationName,
-    staleTime: 10 * 60 * 1000, // 10 minutes
-    gcTime: 10 * 60 * 1000, // 10 minutes
-    retry: 1,
-  });
-
-  return (
-    <Dialog open={isOpen} onOpenChange={onClose}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
-        <DialogHeader className="flex-shrink-0">
-          <DialogTitle className="flex items-center gap-2">
-            <MapPin className="h-5 w-5 text-jade" />
-            Explore {destinationName}
-          </DialogTitle>
-          <DialogDescription>
-            Planning for {travelers} travelers • Next 7 days
-          </DialogDescription>
-        </DialogHeader>
-
-        <div className="flex-1 overflow-y-auto">
-          {isLoading && (
-            <div className="space-y-6">
-              <div className="flex items-center gap-2 text-thunder">
-                <Loader2 className="h-4 w-4 animate-spin" />
-                Finding the best hotels and attractions...
-              </div>
-              <LoadingSkeleton />
-            </div>
-          )}
-
-          {error && (
-            <div className="flex items-center gap-2 text-bittersweet bg-bittersweet/10 p-4 rounded-lg">
-              <AlertCircle className="h-5 w-5" />
-              <div>
-                <p className="font-medium">Failed to load recommendations</p>
-                <p className="text-sm">{error.message}</p>
-              </div>
-            </div>
-          )}
-
-          {recommendations && (
-            <div className="space-y-12">
-              {recommendations.overview && (
-                <p className="text-thunder">{recommendations.overview}</p>
-              )}
-
-              {/* Hotels Section */}
-              {recommendations.hotels.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Hotel className="h-5 w-5 text-jade" />
-                    <h3 className="text-lg font-semibold">
-                      Hotels ({recommendations.hotels.length})
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-                    {recommendations.hotels.map((hotel) => (
-                      <RecommendationCard key={hotel.id} item={hotel} />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {/* Attractions Section */}
-              {recommendations.attractions.length > 0 && (
-                <div>
-                  <div className="flex items-center gap-2 mb-4">
-                    <Camera className="h-5 w-5 text-jade" />
-                    <h3 className="text-lg font-semibold">
-                      Attractions ({recommendations.attractions.length})
-                    </h3>
-                  </div>
-                  <div className="grid grid-cols-1 md:grid-cols-1 gap-4">
-                    {recommendations.attractions.map((attraction) => (
-                      <RecommendationCard
-                        key={attraction.id}
-                        item={attraction}
-                      />
-                    ))}
-                  </div>
-                </div>
-              )}
-
-              {recommendations.hotels.length === 0 &&
-                recommendations.attractions.length === 0 && (
-                  <div className="text-center py-8 text-thunder">
-                    <Camera className="h-12 w-12 mx-auto mb-4 text-jade/20" />
-                    <p>No recommendations found for this destination.</p>
-                    <p className="text-sm">
-                      Try searching for a more specific location.
-                    </p>
-                  </div>
-                )}
-            </div>
-          )}
-        </div>
-
-        <div className="flex-shrink-0 flex justify-end pt-4">
-          <Button variant="outline" onClick={onClose}>
-            Close
-          </Button>
-        </div>
-      </DialogContent>
-    </Dialog>
   );
 }
