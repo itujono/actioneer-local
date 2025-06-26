@@ -688,6 +688,8 @@ async function searchHotels(
             sentimentScore: hotelSentiment?.sentimentScore,
             reviewCount: hotelSentiment?.reviewCount,
             overallRating: hotelSentiment?.overallRating,
+            // Extract image URL if available
+            imageUrl: hotel.media?.[0]?.uri || hotel.pictures?.[0] || undefined,
             // Generate booking URL for popular booking sites
             bookingUrl: `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(
               hotel.name + " " + (hotel.address?.cityName || "")

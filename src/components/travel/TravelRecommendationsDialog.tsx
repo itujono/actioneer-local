@@ -157,94 +157,98 @@ function RecommendationCard({ item }: { item: RecommendationItem }) {
         )}
 
         {/* Content Section */}
-        <div className="flex-1 p-4">
-          <div className="flex items-start justify-between mb-2">
-            <div className="flex items-center gap-2">
-              <Icon className="h-5 w-5 text-jade" />
-              <div className="flex flex-col">
-                <h4 className="font-semibold text-gray-900 line-clamp-1">
-                  {item.name}
-                </h4>
-                {isHotel && item.area && (
-                  <span className="text-xs text-gray-500">{item.area}</span>
+        <div className="flex-1 p-4 flex flex-col">
+          {/* Main content that should expand */}
+          <div className="flex-1">
+            <div className="flex items-start justify-between mb-2">
+              <div className="flex items-center gap-2">
+                <Icon className="h-5 w-5 text-jade" />
+                <div className="flex flex-col">
+                  <h4 className="font-semibold text-gray-900 line-clamp-1">
+                    {item.name}
+                  </h4>
+                  {isHotel && item.area && (
+                    <span className="text-xs text-gray-500">{item.area}</span>
+                  )}
+                </div>
+              </div>
+              <div className="flex flex-col items-end gap-1">
+                {item.rating && (
+                  <div className="flex items-center gap-1 text-gold">
+                    <Star className="h-4 w-4 fill-current" />
+                    <span className="text-sm font-medium text-thunder">
+                      {item.rating}/100
+                      {item.reviewCount && (
+                        <span className="text-xs text-gray ml-1">
+                          ({item.reviewCount} reviews)
+                        </span>
+                      )}
+                    </span>
+                  </div>
+                )}
+                {isHotel && item.sentimentScore && item.sentimentScore > 0 && (
+                  <div className="text-xs text-gray-600">
+                    Sentiment: {item.sentimentScore}%
+                  </div>
                 )}
               </div>
             </div>
-            <div className="flex flex-col items-end gap-1">
-              {item.rating && (
-                <div className="flex items-center gap-1 text-gold">
-                  <Star className="h-4 w-4 fill-current" />
-                  <span className="text-sm font-medium text-thunder">
-                    {item.rating}/100
-                    {item.reviewCount && (
-                      <span className="text-xs text-gray ml-1">
-                        ({item.reviewCount} reviews)
-                      </span>
-                    )}
+
+            {/* Hotel-specific info */}
+            {isHotel && (item.chain || item.roomType) && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {item.roomType && (
+                  <span className="py-1 px-2 [&:first-child]:pl-0 text-gray text-xs font-medium">
+                    {item.roomType}
                   </span>
-                </div>
-              )}
-              {isHotel && item.sentimentScore && item.sentimentScore > 0 && (
-                <div className="text-xs text-gray-600">
-                  Sentiment: {item.sentimentScore}%
-                </div>
-              )}
-            </div>
+                )}
+              </div>
+            )}
+
+            {item.description && (
+              <p className="text-sm text-thunder mb-2 line-clamp-2">
+                {cleanHtmlFromText(item.description)}
+              </p>
+            )}
+
+            {/* Amenities for hotels */}
+            {isHotel && item.amenities && item.amenities.length > 0 && (
+              <div className="flex flex-wrap gap-2 mb-2">
+                {item.amenities.slice(0, 3).map((amenity, index) => {
+                  const AmenityIcon = getAmenityIcon(amenity);
+                  return (
+                    <div
+                      key={index}
+                      className="flex items-center gap-1 text-xs text-thunder"
+                    >
+                      <AmenityIcon className="h-3 w-3" />
+                      <span className="truncate max-w-20">{amenity}</span>
+                    </div>
+                  );
+                })}
+                {item.amenities.length > 3 && (
+                  <span className="text-xs text-thunder">
+                    +{item.amenities.length - 3} more
+                  </span>
+                )}
+              </div>
+            )}
+
+            {item.address && (
+              <div className="flex items-center gap-1 text-sm text-thunder mb-2">
+                <MapPin className="h-3 w-3" />
+                <span className="line-clamp-1">{item.address}</span>
+              </div>
+            )}
+
+            {item.category && !isHotel && (
+              <div className="inline-block px-2 py-1 bg-jade/20 text-jade text-xs font-medium rounded-full mb-2">
+                {item.category}
+              </div>
+            )}
           </div>
 
-          {/* Hotel-specific info */}
-          {isHotel && (item.chain || item.roomType) && (
-            <div className="flex flex-wrap gap-2 mb-2">
-              {item.roomType && (
-                <span className="py-1 px-2 [&:first-child]:pl-0 text-gray text-xs font-medium">
-                  {item.roomType}
-                </span>
-              )}
-            </div>
-          )}
-
-          {item.description && (
-            <p className="text-sm text-thunder mb-2 line-clamp-2">
-              {cleanHtmlFromText(item.description)}
-            </p>
-          )}
-
-          {/* Amenities for hotels */}
-          {isHotel && item.amenities && item.amenities.length > 0 && (
-            <div className="flex flex-wrap gap-2 mb-2">
-              {item.amenities.slice(0, 3).map((amenity, index) => {
-                const AmenityIcon = getAmenityIcon(amenity);
-                return (
-                  <div
-                    key={index}
-                    className="flex items-center gap-1 text-xs text-thunder"
-                  >
-                    <AmenityIcon className="h-3 w-3" />
-                    <span className="truncate max-w-20">{amenity}</span>
-                  </div>
-                );
-              })}
-              {item.amenities.length > 3 && (
-                <span className="text-xs text-thunder">
-                  +{item.amenities.length - 3} more
-                </span>
-              )}
-            </div>
-          )}
-
-          {item.address && (
-            <div className="flex items-center gap-1 text-sm text-thunder mb-2">
-              <MapPin className="h-3 w-3" />
-              <span className="line-clamp-1">{item.address}</span>
-            </div>
-          )}
-
-          {item.category && !isHotel && (
-            <div className="inline-block px-2 py-1 bg-jade/20 text-jade text-xs font-medium rounded-full mb-2">
-              {item.category}
-            </div>
-          )}
-
+          {/* Price and booking section - always at bottom */}
           <div className="flex items-center justify-between mt-3">
             {item.price ? (
               <div className="flex flex-col">
