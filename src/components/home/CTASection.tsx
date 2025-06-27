@@ -20,7 +20,7 @@ export default function CTASection() {
         </p>
         <div className="flex flex-col sm:flex-row gap-3 sm:gap-4 justify-center items-center mb-6 sm:mb-8 px-4">
           <Link
-            href="/auth"
+            to="/auth"
             className="w-full sm:w-auto btn-primary bg-gold text-thunder text-lg px-6 sm:px-8 py-3 sm:py-4 text-center"
           >
             <Sparkles className="w-4 h-4 sm:w-5 sm:h-5 mr-2 inline animate-wiggle" />

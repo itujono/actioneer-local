@@ -85,7 +85,7 @@ export default function FAQSection() {
       question:
         "What Gmail permissions does Actioneer need and how is my privacy protected?",
       answer:
-        "Complete transparency: Actioneer needs to read emails (to analyze receipts, travel, jobs), execute add-on functions, access your email address (for account linking), and make external requests (to our secure servers). We only process emails relevant to supported categories—never personal conversations or sensitive content. Most importantly: we don't track anything. No analytics, no pageviews, no behavioral data collection. Your privacy is paramount.",
+        "Complete transparency: Actioneer needs to read emails (to analyze receipts, travel, jobs), execute add-on functions, access your email address (for account linking), and make external requests (to our secure servers). We only process emails relevant to supported categories—never personal conversations or sensitive content. Most importantly: we don't track anything. No analytics, no pageviews, no behavioral data collection. Your privacy is paramount. For full details, see our Privacy Policy at https://actioneer.online/privacy.",
     },
   ];
 

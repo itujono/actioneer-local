@@ -15,6 +15,7 @@ import { travelRoute } from "./routes/travel";
 import { travelDetailRoute } from "./routes/travel.$id";
 import { jobsRoute } from "./routes/jobs";
 import { settingsRoute } from "./routes/settings";
+import { privacyRoute } from "./routes/privacy";
 
 // Create the query client
 const queryClient = new QueryClient({
@@ -35,6 +36,7 @@ const routeTree = rootRoute.addChildren([
   travelDetailRoute,
   jobsRoute,
   settingsRoute,
+  privacyRoute,
 ]);
 
 const router = createRouter({

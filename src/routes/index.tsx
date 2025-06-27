@@ -2,6 +2,7 @@ import { createRoute, Link } from "@tanstack/react-router";
 import { rootRoute } from "./root";
 import { Sparkles, Clock } from "lucide-react";
 import Navbar from "../components/layout/Navbar";
+import Footer from "../components/layout/Footer";
 import FAQSection from "../components/home/FaqSection";
 import HowItWorksSection from "../components/home/HowItWorksSection";
 import HowToInstallSection from "../components/home/HowToInstallSection";
@@ -87,15 +88,18 @@ function Index() {
 
         <AutopilotSection />
 
-        <div id="proof" className="section-spacing">
+        <div id="how" className="section-spacing">
           <HowItWorksSection />
         </div>
 
-        <div className="section-spacing bg-bittersweet relative z-10">
+        <div
+          id="get-started"
+          className="section-spacing bg-bittersweet relative z-10"
+        >
           <HowToInstallSection />
         </div>
 
-        <div className="section-spacing relative">
+        <div id="faq" className="section-spacing relative">
           <Fling className="absolute -top-44 sm:-top-20 right-[70%] w-1/2 h-1/2 scale-x-[-1] rotate-90 sm:rotate-45 z-0 text-lime" />
           <FAQSection />
         </div>
@@ -104,6 +108,8 @@ function Index() {
           <CTASection />
         </div>
       </div>
+
+      <Footer />
     </div>
   );
 }

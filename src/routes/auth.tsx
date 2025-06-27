@@ -1,4 +1,4 @@
-import { createRoute, useNavigate } from "@tanstack/react-router";
+import { createRoute, useNavigate, Link } from "@tanstack/react-router";
 import { rootRoute } from "./root";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
@@ -293,12 +293,12 @@ function Auth() {
                   Terms of Service
                 </a>{" "}
                 and{" "}
-                <a
-                  href="#"
+                <Link
+                  to="/privacy"
                   className="font-medium text-heliotrope hover:text-heliotrope/80"
                 >
                   Privacy Policy
-                </a>
+                </Link>
               </p>
             </div>
           </div>

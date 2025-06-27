@@ -1,5 +1,5 @@
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import { useNavigate } from "@tanstack/react-router";
+import { useNavigate, useLocation } from "@tanstack/react-router";
 import { useEffect } from "react";
 import { supabase } from "../supabase/client";
 
@@ -33,6 +33,7 @@ export interface UseAuthReturn {
 export function useAuth(): UseAuthReturn {
   const queryClient = useQueryClient();
   const navigate = useNavigate();
+  const location = useLocation();
 
   const {
     data: user,
@@ -90,12 +91,17 @@ export function useAuth(): UseAuthReturn {
     };
   }, [queryClient, navigate]);
 
-  // Redirect to login if not authenticated
+  // Redirect to login if not authenticated and on protected route
   useEffect(() => {
-    if (!authLoading && !user && !authError) {
+    // Define public routes that don't require authentication
+    const publicRoutes = ["/", "/auth", "/privacy"];
+    const isPublicRoute = publicRoutes.includes(location.pathname);
+
+    // Only redirect if we're not on a public route and user is not authenticated
+    if (!authLoading && !user && !authError && !isPublicRoute) {
       navigate({ to: "/auth" });
     }
-  }, [authLoading, user, authError, navigate]);
+  }, [authLoading, user, authError, navigate, location.pathname]);
 
   return {
     user: user || null,

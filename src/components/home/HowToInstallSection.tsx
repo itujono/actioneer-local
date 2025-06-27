@@ -8,9 +8,8 @@ export default function HowToInstallSection() {
           How to <br /> get <br /> started?
         </h2>
         <p className="text-lg sm:text-xl md:text-2xl lg:text-3xl text-white max-w-3xl">
-          Two ridiculously easy ways to email enlightenment.{" "}
-          <br className="hidden sm:block" />
-          Choose your adventure! 🚀✨
+          Three (well, two actually) ridiculously easy steps to email
+          enlightenment.
         </p>
       </div>
 

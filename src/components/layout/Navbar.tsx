@@ -1,14 +1,26 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "../../supabase/client";
 import { toast } from "sonner";
-import { useAuth } from "../../hooks/useAuth";
+import { useQuery } from "@tanstack/react-query";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 
 export default function Navbar() {
-  const { isAuthenticated } = useAuth();
   const navigate = useNavigate();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
+
+  // Simple auth check for navbar - doesn't trigger redirects
+  const { data: isAuthenticated } = useQuery({
+    queryKey: ["navbar-auth"],
+    queryFn: async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      return !!session?.user;
+    },
+    staleTime: 5 * 60 * 1000, // 5 minutes
+    retry: false, // Don't retry on error
+  });
 
   const handleSignOut = async () => {
     try {
