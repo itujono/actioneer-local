@@ -283,12 +283,6 @@ function PrivacyPage() {
                     purpose: "Communicate with our secure processing servers",
                     scope: "Actioneer servers only",
                   },
-                  {
-                    permission: "script.locale",
-                    title: "Localization",
-                    purpose: "Display interface in appropriate language",
-                    scope: "Language preference only",
-                  },
                 ].map((item, index, array) => (
                   <div key={index}>
                     <div className="flex flex-col sm:grid sm:grid-cols-12 gap-2 sm:gap-3 py-3 sm:py-4 px-3 sm:px-4">

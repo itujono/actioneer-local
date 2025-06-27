@@ -1,4 +1,3 @@
-import React from "react";
 import { currencyManager, formatCurrency } from "../../utils/currency";
 
 interface CurrencyBreakdownProps {

@@ -12,11 +12,7 @@ import { DragEndEvent } from "@dnd-kit/core";
 import { useColumnOrder, ColumnConfig } from "../hooks/useColumnOrder";
 import { JobsStats, JobsControls, JobsTable } from "../components/jobs";
 import { DashboardContainer } from "../components/dashboard";
-import type {
-  JobApplication,
-  SortConfig,
-  JobApplicationGroup,
-} from "../components/jobs/types";
+import type { JobApplication, SortConfig } from "../components/jobs/types";
 import { groupJobApplications } from "../components/jobs/constants";
 import {
   Button,

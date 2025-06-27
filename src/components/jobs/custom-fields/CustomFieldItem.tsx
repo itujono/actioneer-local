@@ -1,5 +1,5 @@
 import { Edit, Trash2 } from "lucide-react";
-import { CustomFieldDefinition } from "../../../supabase/types";
+import type { CustomFieldDefinition } from "../../../supabase/types";
 
 interface CustomFieldItemProps {
   field: CustomFieldDefinition;

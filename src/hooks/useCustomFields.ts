@@ -1,7 +1,6 @@
-import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../supabase/client";
-import { CustomFieldDefinition, CustomFieldType } from "../supabase/types";
+import { CustomFieldDefinition } from "../supabase/types";
 
 export interface CustomFieldValue {
   [fieldName: string]: string | number | boolean | null;

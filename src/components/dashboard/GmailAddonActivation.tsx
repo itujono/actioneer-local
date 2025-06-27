@@ -5,7 +5,6 @@ import {
   AlertCircle,
   Mail,
   Zap,
-  ArrowRight,
   Download,
   Check,
 } from "lucide-react";
