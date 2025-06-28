@@ -225,19 +225,33 @@ function Dashboard() {
 
   // Handle onboarding completion
   const handleOnboardingComplete = async () => {
-    if (!user) return;
+    if (!user) {
+      console.error("No user found when trying to complete onboarding");
+      return;
+    }
 
     console.log("Completing onboarding for user:", user.id);
 
     try {
       // Mark onboarding as completed in database
-      const { error } = await supabase
+      const { data, error } = await supabase
         .from("users")
         .update({ onboarding_completed: true })
-        .eq("id", user.id);
+        .eq("id", user.id)
+        .select();
 
       if (error) {
         console.error("Error updating onboarding status:", error);
+        return;
+      }
+
+      console.log("Database update successful. Updated rows:", data);
+
+      if (!data || data.length === 0) {
+        console.error(
+          "No rows were updated. User ID might not exist:",
+          user.id
+        );
         return;
       }
 

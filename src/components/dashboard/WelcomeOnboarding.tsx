@@ -20,8 +20,6 @@ export default function WelcomeOnboarding({
 }: WelcomeOnboardingProps) {
   const [currentStep, setCurrentStep] = useState(0);
 
-  console.log({ open });
-
   const steps = [
     {
       title: "🎉 Welcome to Actioneer!",
@@ -75,8 +73,13 @@ export default function WelcomeOnboarding({
   };
 
   return (
-    <Dialog open={open} onOpenChange={(isOpen) => !isOpen && onComplete?.()}>
-      <DialogContent className="max-w-4xl max-h-[90vh] overflow-y-auto">
+    <Dialog open={open} onOpenChange={() => {}}>
+      <DialogContent
+        className="max-w-4xl max-h-[90vh] overflow-y-auto [&>button]:hidden"
+        onEscapeKeyDown={(e) => e.preventDefault()}
+        onPointerDownOutside={(e) => e.preventDefault()}
+        onInteractOutside={(e) => e.preventDefault()}
+      >
         <DialogHeader className="sr-only">
           <DialogTitle>Welcome to Actioneer</DialogTitle>
           <DialogDescription>

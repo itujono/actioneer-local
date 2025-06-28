@@ -7,8 +7,9 @@ import {
   Check,
   Shield,
   Clock,
+  X,
 } from "lucide-react";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../supabase/client";
 import { toast } from "sonner";
@@ -32,6 +33,28 @@ export default function GmailOAuthSetup({
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
+
+  // Check localStorage for banner dismissal state (per user)
+  const getBannerDismissalKey = () => `gmail-banner-dismissed-${user?.id}`;
+
+  const [isSuccessBannerDismissed, setIsSuccessBannerDismissed] = useState(
+    () => {
+      if (!user?.id) return false;
+      return localStorage.getItem(getBannerDismissalKey()) === "true";
+    }
+  );
+
+  // Update dismissal state when user changes
+  useEffect(() => {
+    if (!user?.id) {
+      setIsSuccessBannerDismissed(false);
+      return;
+    }
+
+    const isDismissed =
+      localStorage.getItem(getBannerDismissalKey()) === "true";
+    setIsSuccessBannerDismissed(isDismissed);
+  }, [user?.id]);
 
   // Check Gmail setup status
   const {
@@ -146,19 +169,19 @@ export default function GmailOAuthSetup({
     setupGmailMutation.mutate();
   };
 
-  // If Gmail is already setup, show success state
-  if (setupStatus?.isSetup) {
+  // If Gmail is already setup, show success state (unless dismissed)
+  if (setupStatus?.isSetup && !isSuccessBannerDismissed) {
     return (
       <div
-        className={`bg-gradient-to-r from-green-50 to-emerald-50 border-2 border-green-200 rounded-lg p-4 ${className}`}
+        className={`bg-jade border-2 border-jade rounded-lg p-4 ${className}`}
       >
         <div className="flex items-center space-x-3">
-          <CheckCircle className="w-6 h-6 text-green-600" />
+          <CheckCircle className="w-6 h-6 text-lime" />
           <div className="flex-1">
-            <h3 className="font-semibold text-green-800">
-              🎉 Gmail Access Configured!
+            <h3 className="font-semibold text-lime">
+              Gmail access configured!
             </h3>
-            <p className="text-sm text-green-700">
+            <p className="text-sm text-white">
               Your emails are being processed automatically
               {setupStatus.lastSetupAt && (
                 <span className="ml-2">
@@ -168,10 +191,26 @@ export default function GmailOAuthSetup({
               )}
             </p>
           </div>
-          <Zap className="w-5 h-5 text-green-600" />
+          <button
+            onClick={() => {
+              setIsSuccessBannerDismissed(true);
+              if (user?.id) {
+                localStorage.setItem(getBannerDismissalKey(), "true");
+              }
+            }}
+            className="text-lime hover:text-white transition-colors"
+            aria-label="Dismiss notification"
+          >
+            <X className="w-5 h-5" />
+          </button>
         </div>
       </div>
     );
+  }
+
+  // If Gmail is setup but banner is dismissed, don't show anything
+  if (setupStatus?.isSetup && isSuccessBannerDismissed) {
+    return null;
   }
 
   // Loading state
