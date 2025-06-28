@@ -222,6 +222,83 @@ Ready to transform your inbox? _The proof is in the pudding_—try Actioneer tod
 
 No credit card required. Simple one-time activation. Then instant email intelligence.
 
+## Testing Actioneer
+
+Want to see Actioneer in action immediately? Here are the best ways to test the system:
+
+### 🧪 **Quick Test Methods**
+
+**Option 1: Send Yourself Test Emails**
+The fastest way to see Actioneer work is to send yourself sample emails from another account (or the same account):
+
+- **Receipt Test**: Forward yourself an old receipt email, or compose a new email with subject like "Your Amazon order receipt - $29.99" with some purchase details
+- **Travel Test**: Send an email with subject "Flight confirmation - NYC to LA" or "Hotel booking confirmed - Marriott Downtown"
+- **Job Test**: Create an email like "Application received - Software Engineer at TechCorp" with application details
+
+**Option 2: Wait for Natural Emails**
+If you prefer to see real-world processing:
+
+- **Make a Purchase**: Buy something online and watch the receipt get automatically categorized
+- **Book Travel**: Reserve a hotel or flight and see it appear in your travel dashboard
+- **Apply for Jobs**: Submit job applications and track responses automatically
+
+### 📧 **Sample Test Email Templates**
+
+While you definitely can make your own made-up emails to test, but to make it easier, you can copy and paste these into Gmail to send yourself test emails:
+
+**Receipt Email:**
+
+```
+Subject: Your purchase receipt - $45.67
+From: orders@teststore.com
+
+Thank you for your purchase!
+Order #: 12345
+Date: [Today's date]
+Total: $45.67
+Items: Coffee beans, Notebook
+```
+
+**Travel Email:**
+
+```
+Subject: Booking Confirmation - Hotel Paradise
+From: reservations@hotelparadise.com
+
+Your reservation is confirmed!
+Check-in: [Tomorrow's date]
+Check-out: [Day after tomorrow]
+Hotel: Paradise Resort, Miami
+Confirmation: ABC123
+```
+
+**Job Application Email:**
+
+```
+Subject: Application Received - Marketing Manager
+From: hr@innovatetech.com
+
+Thank you for applying to InnovateTech!
+Position: Marketing Manager
+Application ID: APP-789
+We'll review your application and get back to you soon.
+```
+
+### ⚡ **What to Expect**
+
+- **Processing Time**: Emails are typically processed within 10-30 seconds of arrival
+- **Dashboard Updates**: Check your dashboard categories (Finance, Travel, Jobs) for new entries
+- **Real-time Magic**: Watch as raw emails transform into organized, actionable data
+
+### 🎯 **Pro Testing Tips**
+
+- **Use Realistic Content**: The more realistic your test emails, the better the AI extraction
+- **Try Different Formats**: Test various email styles to see Actioneer's versatility
+- **Check All Categories**: Send emails for finance, travel, and jobs to see the full system
+- **Mobile Friendly**: Test on different devices to see the responsive dashboard
+
+Ready to be amazed? Start with a simple test email and watch Actioneer turn email chaos into organized clarity!
+
 ## Privacy & Security
 
 Your privacy is our top priority. Actioneer processes your emails with:
