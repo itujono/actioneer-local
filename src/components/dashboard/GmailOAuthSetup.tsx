@@ -14,6 +14,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "../../hooks/useAuth";
+import Fling from "../Fling";
 
 interface GmailOAuthSetupProps {
   className?: string;
@@ -512,122 +513,134 @@ export default function GmailOAuthSetup({
   // Main setup flow
   return (
     <div
-      className={`bg-gradient-to-r from-heliotrope/10 to-purple-50 border-2 border-heliotrope/30 rounded-lg p-6 ${className}`}
+      className={`bg-daisy border-2 border-daisy rounded-xl p-6 relative overflow-hidden ${className}`}
     >
+      <div className="absolute -bottom-20 -right-64 z-0">
+        <Fling className="w-[32rem] h-[32rem] text-lavender" />
+      </div>
       <div className="mb-6">
-        <h3 className="text-xl font-semibold text-gray-800 mb-2">
-          Gmail Access Setup
-        </h3>
-        <p className="text-gray-600">
+        <div className="flex items-center space-x-3 mb-3">
+          <div className="w-10 h-10 rounded-full bg-heliotrope/20 flex items-center justify-center">
+            <Mail className="w-5 h-5 text-lavender" />
+          </div>
+          <h3 className="text-xl font-bold text-white">Gmail Access Setup</h3>
+        </div>
+        <p className="text-white/90 text-sm">
           Enable automatic email processing with one simple step
         </p>
       </div>
 
-      <div className="space-y-6">
-        {/* Step 1: Grant Gmail Access */}
-        <div className="flex items-start space-x-4">
-          <div className="flex-shrink-0">
-            <div className="w-8 h-8 rounded-full flex items-center justify-center bg-heliotrope text-white">
-              <Mail className="w-4 h-4" />
-            </div>
-          </div>
-          <div className="flex-1">
-            <h4 className="font-semibold text-gray-800 mb-2">
-              Enable Gmail Processing
-            </h4>
-            <p className="text-sm text-gray-600 mb-4">
-              We'll securely connect to your Gmail account to automatically
-              process receipts, travel bookings, and job applications as they
-              arrive.
-            </p>
+      <div className="space-y-6 relative z-10">
+        {/* Main content card */}
+        <div>
+          <div className="flex items-start space-x-4">
+            {/* <div className="flex-shrink-0">
+              <div className="w-8 h-8 rounded-full flex items-center justify-center bg-heliotrope text-white">
+                <Zap className="w-4 h-4" />
+              </div>
+            </div> */}
+            <div className="flex-1 max-w-2xl">
+              {/* <h4 className="font-bold text-white mb-2 text-lg">
+                Enable Gmail Processing
+              </h4> */}
+              <p className="text-sm text-concrete mb-4">
+                We'll securely connect to your Gmail account to automatically
+                process receipts, travel bookings, and job applications as they
+                arrive.
+              </p>
 
-            <div className="bg-blue-50 border border-blue-200 rounded-lg p-4 mb-4">
-              <div className="flex items-start space-x-3">
-                <Shield className="w-5 h-5 text-blue-600 flex-shrink-0 mt-0.5" />
-                <div className="text-sm text-blue-800">
-                  <p className="font-medium mb-1">Privacy & Security</p>
-                  <ul className="text-xs space-y-1">
-                    <li>
-                      • We only read emails relevant to supported categories
-                    </li>
-                    <li>
-                      • No personal conversations or sensitive emails are
-                      accessed
-                    </li>
-                    <li>• Your data is encrypted and stored securely</li>
-                  </ul>
+              {/* Privacy info with new styling */}
+              <div className="bg-heliotrope/10 border border-heliotrope/20 rounded-lg p-4 mb-4">
+                <div className="flex items-start space-x-3">
+                  <Shield className="w-5 h-5 text-lavender flex-shrink-0 mt-0.5" />
+                  <div className="text-sm text-concrete">
+                    <p className="font-semibold mb-2 text-lavender">
+                      Privacy & Security
+                    </p>
+                    <ul className="text-xs space-y-1 text-concrete">
+                      <li>
+                        • We only read emails relevant to supported categories
+                      </li>
+                      <li>
+                        • No personal conversations or sensitive emails are
+                        accessed
+                      </li>
+                      <li>• Your data is encrypted and stored securely</li>
+                    </ul>
+                  </div>
                 </div>
               </div>
+
+              {/* Enhanced button */}
+              <button
+                onClick={handleSetupGmail}
+                disabled={setupGmailMutation.isPending}
+                className="inline-flex items-center px-6 py-3 border border-transparent rounded-xl shadow-lg text-sm font-bold text-white bg-heliotrope hover:bg-lavender transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-heliotrope disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
+              >
+                {setupGmailMutation.isPending ? (
+                  <>
+                    <RefreshCw className="w-4 h-4 animate-spin mr-2" />
+                    Setting up Gmail access...
+                  </>
+                ) : (
+                  <>
+                    <Zap className="w-4 h-4 mr-2" />
+                    Enable Gmail Processing
+                  </>
+                )}
+              </button>
+            </div>
+          </div>
+        </div>
+
+        {setupGmailMutation.isError && (
+          <div className="mt-3 p-4 bg-red-50 border border-red-200 rounded-lg">
+            <div className="text-sm text-red-600 mb-3">
+              <AlertCircle className="w-4 h-4 inline mr-1" />
+              {setupGmailMutation.error?.message ||
+                "Setup failed. Please try again."}
+            </div>
+
+            <div className="text-xs text-red-500 mb-3">
+              If you keep seeing this setup screen, your Gmail permissions may
+              need to be refreshed:
             </div>
 
             <button
-              onClick={handleSetupGmail}
-              disabled={setupGmailMutation.isPending}
-              className="inline-flex items-center px-4 py-2 border border-transparent rounded-md shadow-sm text-sm font-medium text-white bg-heliotrope hover:bg-heliotrope/90 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-heliotrope disabled:opacity-50 disabled:cursor-not-allowed"
+              onClick={handleForceReauth}
+              className="inline-flex items-center px-3 py-2 text-xs font-medium text-red-700 bg-red-100 border border-red-300 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
             >
-              {setupGmailMutation.isPending ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin mr-2" />
-                  Setting up Gmail access...
-                </>
-              ) : (
-                <>
-                  <Zap className="w-4 h-4 mr-2" />
-                  Enable Gmail Processing
-                </>
-              )}
+              <RefreshCw className="w-3 h-3 mr-1" />
+              Force Fresh Authorization
             </button>
-
-            {setupGmailMutation.isError && (
-              <div className="mt-3 p-4 bg-red-50 border border-red-200 rounded-lg">
-                <div className="text-sm text-red-600 mb-3">
-                  <AlertCircle className="w-4 h-4 inline mr-1" />
-                  {setupGmailMutation.error?.message ||
-                    "Setup failed. Please try again."}
-                </div>
-
-                <div className="text-xs text-red-500 mb-3">
-                  If you keep seeing this setup screen, your Gmail permissions
-                  may need to be refreshed:
-                </div>
-
-                <button
-                  onClick={handleForceReauth}
-                  className="inline-flex items-center px-3 py-2 text-xs font-medium text-red-700 bg-red-100 border border-red-300 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
-                >
-                  <RefreshCw className="w-3 h-3 mr-1" />
-                  Force Fresh Authorization
-                </button>
-              </div>
-            )}
-
-            {/* Show additional help if tokens keep expiring */}
-            {gmailOAuthStatus?.hasTokens && !gmailOAuthStatus?.isSetup && (
-              <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
-                <div className="text-sm text-yellow-800 mb-2">
-                  <AlertCircle className="w-4 h-4 inline mr-1" />
-                  Your Gmail tokens keep expiring. This usually means they need
-                  to be refreshed.
-                </div>
-                <button
-                  onClick={handleForceReauth}
-                  className="inline-flex items-center px-3 py-2 text-xs font-medium text-yellow-700 bg-yellow-100 border border-yellow-300 rounded-md hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
-                >
-                  <RefreshCw className="w-3 h-3 mr-1" />
-                  Get Fresh Permissions
-                </button>
-              </div>
-            )}
           </div>
-        </div>
+        )}
+
+        {/* Show additional help if tokens keep expiring */}
+        {gmailOAuthStatus?.hasTokens && !gmailOAuthStatus?.isSetup && (
+          <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+            <div className="text-sm text-yellow-800 mb-2">
+              <AlertCircle className="w-4 h-4 inline mr-1" />
+              Your Gmail tokens keep expiring. This usually means they need to
+              be refreshed.
+            </div>
+            <button
+              onClick={handleForceReauth}
+              className="inline-flex items-center px-3 py-2 text-xs font-medium text-yellow-700 bg-yellow-100 border border-yellow-300 rounded-md hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+            >
+              <RefreshCw className="w-3 h-3 mr-1" />
+              Get Fresh Permissions
+            </button>
+          </div>
+        )}
       </div>
 
-      {/* Info section */}
-      <div className="mt-6 pt-6 border-t border-gray-200">
+      {/* Info section - now with updated styling */}
+      <div className="mt-6 pt-6 border-t border-white/20 relative z-10 max-w-2xl">
         <div className="flex items-start space-x-3">
-          <Clock className="w-5 h-5 text-gray-400 flex-shrink-0 mt-0.5" />
-          <div className="text-sm text-gray-600">
-            <p className="font-medium mb-1">What happens next?</p>
+          <Clock className="w-5 h-5 text-white/70 flex-shrink-0 mt-0.5" />
+          <div className="text-sm text-white/90">
+            <p className="font-semibold mb-1 text-white">What happens next?</p>
             <p>
               Once enabled, we'll start processing your incoming emails
               automatically. You'll see receipts, travel bookings, and job
