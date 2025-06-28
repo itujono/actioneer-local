@@ -30,7 +30,7 @@ function Index() {
               <div className="flex justify-center mb-4 sm:mb-6">
                 <div className="inline-flex items-center px-3 py-2 sm:px-4 sm:py-2 bg-white/20 backdrop-blur-sm rounded-full text-white font-medium text-sm sm:text-base">
                   <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 mr-2 animate-wiggle" />
-                  Activate once, automate forever
+                  Activate once, forget it
                   <Sparkles className="w-3 h-3 sm:w-4 sm:h-4 ml-2 animate-wiggle" />
                 </div>
               </div>

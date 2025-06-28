@@ -16,7 +16,7 @@ export default function HowToInstallSection() {
       <div className="space-y-0">
         <section className="group p-4 sm:p-3 rounded-2xl transition-all duration-300 relative">
           <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">
-            Step 1: Sign In & Connect
+            Step 1: Sign In
           </h3>
           <CurlyArrow />
           <p className="text-white text-base sm:text-lg mb-4 sm:mb-6 leading-relaxed">
@@ -29,8 +29,16 @@ export default function HowToInstallSection() {
             >
               actioneer.online
             </a>{" "}
-            and sign in with Google. One click grants Gmail permissions and
-            activates automatic email processing - instantly!
+            and sign in with Google.
+          </p>
+        </section>
+        <section className="group p-4 sm:p-3 rounded-2xl transition-all duration-300 relative">
+          <h3 className="text-xl sm:text-2xl font-bold text-white mb-3 sm:mb-4">
+            Step 2: Connect Gmail
+          </h3>
+          <p className="text-white text-base sm:text-lg mb-4 sm:mb-6 leading-relaxed">
+            Click the "Enable Gmail Processing" button in the dashboard and
+            you're good to go!
           </p>
         </section>
 
@@ -43,7 +51,7 @@ export default function HowToInstallSection() {
             emails arrive. Receipts become expense reports, travel emails become
             trip planners, job applications become opportunity trackers - all
             automatically.
-            <span className="text-xl sm:text-2xl ml-2">⚡🎯✨</span>
+            <span className="text-xl sm:text-2xl ml-2">⚡✨</span>
           </p>
         </section>
       </div>

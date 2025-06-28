@@ -69,7 +69,9 @@ export default function GmailOAuthSetup({
       // Check if user has OAuth tokens stored
       const { data: tokens, error: tokenError } = await supabase
         .from("user_auth_tokens")
-        .select("gmail_access_token, token_expires_at, updated_at")
+        .select(
+          "gmail_access_token, gmail_refresh_token, token_expires_at, updated_at"
+        )
         .eq("user_id", user.id)
         .single();
 
@@ -79,10 +81,56 @@ export default function GmailOAuthSetup({
       }
 
       const hasTokens = !!tokens?.gmail_access_token;
+      const hasRefreshToken = !!tokens?.gmail_refresh_token;
       const isTokenValid =
         hasTokens && tokens.token_expires_at
           ? new Date(tokens.token_expires_at) > new Date()
           : false;
+
+      // If we have tokens but they're expired, and we have a refresh token, try to refresh automatically
+      if (
+        hasTokens &&
+        !isTokenValid &&
+        hasRefreshToken &&
+        !tokens.gmail_refresh_token?.startsWith("apps_script_managed_")
+      ) {
+        console.log("🔄 Token expired, attempting automatic refresh...");
+
+        try {
+          const response = await fetch(
+            `${
+              import.meta.env.VITE_SUPABASE_URL
+            }/functions/v1/refresh-oauth-token`,
+            {
+              method: "POST",
+              headers: {
+                "Content-Type": "application/json",
+                Authorization: `Bearer ${
+                  import.meta.env.VITE_SUPABASE_ANON_KEY
+                }`,
+              },
+              body: JSON.stringify({
+                userEmail: user.email,
+              }),
+            }
+          );
+
+          if (response.ok) {
+            const refreshResult = await response.json();
+            if (refreshResult.success) {
+              console.log("✅ Token refreshed automatically");
+              return {
+                isSetup: true,
+                hasTokens: true,
+                watchActive: false,
+                lastSetupAt: new Date().toISOString(),
+              };
+            }
+          }
+        } catch (error) {
+          console.log("⚠️ Automatic token refresh failed:", error);
+        }
+      }
 
       return {
         isSetup: hasTokens && isTokenValid,
@@ -106,6 +154,35 @@ export default function GmailOAuthSetup({
 
       if (sessionError || !session.session) {
         throw new Error("Please sign in again to set up Gmail access");
+      }
+
+      // Check if we have provider tokens from the current session
+      const hasProviderTokens =
+        session.session.provider_token &&
+        session.session.provider_refresh_token;
+
+      if (!hasProviderTokens) {
+        // If no provider tokens, we need to redirect to re-authorize with Gmail scope
+        const redirectUrl = `${window.location.origin}/dashboard`;
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: "google",
+          options: {
+            scopes:
+              "email profile https://www.googleapis.com/auth/gmail.readonly",
+            redirectTo: redirectUrl,
+            queryParams: {
+              access_type: "offline",
+              prompt: "consent",
+            },
+          },
+        });
+
+        if (error) {
+          throw new Error(`OAuth redirect failed: ${error.message}`);
+        }
+
+        // This will redirect, so we don't continue
+        return { redirecting: true };
       }
 
       // Step 2: Call our setup function with the OAuth tokens
@@ -138,6 +215,12 @@ export default function GmailOAuthSetup({
       return result;
     },
     onSuccess: (result) => {
+      // Handle redirect case
+      if (result?.redirecting) {
+        console.log("🔄 Redirecting for OAuth authorization...");
+        return;
+      }
+
       console.log("✅ Gmail setup successful:", result);
       toast.success(
         "Gmail access configured! Your emails will now be processed automatically."
