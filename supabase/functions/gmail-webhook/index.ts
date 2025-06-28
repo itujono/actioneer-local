@@ -180,14 +180,14 @@ async function processNewEmailsForUser(
     const accessToken = await getValidAccessToken(user, emailAddress);
     if (!accessToken) {
       console.log(
-        "❌ No valid access token available - user needs to re-authorize via Gmail add-on"
+        "❌ No valid access token available - user needs to re-authorize via web OAuth"
       );
       await updateNotificationResult(user, emailAddress, {
         success: false,
         error: "Token refresh failed - re-authentication required",
         requiresReauth: true,
         instructions:
-          "Please open the Gmail add-on and re-authorize to refresh your token",
+          "Please sign in again at actioneer.online to refresh your OAuth connection",
         method: "token_refresh_failed",
       });
       return;

@@ -10,7 +10,6 @@ import {
 } from "lucide-react";
 import { supabase } from "../supabase/client";
 import { useAuth } from "../hooks/useAuth";
-import { useGmailAddonStatus } from "../hooks/useGmailAddonStatus";
 import {
   DashboardCard,
   DashboardContainer,
@@ -73,10 +72,6 @@ function Dashboard() {
     enabled: !!user,
   });
 
-  // Check Gmail add-on activation status (keeping for backward compatibility)
-  const { isActivated: isGmailAddonActivated, isLoading: addonStatusLoading } =
-    useGmailAddonStatus();
-
   // Check Gmail OAuth setup status
   const { data: gmailOAuthStatus, isLoading: oauthStatusLoading } = useQuery({
     queryKey: ["gmail-oauth-status", user?.id],
@@ -104,11 +99,10 @@ function Dashboard() {
     enabled: !!user,
   });
 
-  // Check if Gmail processing is enabled (either add-on or OAuth)
-  const isGmailProcessingEnabled =
-    isGmailAddonActivated || gmailOAuthStatus?.isSetup;
+  // Check if Gmail processing is enabled (OAuth only)
+  const isGmailProcessingEnabled = gmailOAuthStatus?.isSetup;
 
-  // Fetch recent emails only when authenticated and add-on is activated
+  // Fetch recent emails only when authenticated
   const { data: recentEmails, isLoading: emailsLoading } = useQuery({
     queryKey: ["recent-emails", user?.id],
     queryFn: async () => {
@@ -328,7 +322,7 @@ function Dashboard() {
         </div>
       </div>
 
-      {/* Gmail OAuth Setup (replaces Gmail Add-on) */}
+      {/* Gmail OAuth Setup */}
       <GmailOAuthSetup className="mt-6" />
 
       {/* Only show dashboard content if Gmail processing is enabled */}

@@ -38,16 +38,6 @@ export default function Footer() {
                   How it Works
                 </a>
               </li>
-              <li>
-                <a
-                  href="https://workspace.google.com/marketplace"
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="text-sm text-white/70 hover:text-white transition-colors"
-                >
-                  Gmail Add-on
-                </a>
-              </li>
             </ul>
           </div>
 

@@ -34,7 +34,7 @@ export default function HowItWorksSection() {
             {" "}
             instantly activate automatic email monitoring
           </strong>{" "}
-          - no add-ons, no complex setup, just pure simplicity.
+          - no complex setup, just pure simplicity.
         </HowItWorksItem>
         <HowItWorksItem title="Agent Takes Over" number={2}>
           Like having a super-smart assistant working 24/7. In every incoming

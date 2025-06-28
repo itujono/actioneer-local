@@ -245,7 +245,7 @@ export async function logNotificationOnly(user: any, emailAddress: string) {
     .order("created_at", { ascending: false })
     .limit(1);
 
-  console.log("👍 User can manually process new emails via Gmail add-on");
+  console.log("👍 User can manually process new emails via dashboard");
 }
 
 export async function updateNotificationResult(

@@ -42,19 +42,19 @@ export default function FAQSection() {
       id: "how-agent-works",
       question: 'How does the "agent" work?',
       answer:
-        "Our AI-powered agent monitors your Gmail inbox in real-time once activated. When a relevant email arrives (like a receipt, booking confirmation, or job update), it automatically extracts key information, categorizes it, and stores it in your dashboard. The agent learns from patterns and gets smarter over time, ensuring accurate data extraction and organization after the simple one-time activation process.",
+        "Our AI-powered agent monitors your Gmail inbox in real-time once you connect your Gmail account. When a relevant email arrives (like a receipt, booking confirmation, or job update), it automatically extracts key information, categorizes it, and stores it in your dashboard. The agent learns from patterns and gets smarter over time, ensuring accurate data extraction and organization.",
     },
     {
       id: "what-to-install",
-      question: "What should I install?",
+      question: "Do I need to install anything?",
       answer:
-        "To get the full Actioneer experience, you'll need to install the Gmail add-on from the Google Workspace Marketplace and activate it once by opening it in any email. This enables automatic email processing and gives you smart actions directly in your inbox — like seeing expense details right when you open a receipt email, or travel comparisons when viewing booking confirmations. You can access your dashboard immediately by signing in at https://actioneer.online/ but the add-on activation is required for email processing to begin.",
+        "Nope! Actioneer is a pure web application - no installations required. Simply visit https://actioneer.online/, sign in with your Google account, and connect your Gmail. That's it! Your email processing begins immediately after connecting your Gmail account. Everything works seamlessly through your browser.",
     },
     {
       id: "dashboard-access",
       question: "How do I access the dashboard?",
       answer:
-        'The easiest way is to go directly to https://actioneer.online/dashboard and sign in with your Google account. Alternatively, if you have the Gmail add-on installed, you can open any relevant email (receipt, travel booking, etc.) and click the Actioneer logo in your Gmail sidebar, then click "View on Dashboard." Your dashboard is where all the magic happens—organized data, insights, and smart recommendations.',
+        "Simply go to https://actioneer.online/dashboard and sign in with your Google account. Your dashboard is where all the magic happens—organized data, insights, and smart recommendations from your automatically processed emails.",
     },
     {
       id: "supported-categories",
@@ -66,7 +66,7 @@ export default function FAQSection() {
       id: "email-clients",
       question: "Which email clients does Actioneer support?",
       answer:
-        "Right now, Actioneer works exclusively with Gmail through our Gmail add-on. We chose to perfect the Gmail experience first since it's the most widely used email platform. Support for other email clients like Outlook and Apple Mail is on our roadmap. You can access your dashboard by visiting https://actioneer.online/dashboard and signing in with your Google account, but the Gmail add-on is required for automatic email processing to work.",
+        "Right now, Actioneer works exclusively with Gmail through secure OAuth integration. We chose to perfect the Gmail experience first since it's the most widely used email platform. Support for other email clients like Outlook and Apple Mail is on our roadmap. You can access your dashboard by visiting https://actioneer.online/dashboard and signing in with your Google account.",
     },
     {
       id: "multiple-accounts",
@@ -85,7 +85,7 @@ export default function FAQSection() {
       question:
         "What Gmail permissions does Actioneer need and how is my privacy protected?",
       answer:
-        "Complete transparency: Actioneer needs to read emails (to analyze receipts, travel, jobs), execute add-on functions, access your email address (for account linking), and make external requests (to our secure servers). We only process emails relevant to supported categories—never personal conversations or sensitive content. Most importantly: we don't track anything. No analytics, no pageviews, no behavioral data collection. Your privacy is paramount. For full details, see our Privacy Policy at https://actioneer.online/privacy.",
+        "Complete transparency: Actioneer needs to read emails (to analyze receipts, travel, jobs) and access your email address (for account linking). We only process emails relevant to supported categories—never personal conversations or sensitive content. Most importantly: we don't track anything. No analytics, no pageviews, no behavioral data collection. Your privacy is paramount. For full details, see our Privacy Policy at https://actioneer.online/privacy.",
     },
   ];
 

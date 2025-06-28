@@ -793,9 +793,9 @@ async function getOrCreateAuthUser(email: string): Promise<string | null> {
     // Create a new auth user with a random password (they'll sign in via Google OAuth)
     const { data: newUser, error } = await supabaseAdmin.auth.admin.createUser({
       email,
-      email_confirm: true, // Auto-confirm since we trust Gmail addon
+      email_confirm: true, // Auto-confirm since we trust OAuth
       user_metadata: {
-        created_via: "gmail_addon",
+        created_via: "web_oauth",
         created_at: new Date().toISOString(),
       },
     });

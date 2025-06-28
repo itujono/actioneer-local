@@ -51,8 +51,8 @@ function PrivacyPage() {
               <p className="text-base sm:text-lg text-thunder leading-relaxed">
                 Welcome to Actioneer ("we," "our," or "us"). This Privacy Policy
                 explains how we collect, use, protect, and share your
-                information when you use our email intelligence platform and
-                Gmail add-on (collectively, the "Service").
+                information when you use our email intelligence platform and web
+                application (collectively, the "Service").
               </p>
               <p className="text-gray mt-3 sm:mt-4 text-sm sm:text-base">
                 We believe that privacy isn't just a feature—it's a fundamental
@@ -111,13 +111,11 @@ function PrivacyPage() {
                     </h4>
                     <ul className="text-xs sm:text-sm text-blue-800 space-y-1">
                       <li>• Through Gmail API with explicit user consent</li>
-                      <li>• Via Gmail add-on integration when activated</li>
+                      <li>• Via secure OAuth 2.0 web authentication</li>
                       <li>
                         • Real-time processing through Gmail push notifications
                       </li>
-                      <li>
-                        • OAuth 2.0 authentication with refresh token management
-                      </li>
+                      <li>• Refresh token management for seamless access</li>
                     </ul>
                   </div>
                 </div>
@@ -245,15 +243,15 @@ function PrivacyPage() {
               </div>
             </section>
 
-            {/* Gmail Add-on Permissions */}
+            {/* Gmail OAuth Permissions */}
             <section className="mb-6 sm:mb-8">
               <h2 className="text-xl sm:text-2xl lg:text-3xl font-bold text-heliotrope mb-3 sm:mb-4">
-                Gmail Add-on and Permissions
+                Gmail OAuth Permissions
               </h2>
 
               <p className="text-thunder mb-4 text-sm sm:text-base">
                 For complete transparency, here are the specific Gmail
-                permissions we request:
+                permissions we request through OAuth:
               </p>
 
               <div className="border-2 border-gray-light rounded-lg overflow-hidden">
@@ -266,22 +264,18 @@ function PrivacyPage() {
                     scope: "Only emails relevant to supported categories",
                   },
                   {
-                    permission: "gmail.addons.execute",
-                    title: "Add-on execution",
-                    purpose: "Display smart actions within Gmail interface",
-                    scope: "Gmail sidebar integration only",
+                    permission: "email",
+                    title: "Email address access",
+                    purpose:
+                      "Link processed data to your account and enable authentication",
+                    scope: "Email address only for account identification",
                   },
                   {
-                    permission: "userinfo.email",
-                    title: "User email address",
-                    purpose: "Link processed data to your account",
-                    scope: "Email address only, no additional profile data",
-                  },
-                  {
-                    permission: "script.external_request",
-                    title: "External requests",
-                    purpose: "Communicate with our secure processing servers",
-                    scope: "Actioneer servers only",
+                    permission: "profile",
+                    title: "Basic profile information",
+                    purpose:
+                      "Display your name and profile picture in the dashboard",
+                    scope: "Name and profile photo only, no sensitive data",
                   },
                 ].map((item, index, array) => (
                   <div key={index}>

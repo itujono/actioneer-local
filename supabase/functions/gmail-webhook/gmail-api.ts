@@ -92,7 +92,7 @@ export async function fetchRecentEmails(
             }
           } else {
             console.log(
-              "❌ Token refresh failed - user needs to re-authorize via Gmail add-on"
+              "❌ Token refresh failed - user needs to re-authorize via web OAuth"
             );
           }
         } else {

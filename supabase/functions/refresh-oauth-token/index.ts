@@ -64,150 +64,22 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // Check if this is an Apps Script managed token
+    // Check if this is a legacy Apps Script managed token
     if (tokenData.gmail_refresh_token?.startsWith("apps_script_managed_")) {
       console.log(
-        "📱 Apps Script managed token detected - checking if recent activity exists"
+        "📱 Legacy Apps Script token detected - requiring re-authentication"
       );
 
-      // Check when the token was last updated
-      const tokenDate = new Date(
-        tokenData.gmail_refresh_token.split("_")[3] || "0"
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Legacy token requires re-authentication",
+          requiresReauth: true,
+          reason: "legacy_token",
+          instructions: "Please sign in again to refresh your OAuth connection",
+        }),
+        { status: 401, headers: { "Content-Type": "application/json" } }
       );
-      const daysSinceUpdate =
-        (Date.now() - tokenDate.getTime()) / (1000 * 60 * 60 * 24);
-
-      console.log(
-        `📊 Apps Script token age: ${daysSinceUpdate.toFixed(1)} days`
-      );
-
-      // If token is very old (>30 days), suggest re-authentication
-      if (daysSinceUpdate > 30) {
-        console.log(
-          "⏰ Apps Script token is quite old (>30 days) - suggesting re-authentication"
-        );
-
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error:
-              "Apps Script token requires re-authentication via Gmail add-on",
-            requiresReauth: true,
-            reason: "token_too_old",
-            daysSinceUpdate: Math.round(daysSinceUpdate),
-          }),
-          { status: 401, headers: { "Content-Type": "application/json" } }
-        );
-      } else {
-        // For Apps Script tokens, we need to get a fresh access token from Apps Script
-        // The issue is that we were only extending expiration time without getting a new token
-        console.log(
-          "🔄 Getting fresh access token from Apps Script OAuth service"
-        );
-
-        try {
-          // For Apps Script managed tokens, we need a different approach
-          // The token can only be refreshed by Apps Script itself using ScriptApp.getOAuthToken()
-          // So we'll instruct the user to re-authenticate via the Gmail add-on
-          console.log("📱 Apps Script token needs refresh via Gmail add-on");
-
-          // Check if we have an Apps Script webhook configured for token refresh
-          const appsScriptWebhookUrl = Deno.env.get("APPS_SCRIPT_WEBHOOK_URL");
-
-          if (
-            appsScriptWebhookUrl &&
-            appsScriptWebhookUrl !== "placeholder_for_now"
-          ) {
-            console.log("🔄 Attempting to refresh via Apps Script webhook");
-
-            const webhookResponse = await fetch(appsScriptWebhookUrl, {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-              },
-              body: JSON.stringify({
-                action: "refresh_token",
-                userEmail: userEmail,
-                triggeredAt: new Date().toISOString(),
-              }),
-            });
-
-            if (webhookResponse.ok) {
-              const webhookResult = await webhookResponse.json();
-
-              if (webhookResult.success && webhookResult.accessToken) {
-                console.log(
-                  "✅ Got fresh access token from Apps Script webhook"
-                );
-
-                // Update with the fresh token
-                const newExpiresAt = new Date(
-                  Date.now() + 6 * 60 * 60 * 1000
-                ).toISOString();
-
-                const { error: updateError } = await supabase
-                  .from("user_auth_tokens")
-                  .update({
-                    gmail_access_token: webhookResult.accessToken,
-                    token_expires_at: newExpiresAt,
-                    updated_at: new Date().toISOString(),
-                  })
-                  .eq("user_id", user.id);
-
-                if (updateError) {
-                  console.error("❌ Error updating fresh token:", updateError);
-                  throw new Error("Failed to update fresh token");
-                }
-
-                return new Response(
-                  JSON.stringify({
-                    success: true,
-                    accessToken: webhookResult.accessToken,
-                    expiresAt: newExpiresAt,
-                    method: "apps_script_webhook_refresh",
-                  }),
-                  {
-                    status: 200,
-                    headers: { "Content-Type": "application/json" },
-                  }
-                );
-              }
-            }
-
-            console.log(
-              "⚠️ Apps Script webhook refresh failed or returned no token"
-            );
-          } else {
-            console.log(
-              "⚠️ No Apps Script webhook configured for token refresh"
-            );
-          }
-        } catch (freshTokenError) {
-          console.error(
-            "⚠️ Error refreshing via Apps Script:",
-            freshTokenError
-          );
-        }
-
-        // For Apps Script tokens that can't be refreshed, require re-authentication
-        console.log(
-          "🔐 Apps Script token cannot be automatically refreshed - requiring re-authentication"
-        );
-
-        return new Response(
-          JSON.stringify({
-            success: false,
-            error:
-              "Apps Script token requires re-authentication via Gmail add-on",
-            requiresReauth: true,
-            reason: "apps_script_token_expired",
-            instructions:
-              "Please open the Gmail add-on and re-authorize to refresh your token",
-            daysSinceUpdate: Math.round(daysSinceUpdate),
-          }),
-          { status: 401, headers: { "Content-Type": "application/json" } }
-        );
-      }
     }
 
     // If we have a real refresh token, use it to get a new access token

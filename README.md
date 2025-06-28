@@ -14,7 +14,7 @@ Whether it's expense tracking from receipts, travel planning from booking confir
 
 ## Key Benefits
 
-- **Minimal Setup Required**: Install the Gmail add-on once, activate it, and start immediately—no complex configuration or technical headaches
+- **Minimal Setup Required**: Connect your Gmail account with one click and start immediately—no complex configuration or technical headaches
 - **Real-time Processing**: Emails are processed the moment they arrive in your inbox
 - **Privacy-First**: Your email data is processed securely with enterprise-grade encryption
 - **Universal Compatibility**: Works with any email, from any sender, in any format
@@ -27,7 +27,7 @@ Actioneer operates on a simple three-step process that requires zero interventio
 
 ### 1. Sign In & Activate
 
-Visit [https://actioneer.online/dashboard](https://actioneer.online/dashboard) and sign in with your Google account to see your dashboard. To enable automatic email processing, install the Gmail add-on and open it once in any email—this activates the intelligent agent that monitors your incoming emails.
+Visit [https://actioneer.online/dashboard](https://actioneer.online/dashboard) and sign in with your Google account to see your dashboard. To enable automatic email processing, connect your Gmail account through the web dashboard—this activates the intelligent agent that monitors your incoming emails.
 
 ### 2. Agent Takes Over
 
@@ -137,7 +137,7 @@ Actioneer is built on a modern, scalable architecture designed for performance a
 
 - **Gmail API** integration for real-time email monitoring
 - **Gmail Push Notifications** for instant email processing
-- **Apps Script** add-on for enhanced Gmail interface integration
+- **Gmail OAuth** integration for secure email access
 - **OAuth 2.0** with refresh token management for secure authentication
 
 ### Key Features
@@ -148,9 +148,9 @@ Actioneer is built on a modern, scalable architecture designed for performance a
 - **Scalable Architecture**: Edge functions for global performance and low latency
 - **Data Privacy**: End-to-end encryption with minimal data retention
 
-## Gmail Add-on Integration
+## Gmail Integration
 
-The Gmail add-on is essential for enabling automatic email processing. Once installed and activated, it provides both core functionality and enhanced features:
+Gmail OAuth integration is essential for enabling automatic email processing. Once connected, it provides secure access to your emails for processing:
 
 ### Core Functionality
 
@@ -160,14 +160,14 @@ The Gmail add-on is essential for enabling automatic email processing. Once inst
 
 ### Enhanced Features
 
-- **Expense Details**: View extracted receipt information directly in Gmail
-- **Travel Insights**: Get hotel comparisons and recommendations within booking emails
-- **Job Tracking**: Update application status without leaving your inbox
+- **Expense Details**: View extracted receipt information in your dashboard
+- **Travel Insights**: Get hotel comparisons and recommendations from booking emails
+- **Job Tracking**: Update application status through your dashboard
 - **Quick Dashboard Access**: One-click navigation to relevant dashboard sections
 
-### Installation
+### Setup
 
-The Gmail add-on is available on the Google Workspace Marketplace. Simply search for "Actioneer" and install with one click. After installation, open any email and click the Actioneer icon in your Gmail sidebar to activate automatic email processing.
+Gmail integration is available directly through the web dashboard. Simply sign in and click "Enable Gmail Processing" to securely connect your account and activate automatic email processing.
 
 ## Pricing
 
@@ -217,7 +217,7 @@ Ready to transform your inbox? _The proof is in the pudding_—try Actioneer tod
 
 1. **Visit**: [https://actioneer.online/dashboard](https://actioneer.online/dashboard)
 2. **Sign In**: Use your Google account (takes 30 seconds)
-3. **Activate**: Install the Gmail add-on and open it once in any email
+3. **Activate**: Connect your Gmail account through the dashboard
 4. **Watch the Magic**: Your emails start getting processed automatically
 
 No credit card required. Simple one-time activation. Then instant email intelligence.
@@ -237,9 +237,9 @@ Your privacy is our top priority. Actioneer processes your emails with:
 For complete transparency, here are the specific Gmail permissions Actioneer requests:
 
 - **Read emails** (`gmail.readonly`): To analyze incoming emails for receipts, travel bookings, and job applications
-- **Add-on execution** (`gmail.addons.execute`): To display smart actions within Gmail interface
-- **User email address** (`userinfo.email`): To link your processed data to your account
-- **External requests** (`script.external_request`): To communicate with our secure processing servers
+- **OAuth authentication**: To securely access your Gmail account through the web interface
+- **Email address** (`email`): To link your processed data to your account and enable authentication
+- **Basic profile** (`profile`): To display your name and profile picture in the dashboard
 
 We only access emails relevant to supported categories and never read personal conversations, drafts, or sensitive content.
 

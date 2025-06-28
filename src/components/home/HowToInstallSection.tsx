@@ -30,7 +30,7 @@ export default function HowToInstallSection() {
               actioneer.online
             </a>{" "}
             and sign in with Google. One click grants Gmail permissions and
-            activates automatic email processing - no add-ons needed!
+            activates automatic email processing - instantly!
           </p>
         </section>
 

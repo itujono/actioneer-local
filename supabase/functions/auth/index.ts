@@ -187,7 +187,7 @@ async function handleGenerateUserKey(req: Request, body: any) {
 
   console.log("📧 Creating/finding user for:", email);
 
-  const { user, created } = await createOrGetUser(email, name, "gmail_addon");
+  const { user, created } = await createOrGetUser(email, name, "web_oauth");
 
   console.log(`✅ User ${created ? "created" : "found"} successfully`);
 
@@ -387,7 +387,7 @@ function generateSecureApiKey(): string {
 async function createOrGetUser(
   email: string,
   name: string | null = null,
-  source: string = "gmail_addon"
+  source: string = "web_oauth"
 ) {
   console.log("🔍 createOrGetUser called for:", email);
 
@@ -409,8 +409,8 @@ async function createOrGetUser(
   // Generate new API key
   const apiKey = generateSecureApiKey();
 
-  // Create custom user in public.users table (Gmail add-on flow)
-  // Note: This creates a separate UUID for Gmail add-on users, they can link to auth users later via email
+  // Create custom user in public.users table (OAuth flow)
+  // Note: This creates a separate UUID for users, they can link to auth users later via email
   const { data: newUser, error: createError } = await supabase
     .from("users")
     .insert({
@@ -457,10 +457,10 @@ async function getOrCreateAuthUser(
     // Create a new auth user with a random password (they'll sign in via Google OAuth)
     const { data: newUser, error } = await supabase.auth.admin.createUser({
       email,
-      email_confirm: true, // Auto-confirm since we trust Gmail addon
+      email_confirm: true, // Auto-confirm since we trust OAuth
       user_metadata: {
         name: name || email.split("@")[0],
-        created_via: "gmail_addon",
+        created_via: "web_oauth",
         created_at: new Date().toISOString(),
       },
     });

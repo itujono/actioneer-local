@@ -59,7 +59,7 @@ export async function tryRefreshToken(
 
       // Check if re-authentication is required
       if (refreshResult.requiresReauth) {
-        console.log("🔐 Re-authentication required via Gmail add-on");
+        console.log("🔐 Re-authentication required via web OAuth");
 
         // For very old tokens, provide additional context
         if (refreshResult.daysSinceUpdate) {
@@ -109,7 +109,7 @@ export async function getValidAccessToken(
 
       if (!recentToken?.gmail_access_token) {
         console.log(
-          "💡 No OAuth token available - user needs to use Gmail add-on first to authorize"
+          "💡 No OAuth token available - user needs to authorize via web OAuth"
         );
         return null;
       }
@@ -138,7 +138,7 @@ export async function getValidAccessToken(
           return refreshedAuth?.gmail_access_token || null;
         } else {
           console.log(
-            "❌ Token refresh failed - user needs to re-authorize via Gmail add-on"
+            "❌ Token refresh failed - user needs to re-authorize via web OAuth"
           );
           return null;
         }
@@ -171,7 +171,7 @@ export async function getValidAccessToken(
           return refreshedAuth?.gmail_access_token || null;
         } else {
           console.log(
-            "❌ Token refresh failed - user needs to re-authorize via Gmail add-on"
+            "❌ Token refresh failed - user needs to re-authorize via web OAuth"
           );
           return null;
         }
