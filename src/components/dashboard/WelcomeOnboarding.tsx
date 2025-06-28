@@ -8,6 +8,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "../ui/dialog";
+import Bubble from "../Bubble";
 
 interface WelcomeOnboardingProps {
   open: boolean;
@@ -75,7 +76,7 @@ export default function WelcomeOnboarding({
   return (
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent
-        className="max-w-4xl max-h-[90vh] overflow-y-auto [&>button]:hidden"
+        className="max-w-4xl max-h-[80vh] h-[60rem] overflow-y-hidden [&>button]:hidden bg-heliotrope"
         onEscapeKeyDown={(e) => e.preventDefault()}
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
@@ -87,9 +88,43 @@ export default function WelcomeOnboarding({
           </DialogDescription>
         </DialogHeader>
 
-        <div className="p-6">
-          {/* Progress indicator */}
-          <div className="flex justify-center mb-8">
+        <div className="p-6 relative">
+          <Bubble
+            size="small"
+            className="absolute top-1/4 left-[15%] transform -translate-x-1/2 -translate-y-1/2 w-[14rem] h-[14rem] z-10 text-lavender"
+          />
+          <Bubble className="absolute top-[100%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[40rem] h-[40rem] z-0 text-daisy" />
+
+          <div className="text-center max-w-xl mx-auto relative bottom-10 h-full z-20 flex flex-col justify-center items-center">
+            <div>
+              <h2 className="text-3xl font-bold text-white mb-2">
+                {currentStepData.title}
+              </h2>
+              <h3 className="text-xl text-daisy font-semibold mb-4">
+                {currentStepData.subtitle}
+              </h3>
+              <p className="text-lg text-concrete leading-relaxed mb-8 px-4">
+                {currentStepData.description}
+              </p>
+              <div className="flex flex-col gap-4 justify-center items-center">
+                <Button
+                  onClick={handleNext}
+                  className="w-full max-w-sm mx-auto bg-daisy"
+                >
+                  {currentStep < steps.length - 1 ? "Next" : "Get Started!"}
+                  <ArrowRight className="w-4 h-4 ml-2" />
+                </Button>
+
+                {currentStep < steps.length - 1 && (
+                  <Button variant="ghost" onClick={handleSkip}>
+                    Skip tour
+                  </Button>
+                )}
+              </div>
+            </div>
+          </div>
+
+          <div className="flex justify-center mb-8 absolute bottom-0 left-1/2 transform -translate-x-1/2 w-full">
             <div className="flex space-x-2">
               {steps.map((_, index) => (
                 <div
@@ -102,46 +137,6 @@ export default function WelcomeOnboarding({
                 />
               ))}
             </div>
-          </div>
-
-          {/* Content */}
-          <div className="text-center max-w-2xl mx-auto">
-            {/* Title & Subtitle */}
-            <h2 className="text-3xl font-bold text-thunder mb-2">
-              {currentStepData.title}
-            </h2>
-            <h3 className="text-xl text-heliotrope font-semibold mb-4">
-              {currentStepData.subtitle}
-            </h3>
-
-            {/* Description */}
-            <p className="text-lg text-gray-600 leading-relaxed mb-8 px-4">
-              {currentStepData.description}
-            </p>
-
-            {/* Action buttons */}
-            <div className="flex flex-col gap-4 justify-center items-center">
-              <Button onClick={handleNext} className="w-full max-w-sm mx-auto">
-                {currentStep < steps.length - 1 ? "Next" : "Get Started!"}
-                <ArrowRight className="w-4 h-4 ml-2" />
-              </Button>
-
-              {currentStep < steps.length - 1 && (
-                <Button variant="ghost" onClick={handleSkip}>
-                  Skip tour
-                </Button>
-              )}
-            </div>
-
-            {/* Fun fact for engagement */}
-            {/* {currentStep === steps.length - 1 && (
-              <div className="mt-8 p-4 bg-lime/10 border-2 border-lime/20 rounded-lg">
-                <p className="text-sm text-gray-600">
-                  💡 <strong>Pro tip:</strong> Forward old receipts or booking
-                  confirmations to yourself to see instant results!
-                </p>
-              </div>
-            )} */}
           </div>
         </div>
       </DialogContent>
