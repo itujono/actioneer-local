@@ -10,6 +10,7 @@ import {
   LogOut,
   Menu,
   X,
+  MessageSquare,
 } from "lucide-react";
 
 interface LayoutProps {
@@ -142,6 +143,17 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
                 {/* <Settings className="mr-4 h-6 w-6 text-thunder/70" /> */}
                 Settings
               </Link>
+
+              <Link
+                to="/feedback"
+                className={`group flex items-center px-2 py-2 text-base font-medium rounded-md transition-colors duration-200 ${
+                  location.pathname === "/feedback"
+                    ? "bg-thunder/10 text-thunder font-semibold"
+                    : "text-thunder/70 hover:bg-concrete hover:text-thunder"
+                }`}
+              >
+                Feedback
+              </Link>
             </nav>
           </div>
 
@@ -228,6 +240,16 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
               >
                 {/* <Settings className="mr-3 h-6 w-6 text-thunder/70" /> */}
                 Settings
+              </Link>
+              <Link
+                to="/feedback"
+                className={`group flex items-center px-2 py-2 text-sm font-medium rounded-md transition-colors duration-200 ${
+                  location.pathname === "/feedback"
+                    ? "bg-thunder/10 text-thunder font-semibold"
+                    : "text-thunder/70 hover:bg-concrete hover:text-thunder"
+                }`}
+              >
+                Feedback
               </Link>
             </nav>
           </section>

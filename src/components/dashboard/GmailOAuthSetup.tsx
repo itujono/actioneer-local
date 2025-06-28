@@ -64,8 +64,17 @@ export default function GmailOAuthSetup({
   } = useQuery({
     queryKey: ["gmail-oauth-status", user?.id],
     queryFn: async (): Promise<GmailSetupStatus> => {
-      if (!user) throw new Error("User not authenticated");
+      console.log("🚀 Gmail OAuth status query starting...", {
+        userId: user?.id,
+        userEmail: user?.email,
+      });
 
+      if (!user) {
+        console.log("❌ No user found, throwing error");
+        throw new Error("User not authenticated");
+      }
+
+      console.log("📡 Fetching tokens from database...");
       const { data: tokens, error: tokenError } = await supabase
         .from("user_auth_tokens")
         .select(
@@ -73,6 +82,12 @@ export default function GmailOAuthSetup({
         )
         .eq("user_id", user.id)
         .single();
+
+      console.log("📊 Database query result:", {
+        hasData: !!tokens,
+        error: tokenError?.code,
+        errorMessage: tokenError?.message,
+      });
 
       if (tokenError && tokenError.code !== "PGRST116") {
         throw tokenError;
