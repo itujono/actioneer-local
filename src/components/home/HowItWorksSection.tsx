@@ -18,7 +18,7 @@ export default function HowItWorksSection() {
       </div>
 
       <div className="grid grid-cols-1 md:grid-cols-3 gap-8 sm:gap-10 lg:gap-12">
-        <HowItWorksItem title="Sign In & Activate" number={1}>
+        <HowItWorksItem title="Sign In with Google" number={1}>
           Visit{" "}
           <a
             href="https://actioneer.online/dashboard"
@@ -26,15 +26,15 @@ export default function HowItWorksSection() {
             rel="noopener noreferrer"
             className="text-heliotrope font-semibold hover:text-heliotrope/80 underline break-all"
           >
-            https://actioneer.online/dashboard
+            actioneer.online
           </a>{" "}
-          and sign in with Google. Then install the Gmail add-on and open it
-          once in any email to
+          and sign in with Google. With just one click, you'll grant Gmail
+          permissions and
           <strong className="text-heliotrope">
             {" "}
-            activate automatic email monitoring
+            instantly activate automatic email monitoring
           </strong>{" "}
-          - simple one-time setup, then you're done forever.
+          - no add-ons, no complex setup, just pure simplicity.
         </HowItWorksItem>
         <HowItWorksItem title="Agent Takes Over" number={2}>
           Like having a super-smart assistant working 24/7. In every incoming
@@ -45,14 +45,14 @@ export default function HowItWorksSection() {
           </strong>
           , then organizes everything in your personal dashboard.
         </HowItWorksItem>
-        <HowItWorksItem title="Enjoy the Results" number={3}>
-          Your dashboard fills up with
-          <strong className="text-gold">
+        <HowItWorksItem title="Smart Actions & Insights" number={3}>
+          Your dashboard becomes mission control.
+          <strong className="text-bittersweet">
             {" "}
-            perfectly structured, actionable data
+            Track expenses, compare travel deals, monitor job applications
           </strong>
-          . Expense tracking, travel comparisons, job application status - all
-          updated automatically without you lifting a finger.
+          , and get intelligent insights - all updated in real-time as emails
+          arrive.
         </HowItWorksItem>
       </div>
     </div>

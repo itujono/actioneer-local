@@ -53,6 +53,11 @@ const initiateGoogleOAuth = async () => {
     provider: "google",
     options: {
       redirectTo: `${window.location.origin}/dashboard`,
+      scopes: "email profile https://www.googleapis.com/auth/gmail.readonly", // Add Gmail scope
+      queryParams: {
+        access_type: "offline", // Request refresh token
+        prompt: "consent", // Force consent screen to ensure refresh token
+      },
     },
   });
 
@@ -81,7 +86,19 @@ function Auth() {
     mutationFn: createPublicUserRecord,
     onSuccess: (result) => {
       console.log("✅ Public user record created/found:", result.user_id);
-      toast.success(result.created ? "Welcome to Actioneer!" : "Welcome back!");
+
+      if (result.created) {
+        toast.success("Welcome to Actioneer! Your account has been created.");
+      } else {
+        toast.success("Welcome back!");
+      }
+
+      // Show Gmail setup status
+      if (result.gmail_setup_required) {
+        console.log("📧 Gmail setup will be handled on dashboard");
+        // We'll handle Gmail setup on the dashboard with a dedicated flow
+      }
+
       navigate({ to: "/dashboard" });
     },
     onError: (error) => {

@@ -1,6 +1,6 @@
 import { createRoute, Link } from "@tanstack/react-router";
 import { rootRoute } from "./root";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import {
   ReceiptIcon,
   PlaneIcon,
@@ -14,10 +14,12 @@ import { useGmailAddonStatus } from "../hooks/useGmailAddonStatus";
 import {
   DashboardCard,
   DashboardContainer,
-  GmailAddonActivation,
+  GmailOAuthSetup,
   RecentActivityCard,
+  WelcomeOnboarding,
 } from "../components/dashboard";
 import { formatDistanceToNow } from "date-fns";
+import { useState, useEffect } from "react";
 
 export const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -41,12 +43,70 @@ export const dashboardRoute = createRoute({
 });
 
 function Dashboard() {
-  // Use TanStack Query for auth management
-  const { user, isLoading: authLoading } = useAuth();
+  const { user } = useAuth();
+  const queryClient = useQueryClient();
+  const [showWelcomeOnboarding, setShowWelcomeOnboarding] = useState(false);
+  const [onboardingCompleted, setOnboardingCompleted] = useState(false);
 
-  // Check Gmail add-on activation status
+  // Check if user has any processed emails (to determine if they're new)
+  const { data: userStats, isLoading: statsLoading } = useQuery({
+    queryKey: ["user-stats", user?.id],
+    queryFn: async () => {
+      if (!user) return null;
+
+      const { data: emailCount } = await supabase
+        .from("emails")
+        .select("id", { count: "exact" })
+        .eq("user_id", user.id);
+
+      const { data: hasSeenOnboarding } = await supabase
+        .from("users")
+        .select("onboarding_completed")
+        .eq("id", user.id)
+        .single();
+
+      return {
+        totalEmails: emailCount?.length || 0,
+        hasSeenOnboarding: hasSeenOnboarding?.onboarding_completed || false,
+      };
+    },
+    enabled: !!user,
+  });
+
+  // Check Gmail add-on activation status (keeping for backward compatibility)
   const { isActivated: isGmailAddonActivated, isLoading: addonStatusLoading } =
     useGmailAddonStatus();
+
+  // Check Gmail OAuth setup status
+  const { data: gmailOAuthStatus, isLoading: oauthStatusLoading } = useQuery({
+    queryKey: ["gmail-oauth-status", user?.id],
+    queryFn: async () => {
+      if (!user) throw new Error("User not authenticated");
+
+      const { data: tokens, error: tokenError } = await supabase
+        .from("user_auth_tokens")
+        .select("gmail_access_token, token_expires_at")
+        .eq("user_id", user.id)
+        .single();
+
+      if (tokenError && tokenError.code !== "PGRST116") {
+        throw tokenError;
+      }
+
+      const hasTokens = !!tokens?.gmail_access_token;
+      const isTokenValid =
+        hasTokens && tokens.token_expires_at
+          ? new Date(tokens.token_expires_at) > new Date()
+          : false;
+
+      return { isSetup: hasTokens && isTokenValid };
+    },
+    enabled: !!user,
+  });
+
+  // Check if Gmail processing is enabled (either add-on or OAuth)
+  const isGmailProcessingEnabled =
+    isGmailAddonActivated || gmailOAuthStatus?.isSetup;
 
   // Fetch recent emails only when authenticated and add-on is activated
   const { data: recentEmails, isLoading: emailsLoading } = useQuery({
@@ -65,7 +125,7 @@ function Dashboard() {
       if (error) throw error;
       return data;
     },
-    enabled: !!user && !authLoading, // Only run when user is authenticated
+    enabled: !!user && !statsLoading, // Only run when user is authenticated
   });
 
   // Fetch receipt summary only when authenticated
@@ -92,7 +152,7 @@ function Dashboard() {
         recentReceipts: data,
       };
     },
-    enabled: !!user && !authLoading, // Only run when user is authenticated
+    enabled: !!user && !statsLoading, // Only run when user is authenticated
   });
 
   // Fetch travel data only when authenticated
@@ -122,7 +182,7 @@ function Dashboard() {
         recentTrips: data,
       };
     },
-    enabled: !!user && !authLoading, // Only run when user is authenticated
+    enabled: !!user && !statsLoading, // Only run when user is authenticated
   });
 
   // Fetch job applications
@@ -146,11 +206,55 @@ function Dashboard() {
         recentApplications: data,
       };
     },
-    enabled: !!user && !authLoading, // Only run when user is authenticated
+    enabled: !!user && !statsLoading, // Only run when user is authenticated
   });
 
+  // Determine if user should see welcome onboarding
+  const shouldShowOnboarding =
+    !statsLoading &&
+    userStats &&
+    !userStats.hasSeenOnboarding &&
+    !onboardingCompleted;
+
+  // Handle showing onboarding with useEffect to avoid race conditions
+  useEffect(() => {
+    if (shouldShowOnboarding && !showWelcomeOnboarding) {
+      setShowWelcomeOnboarding(true);
+    }
+  }, [shouldShowOnboarding, showWelcomeOnboarding]);
+
+  // Handle onboarding completion
+  const handleOnboardingComplete = async () => {
+    if (!user) return;
+
+    console.log("Completing onboarding for user:", user.id);
+
+    try {
+      // Mark onboarding as completed in database
+      const { error } = await supabase
+        .from("users")
+        .update({ onboarding_completed: true })
+        .eq("id", user.id);
+
+      if (error) {
+        console.error("Error updating onboarding status:", error);
+        return;
+      }
+
+      console.log("Onboarding marked as complete in database");
+      setOnboardingCompleted(true);
+      setShowWelcomeOnboarding(false);
+
+      // Invalidate the user-stats query to refetch the updated data
+      // This will ensure the onboarding doesn't show again
+      queryClient.invalidateQueries({ queryKey: ["user-stats", user.id] });
+    } catch (error) {
+      console.error("Error completing onboarding:", error);
+    }
+  };
+
   // Show auth loading state
-  if (authLoading) {
+  if (statsLoading) {
     return (
       <div className="py-6">
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
@@ -179,6 +283,12 @@ function Dashboard() {
 
   return (
     <DashboardContainer title="Dashboard">
+      {/* Welcome Onboarding Dialog */}
+      <WelcomeOnboarding
+        open={showWelcomeOnboarding}
+        onComplete={handleOnboardingComplete}
+      />
+
       {/* Welcome Banner */}
       <div className="rounded-lg shadow-md overflow-hidden mt-6">
         <div className="bg-heliotrope px-6 py-5 sm:px-8 sm:py-6">
@@ -188,27 +298,27 @@ function Dashboard() {
                 Welcome back, {user?.email?.split("@")[0] || "User"}!
               </h2>
               <p className="mt-1 text-sm text-white/80">
-                {isGmailAddonActivated
+                {isGmailProcessingEnabled
                   ? "Your inbox is being monitored for actionable emails. Here's a summary of your recent activity."
-                  : "Let's get you set up with our Gmail add-on to start processing your emails automatically."}
+                  : "Let's get you set up with Gmail access to start processing your emails automatically."}
               </p>
             </div>
           </div>
         </div>
         <div className="border-t border-heliotrope/20 bg-daisy px-6 py-2">
           <div className="text-sm text-white/90">
-            {isGmailAddonActivated
-              ? "Pro tip: Use the Gmail add-on to see smart actions right in your inbox."
-              : "Once set up, you'll see smart actions right in your Gmail inbox."}
+            {isGmailProcessingEnabled
+              ? "Your emails are processed automatically within seconds of arrival."
+              : "Once set up, your emails will be processed automatically in real-time."}
           </div>
         </div>
       </div>
 
-      {/* Gmail Add-on Activation */}
-      <GmailAddonActivation className="mt-6" />
+      {/* Gmail OAuth Setup (replaces Gmail Add-on) */}
+      <GmailOAuthSetup className="mt-6" />
 
-      {/* Only show dashboard content if Gmail add-on is activated */}
-      {isGmailAddonActivated && (
+      {/* Only show dashboard content if Gmail processing is enabled */}
+      {isGmailProcessingEnabled && (
         <>
           {/* Stats Grid */}
           <div className="mt-8 grid grid-cols-1 gap-5 sm:grid-cols-2 lg:grid-cols-3">

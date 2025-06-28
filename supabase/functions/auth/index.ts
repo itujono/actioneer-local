@@ -280,105 +280,99 @@ async function handleGetProfile(req: Request) {
 
 // Handle OAuth sign-in from dashboard - creates public.users entry for existing auth.users
 async function handleOAuthSignIn(req: Request, body: any) {
-  console.log("🔍 handleOAuthSignIn called");
+  try {
+    console.log("🔍 OAuth sign-in request started");
 
-  // This endpoint expects a Supabase Auth JWT token
-  const authHeader = req.headers.get("Authorization");
-  if (!authHeader || !authHeader.startsWith("Bearer ")) {
-    return new Response(
-      JSON.stringify({ error: "Missing authorization header" }),
-      {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+    // Get the user session from Supabase Auth
+    const authHeader = req.headers.get("Authorization");
+    if (!authHeader || !authHeader.startsWith("Bearer ")) {
+      console.error("❌ Missing or invalid authorization header");
+      return new Response(
+        JSON.stringify({ error: "Missing authorization header" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const token = authHeader.split(" ")[1];
+
+    // Get user data from Supabase Auth
+    const {
+      data: { user },
+      error: userError,
+    } = await supabase.auth.getUser(token);
+
+    if (userError || !user) {
+      console.error("❌ Invalid token or user not found:", userError);
+      return new Response(
+        JSON.stringify({ error: "Invalid authentication token" }),
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    const email = user.email;
+    const name =
+      user.user_metadata?.full_name || user.user_metadata?.name || null;
+
+    if (!email) {
+      console.error("❌ No email found in user data");
+      return new Response(
+        JSON.stringify({ error: "Email not found in user data" }),
+        {
+          status: 400,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
+      );
+    }
+
+    console.log("📧 Creating/finding user for OAuth:", email);
+
+    // Create or get user in our custom users table
+    const { user: actioneerUser, created } = await createOrGetUser(
+      email,
+      name,
+      "web_oauth"
     );
-  }
 
-  const token = authHeader.split(" ")[1];
+    console.log(`✅ User ${created ? "created" : "found"} successfully`);
 
-  // Verify the JWT and get user info
-  const {
-    data: { user },
-    error: userError,
-  } = await supabase.auth.getUser(token);
-
-  if (userError || !user) {
-    console.error("❌ Invalid JWT token:", userError);
-    return new Response(
-      JSON.stringify({ error: "Invalid authentication token" }),
-      {
-        status: 401,
-        headers: { ...corsHeaders, "Content-Type": "application/json" },
-      }
+    // Note: Gmail watch setup will be handled separately via dedicated endpoint
+    console.log(
+      "📝 OAuth user created/found - Gmail setup to be handled separately"
     );
-  }
 
-  console.log("✅ Valid auth user:", user.id, user.email);
-
-  // Check if user already exists in public.users
-  const { data: existingUser, error: findError } = await supabase
-    .from("users")
-    .select("*")
-    .eq("email", user.email)
-    .eq("is_active", true)
-    .single();
-
-  if (existingUser && !findError) {
-    console.log("✅ User already exists in public.users:", existingUser.id);
     return new Response(
       JSON.stringify({
         success: true,
-        user_id: existingUser.id,
-        api_key: existingUser.api_key,
-        message: "User already exists",
-        created: false,
+        user_id: actioneerUser.id,
+        api_key: actioneerUser.api_key,
+        created: created,
+        gmail_setup_required: true, // Indicates frontend should handle Gmail setup
+        message: created ? "New user created" : "User signed in successfully",
       }),
-      { headers: { ...corsHeaders, "Content-Type": "application/json" } }
+      {
+        status: 200,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      }
     );
-  }
-
-  console.log("🆕 Creating public.users entry for OAuth user");
-
-  // Generate API key for the user
-  const apiKey = generateSecureApiKey();
-
-  // Create public.users entry using the auth user's ID
-  const { data: newUser, error: createError } = await supabase
-    .from("users")
-    .insert({
-      id: user.id, // Use the Supabase Auth user ID
-      email: user.email,
-      api_key: apiKey,
-      name: user.user_metadata?.name || user.email?.split("@")[0],
-      source: "oauth_dashboard",
-      is_active: true,
-    })
-    .select()
-    .single();
-
-  if (createError) {
-    console.error("❌ Error creating public.users entry:", createError);
+  } catch (error) {
+    console.error("💥 Error in OAuth sign-in:", error);
     return new Response(
-      JSON.stringify({ error: "Failed to create user record" }),
+      JSON.stringify({
+        error: "Internal server error",
+        details: error.message,
+      }),
       {
         status: 500,
         headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   }
-
-  console.log("✅ Created public.users entry:", newUser.id);
-
-  return new Response(
-    JSON.stringify({
-      success: true,
-      user_id: newUser.id,
-      api_key: newUser.api_key,
-      message: "User created successfully",
-      created: true,
-    }),
-    { headers: { ...corsHeaders, "Content-Type": "application/json" } }
-  );
 }
 
 // Helper functions
