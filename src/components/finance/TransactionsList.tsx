@@ -71,10 +71,11 @@ export function TransactionsList({
 
   if (isLoading) {
     return (
-      <div className="bg-white rounded-xl shadow-lg border border-heliotrope/30 p-12 mt-12">
+      <div className="bg-concrete rounded-xl p-12 mt-12">
         <div className="flex justify-center items-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-jade"></div>
-          <span className="ml-4 text-lg text-thunder">
+          {/* <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-jade"></div> */}
+          <Loader2 className="h-6 w-6 text-gray animate-spin" />
+          <span className="ml-4 text-lg text-gray">
             Loading financial data...
           </span>
         </div>

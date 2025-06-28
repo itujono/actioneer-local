@@ -19,7 +19,12 @@ import {
   Plus,
   Info,
   AlertCircle,
+  CreditCard,
+  DollarSign,
+  Plane,
+  Briefcase,
 } from "lucide-react";
+import { useAuth } from "../hooks/useAuth";
 
 export const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -33,14 +38,14 @@ const EMAIL_CATEGORIES = [
     id: "receipt",
     title: "Receipts & Purchases",
     description: "Track purchase receipts, invoices, and subscription payments",
-    icon: "💳",
+    icon: CreditCard,
     enabled: true,
   },
   {
     id: "revenue",
     title: "Revenue & Income",
     description: "Monitor incoming payments, refunds, and business income",
-    icon: "💰",
+    icon: DollarSign,
     enabled: true,
   },
   {
@@ -48,19 +53,21 @@ const EMAIL_CATEGORIES = [
     title: "Travel & Bookings",
     description:
       "Organize flight confirmations, hotel bookings, and travel itineraries",
-    icon: "✈️",
+    icon: Plane,
     enabled: true,
   },
   {
     id: "job_application",
     title: "Job Applications",
     description: "Track job applications, interviews, and career opportunities",
-    icon: "💼",
+    icon: Briefcase,
     enabled: true,
   },
 ] as const;
 
 function SettingsDashboard() {
+  const { user } = useAuth();
+
   // Category toggles state
   const [categorySettings, setCategorySettings] = useState(
     EMAIL_CATEGORIES.reduce((acc, category) => {
@@ -100,6 +107,7 @@ function SettingsDashboard() {
       title="Settings"
       description="Manage your account and email processing preferences"
       maxWidth="6xl"
+      className="pb-12"
     >
       {/* 2-1 Grid Layout */}
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-12">
@@ -108,7 +116,7 @@ function SettingsDashboard() {
           {/* Email Category Settings */}
           <div className="bg-white border-2 border-gray-light rounded-lg p-6">
             <div className="flex items-start justify-between mb-6">
-              <div className="flex items-center space-x-3">
+              <div className="flex items-start space-x-3">
                 <div className="p-2 bg-heliotrope/10 rounded-lg">
                   <Mail className="h-5 w-5 text-heliotrope" />
                 </div>
@@ -116,7 +124,7 @@ function SettingsDashboard() {
                   <h2 className="text-xl font-semibold text-thunder">
                     Email Categories
                   </h2>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-gray mt-1">
                     Choose which types of emails Actioneer should process and
                     analyze
                   </p>
@@ -126,7 +134,7 @@ function SettingsDashboard() {
                 <div className="text-sm font-medium text-thunder">
                   {enabledCategoriesCount}/{totalCategories} enabled
                 </div>
-                <div className="text-xs text-gray-500">Categories active</div>
+                <div className="text-xs text-gray">Categories active</div>
               </div>
             </div>
 
@@ -147,7 +155,9 @@ function SettingsDashboard() {
                   }
                 >
                   <div className="flex items-start space-x-4">
-                    <div className="text-2xl mt-1">{category.icon}</div>
+                    <div className="p-2 bg-heliotrope/10 rounded-lg mt-1">
+                      <category.icon className="h-5 w-5 text-heliotrope" />
+                    </div>
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
@@ -172,7 +182,7 @@ function SettingsDashboard() {
                           className="pointer-events-none" // Prevent double-clicking
                         />
                       </div>
-                      <p className="text-sm text-gray-600 mt-1">
+                      <p className="text-sm text-gray mt-1">
                         {category.description}
                       </p>
                     </div>
@@ -197,7 +207,7 @@ function SettingsDashboard() {
           {/* Multi-Account Settings */}
           <div className="bg-white border-2 border-gray-light rounded-lg p-6">
             <div className="flex items-start justify-between mb-6">
-              <div className="flex items-center space-x-3">
+              <div className="flex items-start space-x-3">
                 <div className="p-2 bg-gold/10 rounded-lg">
                   <Users className="h-5 w-5 text-gold" />
                 </div>
@@ -205,7 +215,7 @@ function SettingsDashboard() {
                   <h2 className="text-xl font-semibold text-thunder">
                     Multi-Account Management
                   </h2>
-                  <p className="text-sm text-gray-600 mt-1">
+                  <p className="text-sm text-gray mt-1">
                     Connect multiple Gmail accounts for unified email insights
                   </p>
                 </div>
@@ -227,7 +237,10 @@ function SettingsDashboard() {
                       <h3 className="text-base font-medium text-thunder">
                         Primary Gmail Account
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray">
+                        {user?.email || "Loading..."}
+                      </p>
+                      <p className="text-xs text-gray mt-1">
                         Currently connected and processing emails
                       </p>
                     </div>
@@ -239,17 +252,17 @@ function SettingsDashboard() {
               </div>
 
               {/* Add Second Account */}
-              <div className="p-4 border border-dashed border-gray-300 rounded-lg bg-gray-50">
+              <div className="p-4 border border-dashed border-gray-light rounded-lg bg-concrete">
                 <div className="flex items-center justify-between">
                   <div className="flex items-center space-x-3">
-                    <div className="w-8 h-8 bg-gray-300 rounded-full flex items-center justify-center">
+                    <div className="w-8 h-8 bg-gray-lightborder-gray-light rounded-full flex items-center justify-center">
                       <Plus className="h-4 w-4 text-gray-600" />
                     </div>
                     <div>
                       <h3 className="text-base font-medium text-thunder">
                         Add Second Account
                       </h3>
-                      <p className="text-sm text-gray-600">
+                      <p className="text-sm text-gray">
                         Connect your work or secondary Gmail account
                       </p>
                     </div>
@@ -266,16 +279,16 @@ function SettingsDashboard() {
               </div>
             </div>
 
-            <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded-lg">
-              <div className="flex items-start space-x-2">
-                <Info className="h-4 w-4 text-blue-600 mt-0.5" />
+            <div className="mt-12 p-4 bg-gold border border-gold rounded-lg">
+              <div className="flex items-start space-x-4">
+                <Info className="h-8 w-8 text-thunder" />
                 <div>
-                  <p className="text-sm text-blue-800">
+                  <p className="text-sm text-thunder">
                     <strong>Multi-account support is coming soon!</strong>{" "}
                     You'll be able to connect up to 2 Gmail accounts and view
                     unified insights across both personal and work emails.
                   </p>
-                  <p className="text-xs text-blue-700 mt-1">
+                  <p className="text-xs text-thunder mt-4">
                     This feature will be available in the next update with the
                     same affordable pricing.
                   </p>
@@ -288,8 +301,8 @@ function SettingsDashboard() {
         {/* Right Column - 1/3 width */}
         <div className="lg:col-span-1 space-y-8">
           {/* Account Information */}
-          <div className="bg-white border-2 border-gray-light rounded-lg p-6">
-            <div className="flex items-center space-x-3 mb-6">
+          <div className="bg-white border border-gray-light rounded-lg p-6">
+            <div className="flex items-start space-x-3 mb-6">
               <div className="p-2 bg-jade/10 rounded-lg">
                 <Settings className="h-5 w-5 text-jade" />
               </div>
@@ -297,7 +310,7 @@ function SettingsDashboard() {
                 <h2 className="text-xl font-semibold text-thunder">
                   Account Information
                 </h2>
-                <p className="text-sm text-gray-600 mt-1">
+                <p className="text-sm text-gray mt-1">
                   Your current subscription and usage details
                 </p>
               </div>
@@ -311,7 +324,7 @@ function SettingsDashboard() {
                 <p className="text-lg font-semibold text-jade">
                   Free Beta Access
                 </p>
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-gray">
                   We're completely free to use while in beta • No credit card
                   required
                 </p>
@@ -321,7 +334,7 @@ function SettingsDashboard() {
                   Emails Processed
                 </h3>
                 <p className="text-lg font-semibold text-jade">1,247</p>
-                <p className="text-xs text-gray-600">
+                <p className="text-xs text-gray">
                   This month • Unlimited processing
                 </p>
               </div>
@@ -329,7 +342,7 @@ function SettingsDashboard() {
           </div>
 
           {/* Quick Stats Card */}
-          <div className="bg-white border-2 border-gray-light rounded-lg p-6">
+          {/* <div className="bg-white border border-gray-light rounded-lg p-6">
             <div className="flex items-center space-x-3 mb-4">
               <div className="p-2 bg-lime/10 rounded-lg">
                 <Mail className="h-5 w-5 text-lime" />
@@ -344,19 +357,31 @@ function SettingsDashboard() {
 
             <div className="space-y-3">
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">💳 Receipts</span>
+                <div className="flex items-center space-x-2">
+                  <CreditCard className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm text-gray-600">Receipts</span>
+                </div>
                 <span className="text-sm font-medium text-thunder">342</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">💰 Revenue</span>
+                <div className="flex items-center space-x-2">
+                  <DollarSign className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm text-gray-600">Revenue</span>
+                </div>
                 <span className="text-sm font-medium text-thunder">89</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">✈️ Travel</span>
+                <div className="flex items-center space-x-2">
+                  <Plane className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm text-gray-600">Travel</span>
+                </div>
                 <span className="text-sm font-medium text-thunder">12</span>
               </div>
               <div className="flex items-center justify-between">
-                <span className="text-sm text-gray-600">💼 Jobs</span>
+                <div className="flex items-center space-x-2">
+                  <Briefcase className="h-4 w-4 text-gray-500" />
+                  <span className="text-sm text-gray-600">Jobs</span>
+                </div>
                 <span className="text-sm font-medium text-thunder">23</span>
               </div>
             </div>
@@ -371,7 +396,7 @@ function SettingsDashboard() {
                 </span>
               </div>
             </div>
-          </div>
+          </div> */}
         </div>
       </div>
 
