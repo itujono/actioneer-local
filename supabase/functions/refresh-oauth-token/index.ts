@@ -3,6 +3,7 @@ import { createClient } from "jsr:@supabase/supabase-js@2";
 
 interface RefreshTokenRequest {
   userEmail: string;
+  forceRefresh?: boolean; // Add option to force refresh even if token seems valid
 }
 
 interface RefreshTokenResponse {
@@ -10,6 +11,8 @@ interface RefreshTokenResponse {
   accessToken?: string;
   expiresAt?: string;
   error?: string;
+  requiresReauth?: boolean;
+  debugInfo?: any;
 }
 
 Deno.serve(async (req: Request) => {
@@ -23,7 +26,8 @@ Deno.serve(async (req: Request) => {
     const supabaseServiceKey = Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")!;
     const supabase = createClient(supabaseUrl, supabaseServiceKey);
 
-    const { userEmail }: RefreshTokenRequest = await req.json();
+    const { userEmail, forceRefresh = false }: RefreshTokenRequest =
+      await req.json();
 
     if (!userEmail) {
       return new Response(
@@ -32,7 +36,9 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    console.log(`🔄 Refreshing OAuth token for user: ${userEmail}`);
+    console.log(
+      `🔄 Refreshing OAuth token for user: ${userEmail} (force: ${forceRefresh})`
+    );
 
     // Get user and current tokens
     const { data: user, error: userError } = await supabase
@@ -44,22 +50,42 @@ Deno.serve(async (req: Request) => {
     if (userError || !user) {
       console.error("❌ User not found:", userError);
       return new Response(
-        JSON.stringify({ success: false, error: "User not found" }),
+        JSON.stringify({
+          success: false,
+          error: "User not found",
+          debugInfo: { userError, searchedEmail: userEmail.toLowerCase() },
+        }),
         { status: 404, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    // Get current token data
+    // Get current token data with detailed logging
     const { data: tokenData, error: tokenError } = await supabase
       .from("user_auth_tokens")
-      .select("gmail_refresh_token, gmail_access_token")
+      .select(
+        "gmail_refresh_token, gmail_access_token, token_expires_at, updated_at"
+      )
       .eq("user_id", user.id)
       .single();
+
+    console.log("🔍 Token data query result:", {
+      hasData: !!tokenData,
+      error: tokenError,
+      hasAccessToken: !!tokenData?.gmail_access_token,
+      hasRefreshToken: !!tokenData?.gmail_refresh_token,
+      expiresAt: tokenData?.token_expires_at,
+      updatedAt: tokenData?.updated_at,
+    });
 
     if (tokenError || !tokenData) {
       console.error("❌ No token data found:", tokenError);
       return new Response(
-        JSON.stringify({ success: false, error: "No token data found" }),
+        JSON.stringify({
+          success: false,
+          error: "No token data found",
+          requiresReauth: true,
+          debugInfo: { tokenError },
+        }),
         { status: 404, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -82,7 +108,7 @@ Deno.serve(async (req: Request) => {
       );
     }
 
-    // If we have a real refresh token, use it to get a new access token
+    // Check if we have a refresh token
     if (!tokenData.gmail_refresh_token) {
       console.error("❌ No refresh token available");
       return new Response(
@@ -90,10 +116,58 @@ Deno.serve(async (req: Request) => {
           success: false,
           error: "No refresh token available",
           requiresReauth: true,
+          debugInfo: { hasAccessToken: !!tokenData.gmail_access_token },
         }),
         { status: 401, headers: { "Content-Type": "application/json" } }
       );
     }
+
+    // Check if current token is still valid (unless force refresh)
+    const now = new Date();
+    const expiresAt = new Date(tokenData.token_expires_at);
+    const minutesUntilExpiry = Math.floor(
+      (expiresAt.getTime() - now.getTime()) / (1000 * 60)
+    );
+
+    console.log(
+      `⏰ Token status: expires at ${expiresAt.toISOString()}, ${minutesUntilExpiry} minutes until expiry`
+    );
+
+    if (!forceRefresh && minutesUntilExpiry > 5) {
+      console.log("✅ Token is still valid, no refresh needed");
+      return new Response(
+        JSON.stringify({
+          success: true,
+          accessToken: tokenData.gmail_access_token,
+          expiresAt: tokenData.token_expires_at,
+          message: "Token is still valid",
+          debugInfo: { minutesUntilExpiry },
+        }),
+        { status: 200, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    // Validate environment variables
+    const clientId = Deno.env.get("GOOGLE_CLIENT_ID");
+    const clientSecret = Deno.env.get("GOOGLE_CLIENT_SECRET");
+
+    if (!clientId || !clientSecret) {
+      console.error("❌ Missing Google OAuth credentials");
+      return new Response(
+        JSON.stringify({
+          success: false,
+          error: "Server configuration error",
+          requiresReauth: true,
+          debugInfo: {
+            hasClientId: !!clientId,
+            hasClientSecret: !!clientSecret,
+          },
+        }),
+        { status: 500, headers: { "Content-Type": "application/json" } }
+      );
+    }
+
+    console.log("🌐 Making refresh request to Google OAuth API...");
 
     // Make request to Google OAuth2 API to refresh the token
     const refreshResponse = await fetch("https://oauth2.googleapis.com/token", {
@@ -102,21 +176,37 @@ Deno.serve(async (req: Request) => {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body: new URLSearchParams({
-        client_id: Deno.env.get("GOOGLE_CLIENT_ID") || "",
-        client_secret: Deno.env.get("GOOGLE_CLIENT_SECRET") || "",
+        client_id: clientId,
+        client_secret: clientSecret,
         refresh_token: tokenData.gmail_refresh_token,
         grant_type: "refresh_token",
       }),
     });
 
+    console.log(`📡 Google OAuth response status: ${refreshResponse.status}`);
+
     if (!refreshResponse.ok) {
       const errorText = await refreshResponse.text();
       console.error("❌ Token refresh failed:", errorText);
+
+      // Try to parse error response for better debugging
+      let errorDetails;
+      try {
+        errorDetails = JSON.parse(errorText);
+      } catch {
+        errorDetails = { raw: errorText };
+      }
+
       return new Response(
         JSON.stringify({
           success: false,
           error: "Token refresh failed",
           requiresReauth: true,
+          debugInfo: {
+            status: refreshResponse.status,
+            errorDetails,
+            refreshTokenLength: tokenData.gmail_refresh_token?.length,
+          },
         }),
         { status: 401, headers: { "Content-Type": "application/json" } }
       );
@@ -126,35 +216,77 @@ Deno.serve(async (req: Request) => {
     const newAccessToken = refreshData.access_token;
     const expiresIn = refreshData.expires_in || 3600; // Default to 1 hour
 
+    console.log("🔑 Refresh response:", {
+      hasAccessToken: !!newAccessToken,
+      expiresIn,
+      hasRefreshToken: !!refreshData.refresh_token,
+    });
+
     if (!newAccessToken) {
       console.error("❌ No access token in refresh response");
       return new Response(
         JSON.stringify({
           success: false,
-          error: "Invalid refresh response",
+          error: "Invalid refresh response - no access token",
           requiresReauth: true,
+          debugInfo: { refreshData },
         }),
         { status: 401, headers: { "Content-Type": "application/json" } }
       );
     }
 
-    // Calculate new expiration time
-    const newExpiresAt = new Date(Date.now() + expiresIn * 1000).toISOString();
+    // Calculate new expiration time (with some buffer)
+    const newExpiresAt = new Date(
+      Date.now() + (expiresIn - 60) * 1000
+    ).toISOString(); // 1 minute buffer
 
-    // Update the stored token
-    const { error: updateError } = await supabase
-      .from("user_auth_tokens")
-      .update({
-        gmail_access_token: newAccessToken,
-        token_expires_at: newExpiresAt,
-        updated_at: new Date().toISOString(),
-      })
-      .eq("user_id", user.id);
+    console.log("💾 Updating token in database...");
 
-    if (updateError) {
-      console.error("❌ Error updating token:", updateError);
+    // Update the stored token with retry logic
+    let updateAttempts = 0;
+    let updateSuccess = false;
+    let updateError;
+
+    while (updateAttempts < 3 && !updateSuccess) {
+      updateAttempts++;
+
+      const { error } = await supabase
+        .from("user_auth_tokens")
+        .update({
+          gmail_access_token: newAccessToken,
+          // Only update refresh token if Google provided a new one
+          ...(refreshData.refresh_token && {
+            gmail_refresh_token: refreshData.refresh_token,
+          }),
+          token_expires_at: newExpiresAt,
+          updated_at: new Date().toISOString(),
+        })
+        .eq("user_id", user.id);
+
+      if (!error) {
+        updateSuccess = true;
+        console.log(
+          `✅ Token updated successfully on attempt ${updateAttempts}`
+        );
+      } else {
+        updateError = error;
+        console.error(`❌ Update attempt ${updateAttempts} failed:`, error);
+
+        if (updateAttempts < 3) {
+          console.log("⏳ Retrying in 100ms...");
+          await new Promise((resolve) => setTimeout(resolve, 100));
+        }
+      }
+    }
+
+    if (!updateSuccess) {
+      console.error("❌ Failed to update token after 3 attempts:", updateError);
       return new Response(
-        JSON.stringify({ success: false, error: "Failed to update token" }),
+        JSON.stringify({
+          success: false,
+          error: "Failed to update token in database",
+          debugInfo: { updateError, attempts: updateAttempts },
+        }),
         { status: 500, headers: { "Content-Type": "application/json" } }
       );
     }
@@ -166,6 +298,12 @@ Deno.serve(async (req: Request) => {
         success: true,
         accessToken: newAccessToken,
         expiresAt: newExpiresAt,
+        message: "Token refreshed successfully",
+        debugInfo: {
+          previousExpiry: tokenData.token_expires_at,
+          newExpiry: newExpiresAt,
+          expiresInSeconds: expiresIn,
+        },
       }),
       {
         status: 200,
@@ -175,7 +313,11 @@ Deno.serve(async (req: Request) => {
   } catch (error) {
     console.error("💥 Error in refresh-oauth-token:", error);
     return new Response(
-      JSON.stringify({ success: false, error: "Internal server error" }),
+      JSON.stringify({
+        success: false,
+        error: "Internal server error",
+        debugInfo: { errorMessage: error.message, errorStack: error.stack },
+      }),
       {
         status: 500,
         headers: { "Content-Type": "application/json" },

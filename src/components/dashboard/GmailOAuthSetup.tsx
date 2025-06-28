@@ -56,9 +56,9 @@ export default function GmailOAuthSetup({
     setIsSuccessBannerDismissed(isDismissed);
   }, [user?.id]);
 
-  // Check Gmail setup status
+  // Check Gmail OAuth setup status
   const {
-    data: setupStatus,
+    data: gmailOAuthStatus,
     isLoading,
     error,
   } = useQuery({
@@ -66,7 +66,6 @@ export default function GmailOAuthSetup({
     queryFn: async (): Promise<GmailSetupStatus> => {
       if (!user) throw new Error("User not authenticated");
 
-      // Check if user has OAuth tokens stored
       const { data: tokens, error: tokenError } = await supabase
         .from("user_auth_tokens")
         .select(
@@ -76,7 +75,6 @@ export default function GmailOAuthSetup({
         .single();
 
       if (tokenError && tokenError.code !== "PGRST116") {
-        // PGRST116 is "not found" - that's ok, means no tokens yet
         throw tokenError;
       }
 
@@ -87,72 +85,182 @@ export default function GmailOAuthSetup({
           ? new Date(tokens.token_expires_at) > new Date()
           : false;
 
-      // If we have tokens but they're expired, and we have a refresh token, try to refresh automatically
-      if (
-        hasTokens &&
-        !isTokenValid &&
-        hasRefreshToken &&
-        !tokens.gmail_refresh_token?.startsWith("apps_script_managed_")
-      ) {
-        console.log("🔄 Token expired, attempting automatic refresh...");
+      console.log("🔍 Token status check:", {
+        hasTokens,
+        hasRefreshToken,
+        isTokenValid,
+        expiresAt: tokens?.token_expires_at,
+        minutesUntilExpiry: tokens?.token_expires_at
+          ? Math.floor(
+              (new Date(tokens.token_expires_at).getTime() -
+                new Date().getTime()) /
+                (1000 * 60)
+            )
+          : null,
+      });
 
-        try {
-          const response = await fetch(
-            `${
-              import.meta.env.VITE_SUPABASE_URL
-            }/functions/v1/refresh-oauth-token`,
-            {
-              method: "POST",
-              headers: {
-                "Content-Type": "application/json",
-                Authorization: `Bearer ${
-                  import.meta.env.VITE_SUPABASE_ANON_KEY
-                }`,
-              },
-              body: JSON.stringify({
-                userEmail: user.email,
-              }),
-            }
+      // If tokens exist but are expired, check how long they've been expired
+      if (hasTokens && !isTokenValid && tokens?.token_expires_at) {
+        const expiredMinutesAgo = Math.floor(
+          (new Date().getTime() - new Date(tokens.token_expires_at).getTime()) /
+            (1000 * 60)
+        );
+        console.log(`⏰ Token expired ${expiredMinutesAgo} minutes ago`);
+
+        // If token has been expired for more than 10 minutes, assume refresh is broken
+        if (expiredMinutesAgo > 10) {
+          console.log("🧹 Token expired too long ago, clearing for fresh auth");
+
+          try {
+            await supabase
+              .from("user_auth_tokens")
+              .delete()
+              .eq("user_id", user.id);
+            console.log("✅ Cleared expired tokens");
+          } catch (deleteError) {
+            console.error("❌ Failed to clear expired tokens:", deleteError);
+          }
+
+          return {
+            isSetup: false,
+            hasTokens: false,
+            watchActive: false,
+            lastSetupAt: undefined,
+            error: "Tokens expired - please re-authorize",
+          };
+        }
+
+        // For recently expired tokens, try refresh once
+        if (
+          hasRefreshToken &&
+          !tokens.gmail_refresh_token?.startsWith("apps_script_managed_")
+        ) {
+          console.log(
+            "🔄 Attempting token refresh for recently expired token..."
           );
 
-          if (response.ok) {
-            const refreshResult = await response.json();
-            if (refreshResult.success) {
-              console.log("✅ Token refreshed automatically");
-              return {
-                isSetup: true,
-                hasTokens: true,
-                watchActive: false,
-                lastSetupAt: new Date().toISOString(),
-              };
-            }
-          } else {
-            const errorData = await response.json();
-            console.log("⚠️ Refresh failed, will require re-auth:", errorData);
+          try {
+            const response = await fetch(
+              `${
+                import.meta.env.VITE_SUPABASE_URL
+              }/functions/v1/refresh-oauth-token`,
+              {
+                method: "POST",
+                headers: {
+                  "Content-Type": "application/json",
+                  Authorization: `Bearer ${
+                    import.meta.env.VITE_SUPABASE_ANON_KEY
+                  }`,
+                },
+                body: JSON.stringify({
+                  userEmail: user.email,
+                  forceRefresh: true,
+                }),
+                signal: AbortSignal.timeout(10000), // 10 second timeout
+              }
+            );
 
-            // If refresh fails, clear the invalid tokens to force clean re-auth
-            if (errorData.requiresReauth) {
-              console.log("🧹 Clearing invalid tokens to force clean setup");
+            if (response.ok) {
+              const refreshResult = await response.json();
+              console.log("🔍 Refresh result:", refreshResult);
+
+              if (refreshResult.success) {
+                console.log("✅ Token refreshed successfully");
+
+                // Verify the refresh actually worked
+                const { data: updatedTokens } = await supabase
+                  .from("user_auth_tokens")
+                  .select("gmail_access_token, token_expires_at")
+                  .eq("user_id", user.id)
+                  .single();
+
+                if (
+                  updatedTokens?.gmail_access_token &&
+                  updatedTokens.gmail_access_token !== tokens.gmail_access_token
+                ) {
+                  console.log("✅ Verified token was actually updated");
+                  return {
+                    isSetup: true,
+                    hasTokens: true,
+                    watchActive: false,
+                    lastSetupAt: new Date().toISOString(),
+                  };
+                } else {
+                  console.log(
+                    "⚠️ Token refresh claimed success but token wasn't updated"
+                  );
+                  throw new Error("Token refresh verification failed");
+                }
+              } else {
+                console.log("⚠️ Refresh failed:", refreshResult.error);
+                throw new Error(refreshResult.error || "Refresh failed");
+              }
+            } else {
+              const errorData = await response.json();
+              console.log(
+                "⚠️ Refresh request failed:",
+                response.status,
+                errorData
+              );
+              throw new Error(
+                `Refresh request failed: ${errorData.error || "Unknown error"}`
+              );
+            }
+          } catch (error) {
+            console.log("⚠️ Token refresh failed:", error);
+
+            // Clear invalid tokens and force re-auth
+            console.log("🧹 Clearing invalid tokens to force clean setup");
+            try {
               await supabase
                 .from("user_auth_tokens")
                 .delete()
                 .eq("user_id", user.id);
+              console.log("✅ Invalid tokens cleared");
+            } catch (deleteError) {
+              console.error("❌ Failed to clear invalid tokens:", deleteError);
             }
+
+            return {
+              isSetup: false,
+              hasTokens: false,
+              watchActive: false,
+              lastSetupAt: undefined,
+              error: "Token refresh failed - please re-authorize",
+            };
           }
-        } catch (error) {
-          console.log("⚠️ Automatic token refresh failed:", error);
+        } else {
+          // No refresh token or legacy token - clear and require re-auth
+          console.log("🧹 No valid refresh token, clearing tokens");
+          try {
+            await supabase
+              .from("user_auth_tokens")
+              .delete()
+              .eq("user_id", user.id);
+          } catch (deleteError) {
+            console.error("❌ Failed to clear tokens:", deleteError);
+          }
+
+          return {
+            isSetup: false,
+            hasTokens: false,
+            watchActive: false,
+            lastSetupAt: undefined,
+            error: "Please re-authorize Gmail access",
+          };
         }
       }
 
       return {
         isSetup: hasTokens && isTokenValid,
         hasTokens,
-        watchActive: false, // We'll enhance this later to check actual watch status
+        watchActive: false,
         lastSetupAt: tokens?.updated_at,
       };
     },
     enabled: !!user,
     refetchInterval: false,
+    retry: false, // Don't retry on failure to avoid loops
   });
 
   // Mutation to setup Gmail watch
@@ -264,99 +372,6 @@ export default function GmailOAuthSetup({
     setTimeout(() => setIsRefreshing(false), 1000);
   };
 
-  const handleSetupGmail = () => {
-    setupGmailMutation.mutate();
-  };
-
-  // If Gmail is already setup, show success state (unless dismissed)
-  if (setupStatus?.isSetup && !isSuccessBannerDismissed) {
-    return (
-      <div
-        className={`bg-jade border-2 border-jade rounded-lg p-4 ${className}`}
-      >
-        <div className="flex items-center space-x-3">
-          <CheckCircle className="w-6 h-6 text-lime" />
-          <div className="flex-1">
-            <h3 className="font-semibold text-lime">
-              Gmail access configured!
-            </h3>
-            <p className="text-sm text-white">
-              Your emails are being processed automatically
-              {setupStatus.lastSetupAt && (
-                <span className="ml-2">
-                  • Last updated{" "}
-                  {new Date(setupStatus.lastSetupAt).toLocaleDateString()}
-                </span>
-              )}
-            </p>
-          </div>
-          <button
-            onClick={() => {
-              setIsSuccessBannerDismissed(true);
-              if (user?.id) {
-                localStorage.setItem(getBannerDismissalKey(), "true");
-              }
-            }}
-            className="text-lime hover:text-white transition-colors"
-            aria-label="Dismiss notification"
-          >
-            <X className="w-5 h-5" />
-          </button>
-        </div>
-      </div>
-    );
-  }
-
-  // If Gmail is setup but banner is dismissed, don't show anything
-  if (setupStatus?.isSetup && isSuccessBannerDismissed) {
-    return null;
-  }
-
-  // Loading state
-  if (isLoading) {
-    return (
-      <div
-        className={`bg-gray-50 border-2 border-gray-200 rounded-lg p-6 ${className}`}
-      >
-        <div className="flex items-center space-x-3">
-          <RefreshCw className="w-5 h-5 animate-spin text-gray-500" />
-          <span className="text-gray-600">Checking Gmail setup status...</span>
-        </div>
-      </div>
-    );
-  }
-
-  // Error state
-  if (error) {
-    return (
-      <div
-        className={`bg-red-50 border-2 border-red-200 rounded-lg p-6 ${className}`}
-      >
-        <div className="flex items-start space-x-4">
-          <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
-          <div className="flex-1">
-            <h3 className="text-lg font-semibold text-red-800 mb-2">
-              Unable to Check Gmail Status
-            </h3>
-            <p className="text-red-700 mb-3">
-              We couldn't verify your Gmail setup. Please try refreshing.
-            </p>
-            <button
-              onClick={handleRefreshStatus}
-              disabled={isRefreshing}
-              className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
-            >
-              <RefreshCw
-                className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
-              />
-              <span>Retry</span>
-            </button>
-          </div>
-        </div>
-      </div>
-    );
-  }
-
   // Force re-authentication helper
   const handleForceReauth = async () => {
     console.log("🔄 Forcing complete re-authorization");
@@ -386,21 +401,98 @@ export default function GmailOAuthSetup({
     }
   };
 
-  const handleForceReauthOriginal = async () => {
-    try {
-      // Sign out first
-      await supabase.auth.signOut();
-
-      // Clear any cached queries
-      queryClient.clear();
-
-      // Redirect to auth page
-      window.location.href = "/auth";
-    } catch (error) {
-      console.error("Error during forced re-auth:", error);
-      toast.error("Failed to sign out. Please try manually.");
-    }
+  const handleSetupGmail = () => {
+    setupGmailMutation.mutate();
   };
+
+  // If Gmail is already setup, show success state (unless dismissed)
+  if (gmailOAuthStatus?.isSetup && !isSuccessBannerDismissed) {
+    return (
+      <div
+        className={`bg-jade border-2 border-jade rounded-lg p-4 ${className}`}
+      >
+        <div className="flex items-center space-x-3">
+          <CheckCircle className="w-6 h-6 text-lime" />
+          <div className="flex-1">
+            <h3 className="font-semibold text-lime">
+              Gmail access configured!
+            </h3>
+            <p className="text-sm text-white">
+              Your emails are being processed automatically
+              {gmailOAuthStatus.lastSetupAt && (
+                <span className="ml-2">
+                  • Last updated{" "}
+                  {new Date(gmailOAuthStatus.lastSetupAt).toLocaleDateString()}
+                </span>
+              )}
+            </p>
+          </div>
+          <button
+            onClick={() => {
+              setIsSuccessBannerDismissed(true);
+              if (user?.id) {
+                localStorage.setItem(getBannerDismissalKey(), "true");
+              }
+            }}
+            className="text-lime hover:text-white transition-colors"
+            aria-label="Dismiss notification"
+          >
+            <X className="w-5 h-5" />
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  // If Gmail is setup but banner is dismissed, don't show anything
+  if (gmailOAuthStatus?.isSetup && isSuccessBannerDismissed) {
+    return null;
+  }
+
+  // Loading state
+  if (isLoading || isRefreshing) {
+    return (
+      <div
+        className={`bg-gray-50 border-2 border-gray-200 rounded-lg p-6 ${className}`}
+      >
+        <div className="flex items-center space-x-3">
+          <RefreshCw className="w-5 h-5 animate-spin text-gray-500" />
+          <span className="text-gray-600">Checking Gmail setup status...</span>
+        </div>
+      </div>
+    );
+  }
+
+  // Error state
+  if (error || gmailOAuthStatus?.error) {
+    return (
+      <div
+        className={`bg-red-50 border-2 border-red-200 rounded-lg p-6 ${className}`}
+      >
+        <div className="flex items-start space-x-4">
+          <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
+          <div className="flex-1">
+            <h3 className="text-lg font-semibold text-red-800 mb-2">
+              Unable to Check Gmail Status
+            </h3>
+            <p className="text-red-700 mb-3">
+              We couldn't verify your Gmail setup. Please try refreshing.
+            </p>
+            <button
+              onClick={handleRefreshStatus}
+              disabled={isRefreshing}
+              className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
+            >
+              <RefreshCw
+                className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
+              />
+              <span>Retry</span>
+            </button>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   // Main setup flow
   return (
@@ -495,7 +587,7 @@ export default function GmailOAuthSetup({
             )}
 
             {/* Show additional help if tokens keep expiring */}
-            {setupStatus?.hasTokens && !setupStatus?.isSetup && (
+            {gmailOAuthStatus?.hasTokens && !gmailOAuthStatus?.isSetup && (
               <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
                 <div className="text-sm text-yellow-800 mb-2">
                   <AlertCircle className="w-4 h-4 inline mr-1" />

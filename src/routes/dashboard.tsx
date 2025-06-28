@@ -19,6 +19,7 @@ import {
 } from "../components/dashboard";
 import { formatDistanceToNow } from "date-fns";
 import { useState, useEffect } from "react";
+import Nothing from "../components/Nothing";
 
 export const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -73,7 +74,7 @@ function Dashboard() {
   });
 
   // Check Gmail OAuth setup status
-  const { data: gmailOAuthStatus, isLoading: oauthStatusLoading } = useQuery({
+  const { data: gmailOAuthStatus } = useQuery({
     queryKey: ["gmail-oauth-status", user?.id],
     queryFn: async () => {
       if (!user) throw new Error("User not authenticated");
@@ -102,7 +103,7 @@ function Dashboard() {
   // Check if Gmail processing is enabled (OAuth only)
   const isGmailProcessingEnabled = gmailOAuthStatus?.isSetup;
 
-  // Fetch recent emails only when authenticated
+  // Fetch recent actionable emails only when authenticated
   const { data: recentEmails, isLoading: emailsLoading } = useQuery({
     queryKey: ["recent-emails", user?.id],
     queryFn: async () => {
@@ -110,9 +111,16 @@ function Dashboard() {
         throw new Error("User not authenticated");
       }
 
+      // Only fetch emails that are actionable - exclude 'other' classification
       const { data, error } = await supabase
         .from("emails")
         .select("*")
+        .in("classification", [
+          "receipt",
+          "revenue",
+          "travel",
+          "job_application",
+        ])
         .order("created_at", { ascending: false })
         .limit(5);
 
@@ -368,15 +376,15 @@ function Dashboard() {
             />
           </div>
 
-          {/* Recent Activity */}
+          {/* Recent Actionable Insights */}
           <h2 className="text-lg font-medium text-black mt-8">
-            Recent Activity
+            Recent Actionable Insights
           </h2>
           <div className="mt-2 overflow-hidden border-2 border-gray-light sm:rounded-lg">
             <div className="bg-white">
               {emailsLoading ? (
                 <div className="py-12 text-center text-concrete">
-                  Loading recent activity...
+                  Loading actionable insights...
                 </div>
               ) : recentEmails?.length ? (
                 <ul className="divide-y divide-concrete">
@@ -393,9 +401,11 @@ function Dashboard() {
                   ))}
                 </ul>
               ) : (
-                <div className="py-12 text-center text-concrete">
-                  No recent activity to show
-                </div>
+                <Nothing>
+                  No actionable emails found yet. We'll show insights here as we
+                  process your receipts, travel plans, job applications, and
+                  income emails.
+                </Nothing>
               )}
             </div>
           </div>
@@ -447,9 +457,7 @@ function Dashboard() {
                     ))}
                   </ul>
                 ) : (
-                  <div className="py-8 text-center text-thunder">
-                    No upcoming events
-                  </div>
+                  <Nothing>No upcoming events</Nothing>
                 )}
               </div>
             </div>
@@ -494,9 +502,7 @@ function Dashboard() {
                     ))}
                   </ul>
                 ) : (
-                  <div className="py-8 text-center text-concrete">
-                    No recent expenses
-                  </div>
+                  <Nothing>No recent expenses</Nothing>
                 )}
               </div>
             </div>
