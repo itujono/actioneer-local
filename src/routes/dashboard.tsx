@@ -20,6 +20,8 @@ import {
 import { formatDistanceToNow } from "date-fns";
 import { useState, useEffect } from "react";
 import Nothing from "../components/Nothing";
+import { currencyManager, formatCurrency } from "../utils/currency";
+import Loading from "../components/Loading";
 
 export const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -146,12 +148,38 @@ function Dashboard() {
 
       if (error) throw error;
 
-      // Calculate total spending
-      const total = data.reduce((sum, receipt) => sum + receipt.amount, 0);
+      // Get unique currencies and calculate multi-currency breakdown
+      const uniqueCurrencies = currencyManager.getUniqueCurrencies(data);
+      const baseCurrency =
+        uniqueCurrencies.length > 0 ? uniqueCurrencies[0] : "USD";
+
+      // Calculate total in base currency for primary display
+      const totalInBaseCurrency = currencyManager.calculateTotal(
+        data,
+        baseCurrency
+      );
+
+      // Calculate currency breakdown for multi-currency display
+      const currencyBreakdown: Record<
+        string,
+        { amount: number; count: number }
+      > = {};
+      data.forEach((receipt) => {
+        const currency = receipt.currency || "USD";
+        if (!currencyBreakdown[currency]) {
+          currencyBreakdown[currency] = { amount: 0, count: 0 };
+        }
+        currencyBreakdown[currency].amount += receipt.amount;
+        currencyBreakdown[currency].count += 1;
+      });
 
       return {
-        total,
+        total: totalInBaseCurrency,
         recentReceipts: data,
+        uniqueCurrencies,
+        baseCurrency,
+        currencyBreakdown,
+        hasMultipleCurrencies: uniqueCurrencies.length > 1,
       };
     },
     enabled: !!user && !statsLoading, // Only run when user is authenticated
@@ -271,30 +299,12 @@ function Dashboard() {
 
   // Show auth loading state
   if (statsLoading) {
-    return (
-      <div className="py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-          <div className="py-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-heliotrope"></div>
-            <p className="mt-2 text-sm text-thunder">Loading dashboard...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <Loading message="Loading dashboard..." />;
   }
 
   // Show loading while redirect happens
   if (!user) {
-    return (
-      <div className="py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-          <div className="py-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-heliotrope"></div>
-            <p className="mt-2 text-thunder">Redirecting to login...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <Loading message="Redirecting to login..." />;
   }
 
   return (
@@ -346,12 +356,58 @@ function Dashboard() {
               value={
                 receiptsLoading
                   ? "..."
-                  : `$${receiptsSummary?.total.toFixed(2) || "0.00"}`
+                  : receiptsSummary?.hasMultipleCurrencies
+                  ? `${formatCurrency(
+                      receiptsSummary.total,
+                      receiptsSummary.baseCurrency
+                    )}`
+                  : `${formatCurrency(
+                      receiptsSummary?.total || 0,
+                      receiptsSummary?.baseCurrency || "USD"
+                    )}`
               }
-              description="Total spending tracked"
+              description={
+                receiptsLoading
+                  ? "Loading expenses..."
+                  : receiptsSummary?.hasMultipleCurrencies
+                  ? `${receiptsSummary.uniqueCurrencies.length} currencies • Total spending tracked`
+                  : "Total spending tracked"
+              }
               icon={<ReceiptIcon className="h-6 w-6" />}
-              iconBackground="bg-gold/15"
+              iconBackground="bg-bittersweet/15"
               link="/finance"
+              // Add multi-currency breakdown in the additional info when applicable
+              additionalInfo={
+                !receiptsLoading && receiptsSummary?.hasMultipleCurrencies ? (
+                  <div className="mt-2 pt-2 border-t border-gray-light/30">
+                    <div className="text-xs text-thunder space-y-1">
+                      {Object.entries(receiptsSummary.currencyBreakdown)
+                        .sort(([, a], [, b]) => b.amount - a.amount)
+                        .slice(0, 3) // Show top 3 currencies
+                        .map(([currency, breakdown]) => (
+                          <div
+                            key={currency}
+                            className="flex justify-between items-center"
+                          >
+                            <span className="text-thunder">
+                              {currency} ({breakdown.count}{" "}
+                              {breakdown.count === 1 ? "receipt" : "receipts"})
+                            </span>
+                            <span className="font-medium">
+                              {formatCurrency(breakdown.amount, currency)}
+                            </span>
+                          </div>
+                        ))}
+                      {receiptsSummary.uniqueCurrencies.length > 3 && (
+                        <div className="text-thunder italic">
+                          +{receiptsSummary.uniqueCurrencies.length - 3} more
+                          currencies
+                        </div>
+                      )}
+                    </div>
+                  </div>
+                ) : undefined
+              }
             />
             <DashboardCard
               title="Travel Plans"
@@ -498,7 +554,7 @@ function Dashboard() {
                             </p>
                           </div>
                           <div className="text-sm font-medium text-thunder">
-                            {receipt.currency} {receipt.amount.toFixed(2)}
+                            {formatCurrency(receipt.amount, receipt.currency)}
                           </div>
                         </div>
                       </li>

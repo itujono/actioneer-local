@@ -468,36 +468,113 @@ function classifyEmailDirect(
     };
   }
 
-  // Receipt patterns
+  // Receipt patterns - only completed transactions
   const RECEIPT_PATTERNS = [
-    /receipt/i,
-    /invoice/i,
-    /payment\s+confirmation/i,
-    /order\s+confirmation/i,
-    /purchase/i,
-    /subscription/i,
-    /billing/i,
-    /charged/i,
-    /paid/i,
+    /receipt.*(?:purchase|order|payment|transaction)/i,
+    /purchase\s+(?:confirmation|receipt|summary)/i,
+    /order\s+(?:confirmation|receipt|summary|complete)/i,
+    /transaction\s+(?:receipt|confirmation|summary|complete)/i,
+    /payment\s+(?:confirmation|receipt|successful|processed)/i,
+    /your\s+(?:receipt|purchase|order)/i,
+    /thank\s+you\s+for\s+your\s+(?:purchase|order)/i,
+    /invoice.*(?:payment|due|amount|billing)/i,
+    /subscription\s+(?:payment|charge)\s+(?:successful|completed|processed|confirmed)/i,
+    /billing\s+(?:statement|summary|notice)/i,
   ];
 
-  const hasReceiptPattern = RECEIPT_PATTERNS.some(
+  // CRITICAL: Exclude promotional/marketing/administrative emails
+  const PROMOTIONAL_EXCLUSIONS = [
+    // Administrative and compliance exclusions
+    /\[action\s+required\]/i,
+    /(?:provide|verify|update|add|enter)\s+(?:your|tax|billing|payment)\s+(?:info|information|details|id|npwp)/i,
+    /(?:tax\s+info|tax\s+information|tax\s+id|tax\s+matters|tax\s+adviser)/i,
+    /(?:could\s+not\s+be\s+verified|verification|verify\s+your)/i,
+    /(?:government\s+records|active\/?\s*valid|compliance|regulatory)/i,
+    /(?:how\s+to\s+add|steps\s+to|in\s+order\s+for\s+you\s+to)/i,
+    /(?:sign\s+in\s+to|console|navigation|click|pencil\s+icon)/i,
+    /(?:may\s+take\s+up\s+to|can't\s+advise|consult\s+your)/i,
+    /(?:billing\s+account|payment\s+settings|account\s+settings)/i,
+    /google\s+payments.*(?:provide|verify|update|tax)/i,
+    /(?:npwp|tax\s+id).*(?:could\s+not\s+be|verification|verify)/i,
+    /(?:faktur\s+pajak|tax\s+documentation|tax\s+compliance)/i,
+    /(?:fix\s+any\s+issues|make\s+sure\s+you|ensure\s+accurate)/i,
+    // Free offers and promotions
+    /(?:free|complimentary|no\s+cost|zero\s+cost)\s+(?:for|trial|offer|access|weekend|hours?|days?)/i,
+    /(?:totally|completely|entirely)\s+free/i,
+    /free\s+(?:to\s+use|for\s+the\s+next|this\s+weekend|starting\s+now)/i,
+    /(?:is|are)\s+(?:officially\s+)?free\s+(?:for|starting|this)/i,
+    // Marketing language
+    /(?:run|hurry|limited\s+time|act\s+fast|don't\s+miss|countdown)/i,
+    /(?:promotional|marketing|campaign|announcement|newsletter)/i,
+    /(?:special\s+offer|limited\s+offer|exclusive\s+offer|weekend\s+offer)/i,
+    /(?:giveaway|contest|competition|win\s+\$|chance\s+to\s+win)/i,
+    /(?:bring\s+a\s+friend|share|tag\s+us|show\s+off)/i,
+    // Product announcements and updates
+    /(?:new\s+feature|product\s+update|announcement|launch)/i,
+    /(?:we've\s+partnered|partnership|collaboration)/i,
+    /(?:getting\s+started|walkthrough|tutorial|guide)/i,
+    /(?:community|builders|creating|building)/i,
+    // Unsubscribe and footer indicators
+    /(?:unsubscribe|opt\s+out|email\s+preferences)/i,
+  ];
+
+  // CRITICAL: Exclude future billing notifications
+  const FUTURE_BILLING_PATTERNS = [
+    /(?:will|going\s+to|about\s+to)\s+(?:renew|charge|bill|auto-renew)/i,
+    /subscription\s+(?:will|is\s+about\s+to)\s+renew/i,
+    /(?:upcoming|next|future)\s+(?:billing|payment|charge|renewal)/i,
+    /(?:reminder|notice|heads?\s*up).*(?:renewal|billing|payment)/i,
+    /(?:renew|charge|bill).*(?:soon|tomorrow|next\s+\w+|on\s+\w+\s+\d+)/i,
+    /(?:expir|renew).*(?:on|in)\s+\d+/i,
+    /payment\s+method.*(?:update|change|expires?)/i,
+    /billing\s+information.*(?:update|change|expires?)/i,
+  ];
+
+  // FIRST: Check for promotional/marketing/administrative patterns - EXCLUDE these immediately
+  const isPromotionalEmail = PROMOTIONAL_EXCLUSIONS.some(
     (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
   );
 
-  // Exclude future billing notifications
-  const FUTURE_BILLING_PATTERNS = [
-    /(?:will|going\s+to|about\s+to)\s+(?:renew|charge|bill)/i,
-    /subscription\s+(?:will|is\s+about\s+to)\s+renew/i,
-    /(?:reminder|notice|heads?\s*up).*(?:renewal|billing)/i,
-  ];
+  if (isPromotionalEmail) {
+    console.log(
+      "🚫 Gmail webhook: Excluded as promotional/administrative email"
+    );
+    return null; // This is a promotional/administrative email, not a receipt
+  }
 
+  // SECOND: Check for future/reminder patterns - EXCLUDE these immediately
   const isFutureBilling = FUTURE_BILLING_PATTERNS.some(
     (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
   );
 
-  if (hasReceiptPattern && !isFutureBilling) {
-    console.log("💰 Receipt email detected");
+  if (isFutureBilling) {
+    console.log("🚫 Gmail webhook: Excluded as future billing notification");
+    return null; // This is a future notification, not a receipt
+  }
+
+  // THIRD: Check for receipt patterns (only after exclusions pass)
+  const hasReceiptPattern = RECEIPT_PATTERNS.some(
+    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
+  );
+
+  // Look for past-tense completion indicators (ONLY past tense, not future)
+  const hasCompletionIndicators =
+    /(?:thank\s+you|thanks).*(?:for\s+your\s+)?(?:payment|purchase|order|transaction)/i.test(
+      bodyLower
+    ) ||
+    /(?:successful|completed|processed|confirmed|received).*(?:payment|purchase|order|transaction)/i.test(
+      bodyLower
+    ) ||
+    /(?:payment|purchase|order|transaction).*(?:successful|completed|processed|confirmed|received)(?:\s+successfully)?/i.test(
+      bodyLower
+    ) ||
+    /(?:was|has\s+been|have\s+been)\s+(?:charged|paid|processed|completed|confirmed)/i.test(
+      bodyLower
+    ) ||
+    /(?:successfully\s+)?(?:charged|paid)(?:\s+successfully)$/i.test(bodyLower);
+
+  if (hasReceiptPattern && hasCompletionIndicators) {
+    console.log("💰 Gmail webhook: Receipt email detected");
     return {
       type: "receipt",
       confidence: 0.8,
@@ -541,16 +618,38 @@ export async function fallbackClassification(
 ): Promise<ClassificationResult> {
   const prompt = `
     Analyze this email and classify it into one of these categories:
-    - receipt (for purchase receipts or invoices)
+    - receipt (ONLY for completed purchases/payments - past tense only)
     - travel (for flight, hotel, or travel-related emails)
     - job_application (for job-related emails)
     - other (for emails that don't fit the above categories)
+    
+    CRITICAL RULES FOR RECEIPT CLASSIFICATION:
+    - ONLY classify as "receipt" if the transaction has ALREADY HAPPENED (past tense)
+    - Completed transactions: "thank you for your purchase", "payment processed", "order confirmed", "was charged"
+    - Future billing notifications must be classified as "other": "will renew", "will be charged", "upcoming billing", "subscription will renew soon"
+    - Administrative emails must be classified as "other": tax notices, billing updates, account settings
+    - Marketing/promotional emails must be classified as "other": free offers, announcements, newsletters
+    
+    EXAMPLES OF "OTHER" (NOT RECEIPTS):
+    - "Your subscription will renew soon" 
+    - "Payment method will be charged"
+    - "Billing reminder"
+    - "Update your payment info"
+    - "[Action required]" emails
+    - Any email about FUTURE transactions
+    
+    EXAMPLES OF "RECEIPT":
+    - "Thank you for your purchase"
+    - "Payment successfully processed"
+    - "Your order has been confirmed"
+    - "Receipt for your subscription payment"
     
     Email Subject: ${subject}
     From: ${from}
     Email Body: ${emailBody.substring(0, 1000)}
     
-    IMPORTANT: Respond with ONLY valid JSON, no markdown formatting or code blocks.
+    IMPORTANT: Be very conservative with receipt classification. When in doubt, classify as "other".
+    Respond with ONLY valid JSON, no markdown formatting or code blocks.
     
     Format: { "type": "category", "confidence": 0.95 }
   `;

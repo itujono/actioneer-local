@@ -229,16 +229,33 @@ async function processNewEmailsForUser(
           continue;
         }
 
-        // Check if we've already processed this email
-        const { data: existingEmail, error: existingError } = await supabase
+        // Check if we've already processed this email (by message_id or content similarity)
+        const { data: existingEmails, error: existingError } = await supabase
           .from("emails")
-          .select("id, classification")
-          .eq("message_id", emailRef.id)
+          .select("id, classification, message_id")
           .eq("user_id", user.id)
-          .single();
+          .or(
+            `message_id.eq.${
+              emailRef.id
+            },and(subject.eq."${emailContent.subject.replace(
+              /"/g,
+              '\\"'
+            )}",from_email.eq."${emailContent.from.replace(
+              /"/g,
+              '\\"'
+            )}",date.eq."${emailContent.date}")`
+          )
+          .limit(5);
 
-        if (existingEmail && !existingError) {
-          console.log(`⏭️ Email ${emailRef.id} already processed, skipping`);
+        if (existingEmails && existingEmails.length > 0 && !existingError) {
+          console.log(
+            `⏭️ Email already processed (found ${existingEmails.length} similar emails), skipping`
+          );
+          console.log(
+            `📋 Existing message IDs: ${existingEmails
+              .map((e) => e.message_id)
+              .join(", ")}`
+          );
           continue;
         }
 
@@ -253,7 +270,15 @@ async function processNewEmailsForUser(
 
         console.log(`🎯 Email classified as: ${classification.type}`);
 
-        // Store email in database
+        // Early exit for "other" category - we don't store irrelevant emails
+        if (classification.type === "other") {
+          console.log(
+            "🚫 Email classified as 'other' - skipping storage (not relevant to Actioneer)"
+          );
+          continue;
+        }
+
+        // Store only relevant emails in database
         const { data: storedEmail, error: storeError } = await supabase
           .from("emails")
           .insert({
@@ -272,7 +297,7 @@ async function processNewEmailsForUser(
           continue;
         }
 
-        console.log(`✅ Email stored with ID: ${storedEmail.id}`);
+        console.log(`✅ Relevant email stored with ID: ${storedEmail.id}`);
         processedCount++;
 
         // Process based on classification

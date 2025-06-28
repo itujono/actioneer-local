@@ -437,7 +437,7 @@ function FinancialDashboard() {
   return (
     <DashboardContainer
       title="Financial Dashboard"
-      description="Track your expenses and revenue across all currencies"
+      description="Track your expenses and income across all currencies"
       className="min-h-screen bg-concrete/10 pb-12"
     >
       <div className="flex flex-col space-y-6">

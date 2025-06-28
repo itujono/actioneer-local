@@ -15,6 +15,7 @@ import { supabase } from "../../supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "../../hooks/useAuth";
 import Fling from "../Fling";
+import { Button } from "../ui";
 
 interface GmailOAuthSetupProps {
   className?: string;
@@ -572,10 +573,9 @@ export default function GmailOAuthSetup({
               </div>
 
               {/* Enhanced button */}
-              <button
+              <Button
                 onClick={handleSetupGmail}
                 disabled={setupGmailMutation.isPending}
-                className="inline-flex items-center px-6 py-3 border border-transparent rounded-xl shadow-lg text-sm font-bold text-white bg-heliotrope hover:bg-lavender transform hover:scale-105 transition-all duration-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-heliotrope disabled:opacity-50 disabled:cursor-not-allowed disabled:transform-none"
               >
                 {setupGmailMutation.isPending ? (
                   <>
@@ -588,7 +588,7 @@ export default function GmailOAuthSetup({
                     Enable Gmail Processing
                   </>
                 )}
-              </button>
+              </Button>
             </div>
           </div>
         </div>

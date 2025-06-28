@@ -79,6 +79,60 @@ export const RECEIPT_PATTERNS = {
     /billing\s+information.*(?:update|change|expires?)/i,
   ],
 
+  // MARKETING AND PROMOTIONAL EXCLUSIONS - These are NOT receipts
+  promotional_exclusions: [
+    // Free offers and promotions
+    /(?:free|complimentary|no\s+cost|zero\s+cost)\s+(?:for|trial|offer|access|weekend|hours?|days?)/i,
+    /(?:totally|completely|entirely)\s+free/i,
+    /free\s+(?:to\s+use|for\s+the\s+next|this\s+weekend|starting\s+now)/i,
+    /(?:is|are)\s+(?:officially\s+)?free\s+(?:for|starting|this)/i,
+
+    // Marketing language
+    /(?:run|hurry|limited\s+time|act\s+fast|don't\s+miss|countdown)/i,
+    /(?:promotional|marketing|campaign|announcement|newsletter)/i,
+    /(?:special\s+offer|limited\s+offer|exclusive\s+offer|weekend\s+offer)/i,
+    /(?:giveaway|contest|competition|win\s+\$|chance\s+to\s+win)/i,
+    /(?:bring\s+a\s+friend|share|tag\s+us|show\s+off)/i,
+
+    // Product announcements and updates
+    /(?:new\s+feature|product\s+update|announcement|launch)/i,
+    /(?:we've\s+partnered|partnership|collaboration)/i,
+    /(?:getting\s+started|walkthrough|tutorial|guide)/i,
+    /(?:community|builders|creating|building)/i,
+
+    // Unsubscribe and footer indicators
+    /(?:unsubscribe|opt\s+out|email\s+preferences)/i,
+    /(?:inc\.|llc|ltd\.|corp\.|corporation).*(?:unsubscribe|opt\s+out)/i,
+
+    // Time-limited free access
+    /(?:\d+\s+hours?|\d+\s+days?|\d+\s+weeks?).*free/i,
+    /free.*(?:until|through|this\s+weekend|next\s+\w+)/i,
+    /(?:weekend|temporary|limited\s+time).*free/i,
+
+    // Specific promotional phrases from the Bolt example
+    /(?:it's\s+go\s+time|run\s+don't\s+walk|countdown\s+is\s+on)/i,
+    /(?:starting\s+now|officially\s+free|partnered\s+with)/i,
+    /(?:boost|tokens|rate\s+limits|peak\s+hours)/i,
+    /(?:build\s+something|build\s+an\s+app|single\s+prompt)/i,
+
+    // Administrative and compliance exclusions
+    /\[action\s+required\]/i,
+    /(?:provide|verify|update|add|enter)\s+(?:your|tax|billing|payment)\s+(?:info|information|details|id|npwp)/i,
+    /(?:tax\s+info|tax\s+information|tax\s+id|tax\s+matters|tax\s+adviser)/i,
+    /(?:could\s+not\s+be\s+verified|verification|verify\s+your)/i,
+    /(?:government\s+records|active\/?\s*valid|compliance|regulatory)/i,
+    /(?:how\s+to\s+add|steps\s+to|in\s+order\s+for\s+you\s+to)/i,
+    /(?:sign\s+in\s+to|console|navigation|click|pencil\s+icon)/i,
+    /(?:may\s+take\s+up\s+to|can't\s+advise|consult\s+your)/i,
+    /(?:billing\s+account|payment\s+settings|account\s+settings)/i,
+
+    // Specific Google administrative patterns
+    /google\s+payments.*(?:provide|verify|update|tax)/i,
+    /(?:npwp|tax\s+id).*(?:could\s+not\s+be|verification|verify)/i,
+    /(?:faktur\s+pajak|tax\s+documentation|tax\s+compliance)/i,
+    /(?:fix\s+any\s+issues|make\s+sure\s+you|ensure\s+accurate)/i,
+  ],
+
   // Enhanced domains with SaaS and business service providers
   domains: [
     /paypal/i,
@@ -187,10 +241,24 @@ export function buildReceiptPrompt(emailData: EmailData): string {
     - Billing information update requests
     - Subscription expiration warnings
     - Marketing emails from retailers
-    - Promotional offers or discounts
+    - Promotional offers or discounts ("free for 48 hours", "special offer", "limited time")
+    - Free trial announcements or free access promotions
+    - Product announcements, feature launches, or company updates
+    - Contest/giveaway announcements ("chance to win", "competition")
+    - Newsletter content or marketing campaigns
+    - Community building emails ("bring a friend", "show us what you build")
+    - Partnership announcements ("we've partnered with...")
     - Account signup confirmations (without payment)
     - Trial signup confirmations (unless paid trial completed)
     - Any email talking about FUTURE transactions
+    - Emails with unsubscribe links that are clearly promotional
+    - Time-limited free offers or weekend promotions
+    - Administrative notices requiring action ("[Action required]", "provide your tax info")
+    - Tax compliance or verification emails ("verify your NPWP", "tax information")
+    - Account settings or billing setup instructions ("sign in to console", "click navigation")
+    - Government compliance notices ("government records", "regulatory requirements")
+    - Help/tutorial emails with step-by-step instructions ("how to add", "steps to")
+    - System notifications about account verification or setup
     
     TEMPORAL INDICATORS TO CHECK:
     - Past tense: "was charged", "has been processed", "payment completed", "thank you for"
@@ -210,7 +278,17 @@ export function classifyReceipt(emailData: EmailData): Classification | null {
   const fromLower = emailData.from.toLowerCase();
   const bodyLower = emailData.body.toLowerCase();
 
-  // FIRST: Check for future/reminder patterns - EXCLUDE these immediately
+  // FIRST: Check for promotional/marketing patterns - EXCLUDE these immediately
+  const isPromotionalEmail = RECEIPT_PATTERNS.promotional_exclusions.some(
+    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
+  );
+
+  if (isPromotionalEmail) {
+    console.log("🚫 Excluded as promotional/marketing email");
+    return null; // This is a promotional email, not a receipt
+  }
+
+  // SECOND: Check for future/reminder patterns - EXCLUDE these immediately
   const isFutureNotification = RECEIPT_PATTERNS.future_notifications.some(
     (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
   );
@@ -220,7 +298,7 @@ export function classifyReceipt(emailData: EmailData): Classification | null {
     return null; // This is a future notification, not a receipt
   }
 
-  // Check for financial domains
+  // Check for financial domains (but this will be overridden by exclusions)
   const isFromFinancialDomain = RECEIPT_PATTERNS.domains.some((pattern) =>
     pattern.test(fromLower)
   );
@@ -252,14 +330,21 @@ export function classifyReceipt(emailData: EmailData): Classification | null {
       bodyLower
     );
 
-  // Look for past-tense completion indicators
+  // Look for past-tense completion indicators (ONLY past tense, not future)
   const hasCompletionIndicators =
-    /(?:thank\s+you|thanks|successful|completed|processed|confirmed|received|paid|charged).*(?:payment|purchase|order|transaction)/i.test(
+    /(?:thank\s+you|thanks).*(?:for\s+your\s+)?(?:payment|purchase|order|transaction)/i.test(
       bodyLower
     ) ||
-    /(?:payment|purchase|order|transaction).*(?:successful|completed|processed|confirmed|received|paid)/i.test(
+    /(?:successful|completed|processed|confirmed|received).*(?:payment|purchase|order|transaction)/i.test(
       bodyLower
-    );
+    ) ||
+    /(?:payment|purchase|order|transaction).*(?:successful|completed|processed|confirmed|received)(?:\s+successfully)?/i.test(
+      bodyLower
+    ) ||
+    /(?:was|has\s+been|have\s+been)\s+(?:charged|paid|processed|completed|confirmed)/i.test(
+      bodyLower
+    ) ||
+    /(?:successfully\s+)?(?:charged|paid)(?:\s+successfully)$/i.test(bodyLower);
 
   // Determine confidence and type
   let confidence = 0;
