@@ -23,11 +23,7 @@ export function TransactionCard({
 }: TransactionCardProps) {
   return (
     <div
-      className={`bg-white rounded-xl shadow-md border-2 p-6 hover:shadow-lg transition-all duration-200 relative ${
-        transaction.type === "revenue"
-          ? "border-jade hover:border-jade"
-          : "border-bittersweet hover:border-bittersweet"
-      }`}
+      className={`bg-white rounded-xl border-2 p-6 hover:shadow-lg transition-all duration-200 relative border-concrete`}
     >
       {/* Transaction Header */}
       <div className="flex items-start justify-between mb-4">

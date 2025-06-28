@@ -106,7 +106,10 @@ export function TransactionsList({
       <div className="space-y-8">
         {Object.entries(groupedTransactions).map(
           ([dateString, transactionsForDay]) => (
-            <div key={dateString} className="space-y-2">
+            <div
+              key={dateString}
+              className="space-y-2 border-t border-concrete pt-4"
+            >
               {/* Date Header with Daily Summary */}
               <div className="flex items-center justify-between">
                 <h3 className="text-lg font-semibold text-black">

@@ -40,7 +40,7 @@ export default function RecentActivityCard({
   const getLink = () => {
     switch (type) {
       case "receipt":
-        return "/receipts";
+        return "/finance";
       case "travel":
         return "/travel";
       case "job_application":

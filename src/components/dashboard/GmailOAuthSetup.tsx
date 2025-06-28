@@ -126,6 +126,18 @@ export default function GmailOAuthSetup({
                 lastSetupAt: new Date().toISOString(),
               };
             }
+          } else {
+            const errorData = await response.json();
+            console.log("⚠️ Refresh failed, will require re-auth:", errorData);
+
+            // If refresh fails, clear the invalid tokens to force clean re-auth
+            if (errorData.requiresReauth) {
+              console.log("🧹 Clearing invalid tokens to force clean setup");
+              await supabase
+                .from("user_auth_tokens")
+                .delete()
+                .eq("user_id", user.id);
+            }
           }
         } catch (error) {
           console.log("⚠️ Automatic token refresh failed:", error);
@@ -162,8 +174,13 @@ export default function GmailOAuthSetup({
         session.session.provider_refresh_token;
 
       if (!hasProviderTokens) {
+        // Clear any existing invalid tokens first
+        console.log("🧹 Clearing existing tokens before re-auth");
+        await supabase.from("user_auth_tokens").delete().eq("user_id", user.id);
+
         // If no provider tokens, we need to redirect to re-authorize with Gmail scope
         const redirectUrl = `${window.location.origin}/dashboard`;
+
         const { error } = await supabase.auth.signInWithOAuth({
           provider: "google",
           options: {
@@ -180,7 +197,6 @@ export default function GmailOAuthSetup({
         if (error) {
           throw new Error(`OAuth redirect failed: ${error.message}`);
         }
-
         // This will redirect, so we don't continue
         return { redirecting: true };
       }
@@ -343,6 +359,34 @@ export default function GmailOAuthSetup({
 
   // Force re-authentication helper
   const handleForceReauth = async () => {
+    console.log("🔄 Forcing complete re-authorization");
+
+    // Clear existing tokens
+    if (user?.id) {
+      await supabase.from("user_auth_tokens").delete().eq("user_id", user.id);
+    }
+
+    // Force OAuth re-authorization
+    const redirectUrl = `${window.location.origin}/dashboard`;
+    const { error } = await supabase.auth.signInWithOAuth({
+      provider: "google",
+      options: {
+        scopes: "email profile https://www.googleapis.com/auth/gmail.readonly",
+        redirectTo: redirectUrl,
+        queryParams: {
+          access_type: "offline",
+          prompt: "consent",
+        },
+      },
+    });
+
+    if (error) {
+      console.error("❌ Force re-auth failed:", error);
+      toast.error(`Re-authorization failed: ${error.message}`);
+    }
+  };
+
+  const handleForceReauthOriginal = async () => {
     try {
       // Sign out first
       await supabase.auth.signOut();
@@ -436,8 +480,8 @@ export default function GmailOAuthSetup({
                 </div>
 
                 <div className="text-xs text-red-500 mb-3">
-                  If the error persists, you may need to refresh your Gmail
-                  permissions:
+                  If you keep seeing this setup screen, your Gmail permissions
+                  may need to be refreshed:
                 </div>
 
                 <button
@@ -445,7 +489,25 @@ export default function GmailOAuthSetup({
                   className="inline-flex items-center px-3 py-2 text-xs font-medium text-red-700 bg-red-100 border border-red-300 rounded-md hover:bg-red-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-red-500"
                 >
                   <RefreshCw className="w-3 h-3 mr-1" />
-                  Refresh Gmail Permissions
+                  Force Fresh Authorization
+                </button>
+              </div>
+            )}
+
+            {/* Show additional help if tokens keep expiring */}
+            {setupStatus?.hasTokens && !setupStatus?.isSetup && (
+              <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                <div className="text-sm text-yellow-800 mb-2">
+                  <AlertCircle className="w-4 h-4 inline mr-1" />
+                  Your Gmail tokens keep expiring. This usually means they need
+                  to be refreshed.
+                </div>
+                <button
+                  onClick={handleForceReauth}
+                  className="inline-flex items-center px-3 py-2 text-xs font-medium text-yellow-700 bg-yellow-100 border border-yellow-300 rounded-md hover:bg-yellow-200 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-yellow-500"
+                >
+                  <RefreshCw className="w-3 h-3 mr-1" />
+                  Get Fresh Permissions
                 </button>
               </div>
             )}
