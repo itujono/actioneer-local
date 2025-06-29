@@ -4,8 +4,6 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "../supabase/client";
 import { toast } from "sonner";
-import { Mail } from "lucide-react";
-import Loading from "../components/Loading";
 import {
   Bubble,
   Fling,
