@@ -229,32 +229,19 @@ async function processNewEmailsForUser(
           continue;
         }
 
-        // Check if we've already processed this email (by message_id or content similarity)
+        // Check if we've already processed this email (by message_id only)
+        // We only check Gmail's unique message_id to avoid blocking legitimate duplicate transactions
+        // (e.g., multiple Grab orders on the same day with same subject)
         const { data: existingEmails, error: existingError } = await supabase
           .from("emails")
           .select("id, classification, message_id")
           .eq("user_id", user.id)
-          .or(
-            `message_id.eq.${
-              emailRef.id
-            },and(subject.eq."${emailContent.subject.replace(
-              /"/g,
-              '\\"'
-            )}",from_email.eq."${emailContent.from.replace(
-              /"/g,
-              '\\"'
-            )}",date.eq."${emailContent.date}")`
-          )
-          .limit(5);
+          .eq("message_id", emailRef.id)
+          .limit(1);
 
         if (existingEmails && existingEmails.length > 0 && !existingError) {
           console.log(
-            `⏭️ Email already processed (found ${existingEmails.length} similar emails), skipping`
-          );
-          console.log(
-            `📋 Existing message IDs: ${existingEmails
-              .map((e) => e.message_id)
-              .join(", ")}`
+            `⏭️ Email already processed (message_id: ${emailRef.id}), skipping`
           );
           continue;
         }

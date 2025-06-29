@@ -132,6 +132,7 @@ Deno.serve(async (req) => {
       messageId,
       subject,
       from,
+      emailBody,
       date,
       classification.type
     );
@@ -161,6 +162,7 @@ async function storeEmailClassification(
   messageId: string,
   subject: string,
   from: string,
+  emailBody: string,
   date: string,
   classification: string
 ) {
@@ -171,6 +173,7 @@ async function storeEmailClassification(
       message_id: messageId,
       subject,
       from_email: from,
+      email_body: emailBody,
       date,
       classification,
     });

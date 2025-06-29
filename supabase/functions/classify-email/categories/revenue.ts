@@ -26,6 +26,13 @@ export const REVENUE_PATTERNS = {
     /money\s+back\s+guarantee/i,
     /cancelled\s+order.*refund/i,
     /dispute\s+resolved.*credit/i,
+    // Indonesian refund patterns
+    /pengembalian\s+(?:dana|uang)\s+(?:diproses|disetujui|berhasil|selesai)/i,
+    /refund\s+diproses/i,
+    /dana\s+(?:dikembalikan|ditransfer|telah\s+dikembalikan)/i,
+    /uang\s+(?:dikembalikan|ditransfer|telah\s+dikembalikan)/i,
+    /pembatalan.*(?:pengembalian|refund)/i,
+    /layanan.*dibatalkan.*pengembalian/i,
   ],
 
   // Business income patterns
@@ -164,6 +171,13 @@ export const REVENUE_PATTERNS = {
     /bitget/i,
     /kucoin/i,
     /bybit/i,
+
+    // Web hosting and SaaS that issue refunds
+    /hostinger/i,
+    /namecheap/i,
+    /godaddy/i,
+    /bluehost/i,
+    /digitalocean/i,
   ],
 };
 
@@ -198,6 +212,13 @@ export function buildRevenuePrompt(emailData: EmailData): string {
     - "Withdrawal successful" or "Successfully withdrawn to your account"
     - "Transferred to your bank account" or "Deposit completed"
     - "Crypto withdrawal completed"
+    
+    INDONESIAN PATTERNS (for Indonesian emails):
+    - "Pengembalian dana diproses" (Refund processed)
+    - "Pengembalian uang disetujui" (Money refund approved)
+    - "Dana dikembalikan" (Funds returned)
+    - "Refund diproses" (Refund processed)
+    - "Layanan dibatalkan... pengembalian dana" (Service cancelled... refund)
     
     INCLUDE ONLY:
     - Notifications that money has ALREADY arrived in your account (past tense)
