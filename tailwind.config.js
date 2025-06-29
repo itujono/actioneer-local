@@ -43,6 +43,22 @@ export default {
         'pulse-slow': 'pulse 3s infinite',
         'wiggle': 'wiggle 1s ease-in-out infinite',
         'float': 'float 3s ease-in-out infinite',
+        // Card fade-in animations with different delays
+        'fade-in-1': 'fadeInCard 0.6s ease-out 0.1s forwards',
+        'fade-in-2': 'fadeInCard 0.6s ease-out 0.2s forwards',
+        'fade-in-3': 'fadeInCard 0.6s ease-out 0.3s forwards',
+        'fade-in-4': 'fadeInCard 0.6s ease-out 0.4s forwards',
+        'fade-in-5': 'fadeInCard 0.6s ease-out 0.5s forwards',
+        'fade-in-6': 'fadeInCard 0.6s ease-out 0.6s forwards',
+        'fade-in-7': 'fadeInCard 0.6s ease-out 0.7s forwards',
+        'fade-in-8': 'fadeInCard 0.6s ease-out 0.8s forwards',
+        'fade-in-9': 'fadeInCard 0.6s ease-out 0.9s forwards',
+        'fade-in-10': 'fadeInCard 0.6s ease-out 1.0s forwards',
+        'fade-in-11': 'fadeInCard 0.6s ease-out 1.1s forwards',
+        'fade-in-12': 'fadeInCard 0.6s ease-out 1.2s forwards',
+        'fade-in-13': 'fadeInCard 0.6s ease-out 1.3s forwards',
+        'fade-in-14': 'fadeInCard 0.6s ease-out 1.4s forwards',
+        'fade-in-15': 'fadeInCard 0.6s ease-out 1.6s forwards',
         // Dialog animations
         'in': 'in 0.2s ease-out',
         'out': 'out 0.2s ease-in forwards',
@@ -55,6 +71,11 @@ export default {
         float: {
           '0%, 100%': { transform: 'translateY(0px)' },
           '50%': { transform: 'translateY(-10px)' },
+        },
+        // Card fade-in animation
+        fadeInCard: {
+          '0%': { opacity: '0', transform: 'scale(0.8) translateY(10px)' },
+          '100%': { opacity: '1', transform: 'scale(1) translateY(0px)' },
         },
         // Dialog keyframes
         in: {
