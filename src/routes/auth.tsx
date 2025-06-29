@@ -220,7 +220,7 @@ function Auth() {
       <div className="grid grid-cols-1 lg:grid-cols-2 min-h-screen">
         {/* Left Column - Login Form */}
         <div className="flex flex-col justify-center py-12 px-6 lg:px-8">
-          <div className="mx-auto w-full max-w-md">
+          <div className="mx-auto w-full max-w-md lg:order-1">
             <div className="text-center">
               <img
                 src="/logo.png"
@@ -371,10 +371,10 @@ function Auth() {
           </div>
         </div>
 
-        {/* Right Column - Colorful Grid Illustration */}
-        <div className="hidden lg:flex items-center justify-center bg-concrete p-8">
+        {/* Colorful Grid Illustration - Mobile & Desktop */}
+        <div className="flex items-start lg:items-center justify-center bg-concrete p-4 sm:p-6 lg:p-8">
           <style>{cardStyle}</style>
-          <div className="grid grid-cols-5 grid-rows-3 gap-0 w-full h-1/2">
+          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 grid-rows-5 sm:grid-rows-4 lg:grid-rows-3 gap-1 sm:gap-2 lg:gap-0 w-full max-w-sm sm:max-w-md lg:max-w-none lg:w-full lg:h-1/2 h-1/2 sm:h-80">
             {/* Row 1 */}
             <div
               className="bg-heliotrope rounded-3xl overflow-hidden"
@@ -383,7 +383,7 @@ function Auth() {
                 animation: "fadeInScale 0.6s ease-out 0.2s forwards",
               }}
             >
-              <Fling className="w-[16rem] h-[16rem] stroke-lavender stroke-[70px] stroke-offset-2 bottom-10 right-10 relative" />
+              <Fling className="w-full h-full lg:w-[16rem] lg:h-[16rem] stroke-lavender stroke-[20px] sm:stroke-[40px] lg:stroke-[70px] stroke-offset-2 lg:bottom-10 lg:right-10 relative" />
             </div>
             <div
               className="bg-gold bg-[url('/heart.svg')] bg-contain bg-no-repeat bg-center bg-blend-multiply rounded-3xl"
@@ -422,19 +422,19 @@ function Auth() {
                 animation: "fadeInScale 0.6s ease-out 1.4s forwards",
               }}
             >
-              <div className="text-gold text-4xl leading-7 font-bold italic">
+              <div className="text-gold text-xs sm:text-lg lg:text-4xl leading-tight font-bold italic">
                 automate
               </div>
-              <div className="text-gold text-4xl leading-7 font-bold italic">
+              <div className="text-gold text-xs sm:text-lg lg:text-4xl leading-tight font-bold italic">
                 your
               </div>
-              <div className="text-gold text-4xl leading-7 font-bold italic">
+              <div className="text-gold text-xs sm:text-lg lg:text-4xl leading-tight font-bold italic">
                 receipts
               </div>
-              <div className="text-gold text-4xl leading-7 font-bold italic">
+              <div className="text-gold text-xs sm:text-lg lg:text-4xl leading-tight font-bold italic">
                 automate
               </div>
-              <div className="text-gold text-4xl leading-7 font-bold italic">
+              <div className="text-gold text-xs sm:text-lg lg:text-4xl leading-tight font-bold italic">
                 your
               </div>
             </div>
@@ -455,7 +455,9 @@ function Auth() {
               }}
             >
               <div className="flex justify-center items-center h-full">
-                <h3 className="text-bittersweet font-bold">actioneer</h3>
+                <h3 className="text-bittersweet text-xs sm:text-base lg:text-lg font-bold">
+                  actioneer
+                </h3>
               </div>
             </div>
             <div
@@ -472,26 +474,26 @@ function Auth() {
                 animation: "fadeInScale 0.6s ease-out 1.6s forwards",
               }}
             >
-              <div className="flex flex-col gap-0 items-center justify-center h-full">
-                <div className="text-jade text-3xl leading-6 font-bold italic">
+              <div className="flex flex-col gap-0 items-center justify-center h-full overflow-hidden">
+                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-tight font-bold italic">
                   actioneer
                 </div>
-                <div className="text-jade text-3xl leading-6 font-bold italic">
+                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-tight font-bold italic">
                   actioneer
                 </div>
-                <div className="text-jade text-3xl leading-6 font-bold italic">
+                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-tight font-bold italic">
                   actioneer
                 </div>
-                <div className="text-jade text-3xl leading-6 font-bold italic">
+                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-tight font-bold italic">
                   actioneer
                 </div>
-                <div className="text-jade text-3xl leading-6 font-bold italic">
+                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-tight font-bold italic">
                   actioneer
                 </div>
-                <div className="text-jade text-3xl leading-6 font-bold italic">
+                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-tight font-bold italic">
                   actioneer
                 </div>
-                <div className="text-jade text-3xl leading-6 font-bold italic">
+                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-tight font-bold italic">
                   actioneer
                 </div>
               </div>
@@ -514,23 +516,23 @@ function Auth() {
                 animation: "fadeInScale 0.6s ease-out 1.3s forwards",
               }}
             >
-              <div className="text-heliotrope text-3xl leading-6 font-bold italic">
+              <div className="text-heliotrope text-xs sm:text-base lg:text-3xl leading-tight font-bold italic">
                 automate
               </div>
-              <div className="text-white text-3xl leading-6 font-bold italic whitespace-nowrap">
-                job applications
+              <div className="text-white text-xs sm:text-base lg:text-3xl leading-tight font-bold italic">
+                jobs
               </div>
-              <div className="text-heliotrope text-3xl leading-6 font-bold italic">
+              <div className="text-heliotrope text-xs sm:text-base lg:text-3xl leading-tight font-bold italic">
                 automate
               </div>
-              <div className="text-white text-3xl leading-6 font-bold italic whitespace-nowrap">
-                job applications
+              <div className="text-white text-xs sm:text-base lg:text-3xl leading-tight font-bold italic">
+                jobs
               </div>
-              <div className="text-heliotrope text-3xl leading-6 font-bold italic">
+              <div className="text-heliotrope text-xs sm:text-base lg:text-3xl leading-tight font-bold italic">
                 automate
               </div>
-              <div className="text-white text-3xl leading-6 font-bold italic whitespace-nowrap">
-                job applications
+              <div className="text-white text-xs sm:text-base lg:text-3xl leading-tight font-bold italic">
+                jobs
               </div>
             </div>
             <div
@@ -540,7 +542,7 @@ function Auth() {
                 animation: "fadeInScale 0.6s ease-out 0.5s forwards",
               }}
             >
-              <ThreeSplashes className="w-[14rem] h-[14rem] text-sandy" />
+              <ThreeSplashes className="w-full h-full lg:w-[14rem] lg:h-[14rem] text-sandy" />
             </div>
             <div
               className="bg-bittersweet bg-[url('/bubble-small.svg')] bg-cover bg-center bg-blend-color-dodge rounded-3xl"
