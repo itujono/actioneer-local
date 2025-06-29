@@ -36,7 +36,7 @@ export default function FAQSection() {
       id: "what-is-actioneer",
       question: "What is Actioneer?",
       answer:
-        "Actioneer is your personal email autopilot that automatically transforms incoming emails into actionable insights. Whether it's receipts, travel bookings, or job applications, our intelligent agent parses and organizes everything in your personal dashboard—no manual work required. Think of it as having a super-smart assistant working 24/7 in your inbox.",
+        "Actioneer is your personal email autopilot that automatically transforms incoming emails into actionable insights. Whether it's receipts, travel promotional emails, or job applications, our intelligent agent parses and organizes everything in your personal dashboard—no manual work required. Think of it as having a super-smart assistant working 24/7 in your inbox.",
     },
     {
       id: "how-agent-works",

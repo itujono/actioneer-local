@@ -296,11 +296,17 @@ async function extractRevenueDataWithAI(
     From: ${from}
     Email Body: ${emailBody.substring(0, 2000)}
     
+    IMPORTANT CONTEXT:
+    - If this is a Hostinger refund email (subject contains "Hostinger" or "pengembalian"), the source should be "Hostinger" 
+    - If the email contains Indonesian text like "pengembalian uang" or "dana dikembalikan", this is a REFUND
+    - Look for currency indicators like "IDR", "Rp", or "rupiah" for Indonesian Rupiah
+    - Amount patterns like "170,000.10 IDR" should be parsed as 170000.10 IDR (not JPY!)
+    
     Extract the following information and return as JSON:
     {
-      "source": "who/where the money came from",
+      "source": "who/where the money came from (e.g., 'Hostinger', 'PayPal', 'Coinbase')",
       "amount": 123.45,
-      "currency": "USD",
+      "currency": "USD|EUR|IDR|JPY|etc",
       "category": "payment_received|refund|business_income|investment|government|digital_platform|sales",
       "revenue_type": "specific type within category",
       "description": "brief description",
@@ -314,12 +320,18 @@ async function extractRevenueDataWithAI(
     
     Categories explained:
     - payment_received: General payments received from clients/customers
-    - refund: Money returned from previous purchases
+    - refund: Money returned from previous purchases (pengembalian uang)
     - business_income: Freelance, consulting, invoice payments
     - investment: Dividends, interest, trading profits
     - government: Tax refunds, benefits, stimulus payments
     - digital_platform: PayPal, Venmo, Stripe payments received
     - sales: Marketplace sales, product sales
+    
+    CURRENCY DETECTION RULES:
+    - "IDR", "Rp", "rupiah" = IDR (Indonesian Rupiah)
+    - "USD", "$" = USD
+    - "JPY", "¥" = JPY (Japanese Yen)
+    - "EUR", "€" = EUR
     
     Important: Only extract if this is clearly about money coming IN, not going out.
     Return null if no revenue information is found.
@@ -366,11 +378,20 @@ async function extractRevenueDataWithAI(
     const revenueData = JSON.parse(jsonMatch[0]);
     console.log("✅ AI extraction successful:", revenueData);
 
-    // Validate and clean up the data
-    let source =
-      revenueData.source ||
-      extractSourceFromEmail(from) ||
-      extractSourceFromText(`${subject} ${emailBody}`.toLowerCase());
+    // Validate and clean up the data with enhanced source detection
+    let source = revenueData.source;
+
+    // Enhanced source detection - prioritize content over email domain
+    if (
+      !source ||
+      source.toLowerCase() === "gmail" ||
+      source.toLowerCase() === "unknown"
+    ) {
+      // First check for company names in subject and body
+      source =
+        extractSourceFromText(`${subject} ${emailBody}`.toLowerCase()) ||
+        extractSourceFromEmail(from);
+    }
 
     // Ensure source is never null
     if (!source) {
@@ -388,12 +409,16 @@ async function extractRevenueDataWithAI(
       }
     }
 
-    // Enhanced currency detection
-    const detectedCurrency =
-      revenueData.currency ||
-      detectCurrencyFromText(`${subject} ${emailBody}`) ||
-      detectCurrencyFromSource(source) ||
-      "USD";
+    // Enhanced currency detection with fallback
+    let detectedCurrency = revenueData.currency;
+    if (!detectedCurrency || detectedCurrency === "JPY") {
+      // Re-detect currency from text to avoid AI mistakes
+      detectedCurrency =
+        detectCurrencyFromText(`${subject} ${emailBody}`) ||
+        detectCurrencyFromSource(source) ||
+        "USD";
+      console.log(`🔄 Currency re-detected as: ${detectedCurrency}`);
+    }
 
     return {
       source,
@@ -478,16 +503,46 @@ function extractSourceFromEmail(from: string): string | null {
 
 function extractSourceFromText(text: string): string | null {
   const sourcePatterns = [
+    // Company name patterns - check for common service providers first
+    /hostinger/i,
+    /paypal/i,
+    /stripe/i,
+    /coinbase/i,
+    /binance/i,
+    /grab/i,
+    /gojek/i,
+    /tokopedia/i,
+    /shopee/i,
+    /lazada/i,
+    /pintu/i,
+    /indodax/i,
+    /namecheap/i,
+    /godaddy/i,
+    /digitalocean/i,
+
+    // Generic patterns
     /payment from ([^\.]+)/i,
     /received from ([^\.]+)/i,
     /refund from ([^\.]+)/i,
-    /([a-z\s]+) sent you/i,
+    /transfer from ([^\.]+)/i,
+    /withdrawal from ([^\.]+)/i,
+    /payout from ([^\.]+)/i,
+    /deposit from ([^\.]+)/i,
   ];
 
   for (const pattern of sourcePatterns) {
     const match = text.match(pattern);
     if (match) {
-      return match[1].trim();
+      // If it's a direct company name match, return it capitalized
+      if (typeof match[0] === "string" && !match[1]) {
+        return (
+          match[0].charAt(0).toUpperCase() + match[0].slice(1).toLowerCase()
+        );
+      }
+      // If it's a pattern with capture group, return the captured text
+      if (match[1]) {
+        return match[1].trim();
+      }
     }
   }
 
@@ -573,7 +628,18 @@ function extractAmountFromText(text: string): number | null {
 
 function extractRevenueCategoryFromText(text: string): string {
   const categoryKeywords = {
-    refund: ["refund", "return", "credit", "reimbursement"],
+    refund: [
+      "refund",
+      "return",
+      "credit",
+      "reimbursement",
+      "chargeback",
+      // Indonesian refund terms
+      "pengembalian",
+      "dikembalikan",
+      "refund diproses",
+      "dana dikembalikan",
+    ],
     business_income: [
       "invoice",
       "freelance",
@@ -590,6 +656,7 @@ function extractRevenueCategoryFromText(text: string): string {
 
   for (const [category, keywords] of Object.entries(categoryKeywords)) {
     if (keywords.some((keyword) => text.includes(keyword))) {
+      console.log(`📊 Category detected: ${category} from keyword match`);
       return category;
     }
   }
@@ -630,14 +697,17 @@ function validateDate(dateString: string): string | null {
 function detectCurrencyFromText(text: string): string | null {
   const lowerText = text.toLowerCase();
 
-  // Currency symbol patterns
+  // Currency symbol patterns - IDR patterns should be checked FIRST
   const currencyPatterns = [
+    // Indonesian Rupiah patterns (check first to avoid conflicts)
+    { pattern: /rp\s*[\d,\.]+|[\d,\.]+\s*idr\b|rupiah/i, currency: "IDR" },
+
+    // Other currency patterns
     { pattern: /\$\d|usd|\busd\b/i, currency: "USD" },
     { pattern: /€\d|eur|\beur\b/i, currency: "EUR" },
     { pattern: /£\d|gbp|\bgbp\b/i, currency: "GBP" },
     { pattern: /¥\d|jpy|\bjpy\b/i, currency: "JPY" },
     { pattern: /₹\d|inr|\binr\b/i, currency: "INR" },
-    { pattern: /rp\s*\d|idr|\bidr\b|rupiah/i, currency: "IDR" },
     { pattern: /s\$\d|sgd|\bsgd\b/i, currency: "SGD" },
     { pattern: /rm\s*\d|myr|\bmyr\b/i, currency: "MYR" },
     { pattern: /₿\d|btc|\bbtc\b|bitcoin/i, currency: "BTC" },
@@ -654,6 +724,7 @@ function detectCurrencyFromText(text: string): string | null {
 
   for (const { pattern, currency } of currencyPatterns) {
     if (pattern.test(lowerText)) {
+      console.log(`💱 Currency detected: ${currency} from pattern: ${pattern}`);
       return currency;
     }
   }
@@ -687,10 +758,15 @@ function detectCurrencyFromSource(source: string): string | null {
     klarna: "EUR",
     adyen: "EUR",
 
-    // Asian companies
-    grab: "SGD",
+    // Indonesian companies
+    hostinger: "IDR",
     gojek: "IDR",
     tokopedia: "IDR",
+    pintu: "IDR",
+    indodax: "IDR",
+
+    // Asian companies
+    grab: "SGD",
     shopee: "SGD",
     lazada: "SGD",
 
@@ -703,6 +779,9 @@ function detectCurrencyFromSource(source: string): string | null {
 
   for (const [company, currency] of Object.entries(sourceCurrencyMap)) {
     if (lowerSource.includes(company)) {
+      console.log(
+        `🏢 Source-based currency detected: ${currency} for ${company}`
+      );
       return currency;
     }
   }

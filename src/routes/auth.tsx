@@ -387,7 +387,7 @@ function Auth() {
                         </p>
                         <ul className="mt-2 list-disc list-inside space-y-1">
                           <li>Track expenses from receipts</li>
-                          <li>Manage travel bookings</li>
+                          <li>Manage travel promotional emails</li>
                           <li>Monitor job applications</li>
                           <li>Take smart actions on your emails</li>
                         </ul>

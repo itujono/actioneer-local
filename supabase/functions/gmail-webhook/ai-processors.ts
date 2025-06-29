@@ -552,7 +552,77 @@ function classifyEmailDirect(
     return null; // This is a future notification, not a receipt
   }
 
-  // THIRD: Check for receipt patterns (only after exclusions pass)
+  // THIRD: Check for revenue patterns FIRST (higher priority than receipts)
+  const REVENUE_PATTERNS = {
+    // Indonesian refund patterns
+    indonesianRefunds: [
+      /pengembalian\s+(?:dana|uang)\s+(?:diproses|disetujui|berhasil|selesai)/i,
+      /refund\s+diproses/i,
+      /dana\s+(?:dikembalikan|ditransfer|telah\s+dikembalikan)/i,
+      /uang\s+(?:dikembalikan|ditransfer|telah\s+dikembalikan)/i,
+      /pembatalan.*(?:pengembalian|refund)/i,
+      /layanan.*dibatalkan.*pengembalian/i,
+    ],
+    // English refund patterns
+    refunds: [
+      /refund\s+(?:issued|processed|completed|successful)/i,
+      /reimbursement\s+(?:issued|processed|approved)/i,
+      /credit\s+(?:issued|applied|processed)/i,
+      /chargeback\s+(?:successful|completed)/i,
+      /return\s+(?:processed|completed|successful)/i,
+      /reversal\s+(?:completed|processed)/i,
+      /money\s+back\s+guarantee/i,
+      /cancelled\s+order.*refund/i,
+      /dispute\s+resolved.*credit/i,
+    ],
+    // Revenue-issuing domains
+    domains: [
+      /hostinger/i,
+      /coinbase/i,
+      /binance/i,
+      /paypal/i,
+      /stripe/i,
+      /square/i,
+      /namecheap/i,
+      /godaddy/i,
+      /digitalocean/i,
+    ],
+  };
+
+  // Check revenue patterns
+  const hasIndonesianRefund = REVENUE_PATTERNS.indonesianRefunds.some(
+    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
+  );
+  const hasEnglishRefund = REVENUE_PATTERNS.refunds.some(
+    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
+  );
+  const isFromRevenueDomain = REVENUE_PATTERNS.domains.some((pattern) =>
+    pattern.test(fromLower)
+  );
+
+  // Calculate revenue confidence
+  let revenueConfidence = 0;
+  if (hasIndonesianRefund || hasEnglishRefund) {
+    revenueConfidence = 0.9;
+  } else if (
+    isFromRevenueDomain &&
+    (bodyLower.includes("refund") || bodyLower.includes("pengembalian"))
+  ) {
+    revenueConfidence = 0.8;
+  }
+
+  if (revenueConfidence > 0.7) {
+    console.log(
+      `💰 Revenue email detected with confidence ${revenueConfidence}`
+    );
+    return {
+      type: "revenue",
+      confidence: revenueConfidence,
+      method: "pattern-based",
+    };
+  }
+
+  // FOURTH: Check for receipt patterns (only after revenue check)
   const hasReceiptPattern = RECEIPT_PATTERNS.some(
     (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
   );

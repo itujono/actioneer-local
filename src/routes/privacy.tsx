@@ -83,7 +83,8 @@ function PrivacyPage() {
                       <ul className="text-xs sm:text-sm text-green-800 space-y-1">
                         <li>
                           • Email content from specific categories only
-                          (receipts, travel bookings, job applications)
+                          (receipts, travel promotional emails, job
+                          applications)
                         </li>
                         <li>
                           • Email metadata (sender, subject, date, message ID)
@@ -260,7 +261,7 @@ function PrivacyPage() {
                     permission: "gmail.readonly",
                     title: "Read emails for analysis",
                     purpose:
-                      "Analyze incoming emails for receipts, travel bookings, and job applications",
+                      "Analyze incoming emails for receipts, travel promotional emails, and job applications",
                     scope: "Only emails relevant to supported categories",
                   },
                   {

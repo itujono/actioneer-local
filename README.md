@@ -2,7 +2,7 @@
 
 > Your personal email autopilot that transforms incoming emails into actionable insights
 
-_Stop drowning in receipts, travel bookings, and job applications._ Actioneer turns every email into instant, smart actions—automatically, with just a simple one-time activation.
+_Stop drowning in receipts, travel deals, and job applications._ Actioneer turns every email into instant, smart actions—automatically, with just a simple one-time activation.
 
 [IMAGE_HERE: Hero image showing email transformation into organized dashboard]
 
@@ -10,7 +10,7 @@ _Stop drowning in receipts, travel bookings, and job applications._ Actioneer tu
 
 Actioneer is an intelligent email processing platform that automatically monitors your Gmail inbox, extracts meaningful data from incoming emails, and organizes everything in a beautiful dashboard. Think of it as having a super-smart assistant working 24/7 in your inbox, turning email chaos into organized clarity.
 
-Whether it's expense tracking from receipts, travel planning from booking confirmations, or job application management, Actioneer handles it all seamlessly in the background.
+Whether it's expense tracking from receipts, travel planning from promotional emails, or job application management, Actioneer handles it all seamlessly in the background.
 
 ## Key Benefits
 
@@ -31,7 +31,7 @@ Visit [https://actioneer.online/dashboard](https://actioneer.online/dashboard) a
 
 ### 2. Agent Takes Over
 
-Like having a super-smart assistant working 24/7, the agent automatically parses receipts, travel bookings, and job applications in every incoming email, then organizes everything in your personal dashboard.
+Like having a super-smart assistant working 24/7, the agent automatically parses receipts, travel promotional emails, and job applications in every incoming email, then organizes everything in your personal dashboard.
 
 ### 3. Enjoy the Results
 
@@ -66,26 +66,26 @@ Imagine when you receive a receipt from your favorite coffee shop, and within se
 
 [IMAGE_HERE: Finance dashboard showing expense tracking and analytics]
 
-### ✈️ Travel & Booking
+### ✈️ Travel & Promotional Emails
 
 Imagine when you receive an email about "75% off hotels in NYC this weekend" or "Flash sale: flights to Tokyo starting at $299," and instead of letting these deals get buried in your inbox, Actioneer automatically captures and organizes them into your travel dashboard—no manual sorting, no forgotten deals, no effort required. Now you can easily browse all the amazing travel deals you've received, compare destinations, and never miss out on that perfect vacation opportunity again, all while the heavy lifting happens completely behind the scenes.
 
 **What it handles:**
 
-- Flight confirmations and boarding passes
-- Hotel reservations and accommodation bookings
-- Travel attraction and tour bookings
-- Transportation and car rental confirmations
-- Travel-related receipts and itineraries
+- Travel promotional emails and deals
+- Destination-specific travel offers
+- Flight and hotel sale notifications
+- Travel inspiration and deal alerts
+- Tourism board promotional content
 
 **What you get:**
 
-- Centralized travel email dashboard with date organization
+- Centralized travel promotional email dashboard with date organization
 - Smart destination extraction and formatting
 - Travel recommendation engine powered by real-time data
-- Hotel and attraction comparisons with pricing
-- Trip planning assistance with AI-powered suggestions
-- Calendar integration for travel dates
+- Hotel and attraction comparisons with pricing insights
+- Trip planning assistance with AI-powered destination suggestions
+- Quick access to travel deals and promotional offers
 
 [IMAGE_HERE: Travel dashboard showing trip organization and recommendations]
 
@@ -161,7 +161,7 @@ Gmail OAuth integration is essential for enabling automatic email processing. On
 ### Enhanced Features
 
 - **Expense Details**: View extracted receipt information in your dashboard
-- **Travel Insights**: Get hotel comparisons and recommendations from booking emails
+- **Travel Insights**: Get destination recommendations and travel insights from promotional emails
 - **Job Tracking**: Update application status through your dashboard
 - **Quick Dashboard Access**: One-click navigation to relevant dashboard sections
 
@@ -232,7 +232,7 @@ Want to see Actioneer in action immediately? Here are the best ways to test the 
 The fastest way to see Actioneer work is to send yourself sample emails from another account (or the same account):
 
 - **Receipt Test**: Forward yourself an old receipt email, or compose a new email with subject like "Your Amazon order receipt - $29.99" with some purchase details
-- **Travel Test**: Send an email with subject "Flight confirmation - NYC to LA" or "Hotel booking confirmed - Marriott Downtown"
+- **Travel Test**: Send an email with subject "Amazing travel deal - 50% off NYC hotels" or "Flash sale: Flights to Tokyo starting at $299"
 - **Job Test**: Create an email like "Application received - Software Engineer at TechCorp" with application details
 
 **Option 2: Wait for Natural Emails**
@@ -262,14 +262,14 @@ Items: Coffee beans, Notebook
 **Travel Email:**
 
 ```
-Subject: Booking Confirmation - Hotel Paradise
-From: reservations@hotelparadise.com
+Subject: Amazing Travel Deal - 50% off Hotels in Miami
+From: deals@traveldeals.com
 
-Your reservation is confirmed!
-Check-in: [Tomorrow's date]
-Check-out: [Day after tomorrow]
-Hotel: Paradise Resort, Miami
-Confirmation: ABC123
+Don't miss out on this incredible offer!
+Miami Beach hotels starting at just $89/night
+Valid for travel: [Next month dates]
+Book by: [This weekend]
+Destinations: South Beach, Downtown Miami
 ```
 
 **Job Application Email:**
@@ -313,7 +313,7 @@ Your privacy is our top priority. Actioneer processes your emails with:
 
 For complete transparency, here are the specific Gmail permissions Actioneer requests:
 
-- **Read emails** (`gmail.readonly`): To analyze incoming emails for receipts, travel bookings, and job applications
+- **Read emails** (`gmail.readonly`): To analyze incoming emails for receipts, travel promotional emails, and job applications
 - **OAuth authentication**: To securely access your Gmail account through the web interface
 - **Email address** (`email`): To link your processed data to your account and enable authentication
 - **Basic profile** (`profile`): To display your name and profile picture in the dashboard

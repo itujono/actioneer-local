@@ -40,7 +40,7 @@ export default function WelcomeOnboarding({
       title: "Travel Intelligence",
       subtitle: "From booking chaos to trip clarity",
       description:
-        "Hotel confirmations, flight details, rental cars - automatically organized with smart recommendations and price comparisons.",
+        "Travel promotional emails, destination deals, travel inspiration - automatically organized with smart destination recommendations and travel insights.",
       color: "from-jade to-green-600",
     },
     {

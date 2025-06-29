@@ -59,57 +59,47 @@ export function SupportedCategoriesSection() {
         </div>
       </div>
 
-      {/* Travel & Booking */}
-      <div className="mb-10" data-section="travel-booking">
-        <div className="bg-white rounded-lg border border-concrete overflow-hidden">
-          <div className="bg-jade rounded-t-lg p-6 text-lime">
-            <div className="flex items-center gap-3">
-              <Plane className="h-8 w-8 text-white" />
-              <h3 className="text-2xl font-bold">Travel & Booking</h3>
-            </div>
+      {/* Travel & Promotional Emails */}
+      <div className="mb-10" data-section="travel-promotional">
+        <div className="flex items-center gap-3 mb-6">
+          <div className="p-3 bg-jade/20 rounded-lg">
+            <Plane className="h-6 w-6 text-jade" />
           </div>
-          <div className="p-6">
-            <p className="text-gray mb-6">
-              Imagine when you receive an email about "75% off hotels in NYC
-              this weekend" or "Flash sale: flights to Tokyo starting at $299,"
-              and instead of letting these deals get buried in your inbox,
-              Actioneer automatically captures and organizes them into your
-              travel dashboard.
-            </p>
+          <h3 className="text-2xl font-bold">Travel & Promotional Emails</h3>
+        </div>
 
-            <div className="grid md:grid-cols-2 gap-6">
-              <div>
-                <h4 className="font-semibold text-thunder mb-3">
-                  What it handles:
-                </h4>
-                <ul className="space-y-2 text-sm text-gray">
-                  <li>• Flight confirmations and boarding passes</li>
-                  <li>• Hotel reservations and accommodation bookings</li>
-                  <li>• Travel attraction and tour bookings</li>
-                  <li>• Transportation and car rental confirmations</li>
-                  <li>• Travel-related receipts and itineraries</li>
-                </ul>
-              </div>
-              <div>
-                <h4 className="font-semibold text-thunder mb-3">
-                  What you get:
-                </h4>
-                <ul className="space-y-2 text-sm text-gray">
-                  <li>
-                    • Centralized travel email dashboard with date organization
-                  </li>
-                  <li>• Smart destination extraction and formatting</li>
-                  <li>
-                    • Travel recommendation engine powered by real-time data
-                  </li>
-                  <li>• Hotel and attraction comparisons with pricing</li>
-                  <li>
-                    • Trip planning assistance with AI-powered suggestions
-                  </li>
-                  <li>• Calendar integration for travel dates</li>
-                </ul>
-              </div>
-            </div>
+        <p className="text-lg text-thunder mb-6">
+          Imagine when you receive an email about "75% off hotels in NYC this
+          weekend" or "Flash sale: flights to Tokyo starting at $299," and
+          instead of letting these deals get buried in your inbox, Actioneer
+          automatically captures and organizes them into your travel
+          dashboard—no manual sorting, no forgotten deals, no effort required.
+        </p>
+
+        <div className="grid md:grid-cols-2 gap-8">
+          <div>
+            <h4 className="font-semibold text-thunder mb-3">
+              What it handles:
+            </h4>
+            <ul className="space-y-2 text-thunder">
+              <li>• Travel promotional emails and deals</li>
+              <li>• Destination-specific travel offers</li>
+              <li>• Flight and hotel sale notifications</li>
+              <li>• Travel inspiration and deal alerts</li>
+              <li>• Tourism board promotional content</li>
+            </ul>
+          </div>
+
+          <div>
+            <h4 className="font-semibold text-thunder mb-3">What you get:</h4>
+            <ul className="space-y-2 text-thunder">
+              <li>• Centralized travel promotional email dashboard</li>
+              <li>• Smart destination extraction and formatting</li>
+              <li>• Travel recommendation engine with real-time data</li>
+              <li>• Hotel and attraction insights for destinations</li>
+              <li>• Trip planning assistance with AI-powered suggestions</li>
+              <li>• Quick access to travel deals and offers</li>
+            </ul>
           </div>
         </div>
       </div>

@@ -41,7 +41,8 @@ export default function HowItWorksSection() {
           email, the agent
           <strong className="text-jade">
             {" "}
-            automatically parses receipts, travel bookings, and job applications
+            automatically parses receipts, travel promotional emails, and job
+            applications
           </strong>
           , then organizes everything in your personal dashboard.
         </HowItWorksItem>

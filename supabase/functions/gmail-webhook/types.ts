@@ -50,6 +50,7 @@ export interface ProcessingResult {
   processedCount?: number;
   jobApplicationsFound?: number;
   receiptsFound?: number;
+  revenueFound?: number;
   method?: string;
   error?: string;
   requiresReauth?: boolean;

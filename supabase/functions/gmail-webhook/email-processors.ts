@@ -222,6 +222,60 @@ export async function processTravelEmail(
   }
 }
 
+export async function processRevenueEmail(
+  user: any,
+  emailContent: EmailContent,
+  emailId: string
+) {
+  try {
+    console.log(
+      "💰 Processing revenue email via process-revenue Edge Function:",
+      emailContent.subject
+    );
+
+    // Call the same process-revenue Edge Function that Apps Script uses
+    // This ensures consistent processing between manual and automatic flows
+    const payload = {
+      messageId: emailContent.messageId,
+      subject: emailContent.subject,
+      from: emailContent.from,
+      emailBody: emailContent.body,
+      emailDate: emailContent.date,
+    };
+
+    const response = await fetch(
+      `${Deno.env.get("SUPABASE_URL")}/functions/v1/process-revenue`,
+      {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          apikey: Deno.env.get("SUPABASE_ANON_KEY") || "",
+          Authorization: `Bearer ${Deno.env.get("SUPABASE_SERVICE_ROLE_KEY")}`,
+          "x-user-api-key": user.api_key,
+        },
+        body: JSON.stringify(payload),
+      }
+    );
+
+    if (response.ok) {
+      const result = await response.json();
+      console.log(
+        "✅ Revenue email processed successfully via Edge Function:",
+        result.revenueId
+      );
+      console.log(
+        "💸 Extracted data:",
+        JSON.stringify(result.extractedData, null, 2)
+      );
+    } else {
+      const errorText = await response.text();
+      console.error("❌ Revenue processing failed:", errorText);
+    }
+  } catch (error) {
+    console.error("Error processing revenue email:", error);
+  }
+}
+
 // Note: extractBasicTravelInfo function moved to process-travel Edge Function
 // to centralize travel processing logic and avoid duplication
 

@@ -173,8 +173,7 @@ export function OtherSections() {
                     </li>
                     <li>
                       • <strong>Travel Test:</strong> Send an email with subject
-                      "Flight confirmation - NYC to LA" or "Hotel booking
-                      confirmed - Marriott Downtown"
+                      "Flight deal - 50% off to NYC" or "Hotel promotion
                     </li>
                     <li>
                       • <strong>Job Test:</strong> Create an email like
@@ -225,7 +224,7 @@ export function OtherSections() {
                   permission: "gmail.readonly",
                   title: "Read emails",
                   description:
-                    "To analyze incoming emails for receipts, travel bookings, and job applications",
+                    "To analyze incoming emails for receipts, travel promotional emails, and job applications",
                 },
                 {
                   permission: "email",

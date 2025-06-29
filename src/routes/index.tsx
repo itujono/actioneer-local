@@ -43,8 +43,7 @@ function Index() {
               </h1>
 
               <p className="text-lg sm:text-xl lg:text-2xl text-white/90 mb-6 sm:mb-8 max-w-3xl mx-auto text-balance px-2">
-                Stop drowning in receipts, travel bookings, and job
-                applications.{" "}
+                Stop drowning in receipts, travel deals, and job applications.{" "}
                 <strong className="text-gold">
                   Actioneer transforms every email into instant, smart actions
                 </strong>

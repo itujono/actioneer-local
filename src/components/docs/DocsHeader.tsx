@@ -11,7 +11,7 @@ export function DocsHeader() {
       <div className="mt-6 p-4 bg-jade/10 border-l-4 border-jade rounded-r-lg">
         <p className="text-thunder">
           <strong>
-            Stop drowning in receipts, travel bookings, and job applications.
+            Stop drowning in receipts, travel deals, and job applications.
           </strong>{" "}
           Actioneer turns every email into instant, smart actions—automatically,
           with just a simple one-time activation.

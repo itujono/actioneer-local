@@ -546,8 +546,8 @@ export default function GmailOAuthSetup({
               </h4> */}
               <p className="text-sm text-concrete mb-4">
                 We'll securely connect to your Gmail account to automatically
-                process receipts, travel bookings, and job applications as they
-                arrive.
+                process receipts, travel promotional emails, and job
+                applications as they arrive.
               </p>
 
               {/* Privacy info with new styling */}
@@ -643,9 +643,9 @@ export default function GmailOAuthSetup({
             <p className="font-semibold mb-1 text-white">What happens next?</p>
             <p>
               Once enabled, we'll start processing your incoming emails
-              automatically. You'll see receipts, travel bookings, and job
-              applications appear in your dashboard within seconds of receiving
-              them.
+              automatically. You'll see receipts, travel promotional emails, and
+              job applications appear in your dashboard within seconds of
+              receiving them.
             </p>
           </div>
         </div>

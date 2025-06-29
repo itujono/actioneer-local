@@ -61,11 +61,11 @@ export const categoryColors: Record<string, string> = {
   utilities: "bg-gold text-thunder",
   travel: "bg-lavender text-lavender",
   entertainment: "bg-bittersweet text-white",
-  food: "bg-lime text-lime",
+  food: "bg-lime text-thunder",
   coffee: "bg-sandy text-thunder",
-  shopping: "bg-heliotrope text-heliotrope",
-  groceries: "bg-jade text-jade",
-  housing: "bg-concrete/20 text-thunder",
+  shopping: "bg-heliotrope text-white",
+  groceries: "bg-jade text-white",
+  housing: "bg-concrete text-thunder",
   transport: "bg-gold text-thunder",
   other: "bg-thunder text-white",
   default: "bg-concrete text-thunder",
@@ -74,13 +74,13 @@ export const categoryColors: Record<string, string> = {
 // Revenue colors using our vibrant palette
 export const revenueColors: Record<string, string> = {
   payment_received: "bg-jade text-white",
-  refund: "bg-lime/10 text-lime",
-  business_income: "bg-gold/10 text-gold",
-  investment: "bg-heliotrope/10 text-heliotrope",
-  government: "bg-lavender/10 text-lavender",
-  digital_platform: "bg-bittersweet/10 text-bittersweet",
-  sales: "bg-jade/10 text-jade",
-  default: "bg-jade/10 text-jade",
+  refund: "bg-lime text-thunder",
+  business_income: "bg-gold text-thunder",
+  investment: "bg-heliotrope text-white",
+  government: "bg-lavender text-white",
+  digital_platform: "bg-bittersweet text-thunder",
+  sales: "bg-jade text-white",
+  default: "bg-jade text-white",
 };
 
 // Attachment icon mapping

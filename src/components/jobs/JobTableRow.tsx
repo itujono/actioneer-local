@@ -259,7 +259,7 @@ export function GroupedJobTableRow({
                             onClick={() =>
                               onDeleteApplication(latestApplication.id)
                             }
-                            className="bg-red-600 hover:bg-red-700"
+                            className="bg-bittersweet hover:bg-bittersweet/80"
                           >
                             Delete Application
                           </AlertDialogAction>

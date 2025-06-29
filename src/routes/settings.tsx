@@ -50,9 +50,9 @@ const EMAIL_CATEGORIES = [
   },
   {
     id: "travel",
-    title: "Travel & Bookings",
+    title: "Travel & Promotional Emails",
     description:
-      "Organize flight confirmations, hotel bookings, and travel itineraries",
+      "Organize travel deals, destination offers, and promotional travel content",
     icon: Plane,
     enabled: true,
   },

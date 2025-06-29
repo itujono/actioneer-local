@@ -5,6 +5,7 @@ import { classifyEmailWithEnhancedAI } from "./ai-processors.ts";
 import {
   processJobApplicationEmail,
   processReceiptEmail,
+  processRevenueEmail,
   processTravelEmail,
   logNotificationOnly,
   updateNotificationResult,
@@ -218,6 +219,7 @@ async function processNewEmailsForUser(
     let processedCount = 0;
     let jobApplicationsFound = 0;
     let receiptsFound = 0;
+    let revenueFound = 0;
 
     // Process each email
     for (const emailRef of emailRefs) {
@@ -273,6 +275,7 @@ async function processNewEmailsForUser(
             message_id: emailRef.id,
             subject: emailContent.subject,
             from_email: emailContent.from,
+            email_body: emailContent.body,
             date: emailContent.date,
             classification: classification.type,
           })
@@ -299,6 +302,10 @@ async function processNewEmailsForUser(
         } else if (classification.type === "travel") {
           await processTravelEmail(user, emailContent, storedEmail.id);
           console.log("✈️ Travel email processed successfully");
+        } else if (classification.type === "revenue") {
+          await processRevenueEmail(user, emailContent, storedEmail.id);
+          revenueFound++;
+          console.log("💸 Revenue processed successfully");
         }
       } catch (emailError) {
         console.error(`Error processing email ${emailRef.id}:`, emailError);
@@ -311,11 +318,12 @@ async function processNewEmailsForUser(
       processedCount: processedCount,
       receiptsFound: receiptsFound,
       jobApplicationsFound: jobApplicationsFound,
+      revenueFound: revenueFound,
       method: "direct_processing",
     });
 
     console.log(
-      `🎉 Direct processing completed: ${processedCount} emails processed, ${receiptsFound} receipts found, ${jobApplicationsFound} job applications found`
+      `🎉 Direct processing completed: ${processedCount} emails processed, ${receiptsFound} receipts found, ${jobApplicationsFound} job applications found, ${revenueFound} revenue found`
     );
   } catch (error) {
     console.error("Error in direct email processing:", error);

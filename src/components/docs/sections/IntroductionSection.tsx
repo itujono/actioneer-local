@@ -105,7 +105,7 @@ export function IntroductionSection() {
               step: "2",
               title: "Agent Takes Over",
               description:
-                "Like having a super-smart assistant working 24/7, the agent automatically parses receipts, travel bookings, and job applications in every incoming email, then organizes everything in your personal dashboard.",
+                "Like having a super-smart assistant working 24/7, the agent automatically parses receipts, travel promotional emails, and job applications in every incoming email, then organizes everything in your personal dashboard.",
               color: "bg-jade",
             },
             {
