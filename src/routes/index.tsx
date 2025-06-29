@@ -8,8 +8,8 @@ import HowItWorksSection from "../components/home/HowItWorksSection";
 import HowToInstallSection from "../components/home/HowToInstallSection";
 import AutopilotSection from "../components/home/AutopilotSection";
 import CTASection from "../components/home/CTASection";
-import Fling from "../components/Fling";
-import Spiral from "../components/Spiral";
+import Fling from "../components/illustrations/Fling";
+import Spiral from "../components/illustrations/Spiral";
 
 export const indexRoute = createRoute({
   getParentRoute: () => rootRoute,

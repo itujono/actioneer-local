@@ -1,4 +1,4 @@
-import CurlyArrow from "../CurlyArrow";
+import CurlyArrow from "../illustrations/CurlyArrow";
 
 export default function HowToInstallSection() {
   return (

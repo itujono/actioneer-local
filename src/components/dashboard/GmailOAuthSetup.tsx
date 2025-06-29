@@ -14,7 +14,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../supabase/client";
 import { toast } from "sonner";
 import { useAuth } from "../../hooks/useAuth";
-import Fling from "../Fling";
+import Fling from "../illustrations/Fling";
 import { Button } from "../ui";
 
 interface GmailOAuthSetupProps {

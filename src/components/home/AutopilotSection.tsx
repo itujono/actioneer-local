@@ -20,7 +20,7 @@ export default function AutopilotSection() {
           <br />— Marshall M.
         </>
       ),
-      testimonialImage: "/public/marshall.webp",
+      testimonialImage: "/marshall.webp",
       imagePlaceholder: "📧💰", // Placeholder for now
     },
     {
@@ -37,7 +37,7 @@ export default function AutopilotSection() {
           <br />— Lebron J.
         </>
       ),
-      testimonialImage: "/public/lebron.webp",
+      testimonialImage: "/lebron.webp",
       imagePlaceholder: "🌍✈️",
     },
     {
@@ -54,7 +54,7 @@ export default function AutopilotSection() {
           <br />— Mariah C.
         </>
       ),
-      testimonialImage: "/public/mariah-carey.webp",
+      testimonialImage: "/mariah-carey.webp",
       imagePlaceholder: "💼📈",
     },
     {
@@ -71,7 +71,7 @@ export default function AutopilotSection() {
           <br />— Jackie C.
         </>
       ),
-      testimonialImage: "/public/jackie.jpg",
+      testimonialImage: "/jackie.jpg",
       imagePlaceholder: "✨🔮",
     },
   ];

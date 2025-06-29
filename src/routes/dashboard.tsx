@@ -21,7 +21,7 @@ import {
 } from "../components/dashboard";
 import { formatDistanceToNow } from "date-fns";
 import { useState, useEffect } from "react";
-import Nothing from "../components/Nothing";
+import Nothing from "../components/illustrations/Nothing";
 import { currencyManager, formatCurrency } from "../utils/currency";
 
 export const dashboardRoute = createRoute({

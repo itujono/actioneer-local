@@ -27,7 +27,7 @@ function PrivacyPage() {
           <div className="bg-white rounded-lg shadow-sm border border-gray-light p-4 sm:p-6 lg:p-8">
             {/* Header */}
             <img
-              src="/public/logo.png"
+              src="/logo.png"
               alt="Logo"
               className="w-16 sm:w-20 mb-4 sm:mb-6"
             />
@@ -539,7 +539,7 @@ function PrivacyPage() {
           <section className="border-t border-concrete pt-6 sm:pt-10 mt-6 sm:mt-8">
             <div className="text-center px-4">
               <img
-                src="/public/logo.png"
+                src="/logo.png"
                 alt="Logo"
                 className="w-16 sm:w-20 mx-auto mb-3 sm:mb-4"
               />

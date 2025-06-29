@@ -1,7 +1,7 @@
 import { Link } from "@tanstack/react-router";
 import { Sparkles } from "lucide-react";
-import Heart from "../Heart";
-import ThreeSplashes from "../ThreeSplashes";
+import Heart from "../illustrations/Heart";
+import ThreeSplashes from "../illustrations/ThreeSplashes";
 
 export default function CTASection() {
   return (

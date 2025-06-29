@@ -1,5 +1,4 @@
-import React from "react";
-import { PiggyBank, ChevronDown, Loader2 } from "lucide-react";
+import { PiggyBank, ChevronDown } from "lucide-react";
 import { TransactionCard } from "./TransactionCard";
 import { TransactionListItem } from "./TransactionListItem";
 import { formatDateLabel } from "./constants";

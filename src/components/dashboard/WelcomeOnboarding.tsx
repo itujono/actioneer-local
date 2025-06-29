@@ -8,7 +8,7 @@ import {
   DialogTitle,
   DialogDescription,
 } from "../ui/dialog";
-import Bubble from "../Bubble";
+import Bubble from "../illustrations/Bubble";
 
 interface WelcomeOnboardingProps {
   open: boolean;

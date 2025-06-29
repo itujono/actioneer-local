@@ -1,4 +1,4 @@
-import CircleJot from "../CircleJot";
+import CircleJot from "../illustrations/CircleJot";
 
 export default function HowItWorksSection() {
   return (
