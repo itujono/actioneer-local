@@ -92,7 +92,7 @@ export function FinanceMetrics({
       {/* Primary Metrics */}
       <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
         {/* Net Income - Featured Card */}
-        <div className="md:col-span-1 bg-daisy border-2 border-daisy rounded-xl p-6 bg-[url(/circle-jot.svg)] bg-right-bottom relative overflow-hidden">
+        <div className="md:col-span-1 bg-daisy border-2 border-daisy rounded-xl p-6 relative overflow-hidden">
           <div className="flex flex-col h-full relative z-10">
             <div className="flex-1">
               <h3 className="text-sm font-bold text-white uppercase tracking-wide">
@@ -126,7 +126,7 @@ export function FinanceMetrics({
 
           {/* Donut Illustration positioned in bottom-right */}
           <div className="absolute -bottom-12 -right-16">
-            <Fling className="w-72 h-72 text-heliotrope" />
+            <Fling className="w-72 h-72 text-heliotrope stroke-[70px]" />
           </div>
         </div>
 

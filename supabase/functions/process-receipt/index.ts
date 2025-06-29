@@ -303,7 +303,7 @@ Extract:
 {
   "merchant": "Vendor/Company name",
   "amount": number (just the number, no currency symbols),
-  "currency": "USD/EUR/etc",
+  "currency": "USD/EUR/IDR/SGD/etc",
   "category": "software/food/travel/utilities/entertainment/shopping/other",
   "description": "Brief description of purchase",
   "date": "ISO date string (YYYY-MM-DD)",
@@ -315,10 +315,20 @@ Extract:
 Important rules:
 - Only extract information that is clearly present in the email
 - Use null for missing fields
-- Amount should be a number without currency symbols
-- Date should be ISO format
+- Amount should be a number without currency symbols (e.g., for "Rp 30300" use 30300)
+- For Indonesian Rupiah "Rp" use currency "IDR"
+- For Singapore Dollar "S$" use currency "SGD"
+- For Malaysian Ringgit "RM" use currency "MYR"
+- Date should be current date if not clearly specified in the email
 - Category should be one of the predefined options
-- Be conservative - if unsure, use null or "other"`;
+- Be conservative - if unsure, use null or "other"
+
+Currency Detection Examples:
+- "Rp 30300" → amount: 30300, currency: "IDR"
+- "$15.99" → amount: 15.99, currency: "USD"
+- "€25.50" → amount: 25.50, currency: "EUR"
+- "£10.00" → amount: 10.00, currency: "GBP"
+`;
 
     const response = await fetch("https://api.openai.com/v1/chat/completions", {
       method: "POST",
@@ -392,7 +402,7 @@ Important rules:
     // Enhanced currency detection
     const detectedCurrency =
       receiptData.currency ||
-      detectCurrencyFromText(`${subject} ${emailBody}`) ||
+      detectCurrencyFromText(subject) ||
       detectCurrencyFromMerchant(merchant) ||
       "USD";
 
@@ -403,7 +413,10 @@ Important rules:
       currency: detectedCurrency,
       category: receiptData.category || "other",
       description: receiptData.description || subject,
-      date: validateDate(receiptData.date) || new Date().toISOString(),
+      date:
+        validateDate(receiptData.date) ||
+        extractDateFromText(emailBody) ||
+        new Date().toISOString(),
       invoice_number: receiptData.invoice_number,
       payment_method: receiptData.payment_method,
       tax_amount:
@@ -453,13 +466,17 @@ function fallbackReceiptExtraction(
     detectCurrencyFromMerchant(merchant) ||
     "USD";
 
+  // Try to extract date from email content, fallback to current date
+  const extractedDate =
+    extractDateFromText(emailBody) || new Date().toISOString();
+
   return {
     merchant,
     amount: extractAmountFromText(text),
     currency: detectedCurrency,
     category: extractCategoryFromText(text),
     description: subject,
-    date: new Date().toISOString(),
+    date: extractedDate,
     invoice_number: extractInvoiceNumber(text),
     payment_method: null,
     tax_amount: null,
@@ -510,7 +527,6 @@ function extractVendorFromText(text: string): string | null {
     "microsoft",
     "adobe",
     "vercel",
-    "supabase",
     "github",
     "stripe",
     "paypal",
@@ -527,21 +543,33 @@ function extractVendorFromText(text: string): string | null {
 
 function extractAmountFromText(text: string): number | null {
   const patterns = [
+    // USD patterns
     /\$(\d+\.?\d*)/g,
     /(\d+\.?\d*)\s*usd/gi,
+    // Indonesian Rupiah patterns
+    /rp\s*(\d+(?:\.\d{3})*(?:,\d{2})?)/gi,
+    /rp\s*(\d+)/gi,
+    // Generic amount patterns
     /total[:\s]*\$?(\d+\.?\d*)/gi,
     /amount[:\s]*\$?(\d+\.?\d*)/gi,
     /charged[:\s]*\$?(\d+\.?\d*)/gi,
     /paid[:\s]*\$?(\d+\.?\d*)/gi,
+    // More flexible patterns for various currencies
+    /(?:total|amount|charged|paid)[:\s]*[^\d]*(\d+(?:[,\.\s]\d{3})*(?:[,\.]\d{2})?)/gi,
   ];
 
   for (const pattern of patterns) {
     const matches = text.match(pattern);
     if (matches && matches.length > 0) {
-      const numericMatch = matches[0].match(/(\d+\.?\d*)/);
+      const numericMatch = matches[0].match(
+        /(\d+(?:[,\.\s]\d{3})*(?:[,\.]\d{2})?)/
+      );
       if (numericMatch) {
-        const amount = parseFloat(numericMatch[1]);
-        if (amount > 0 && amount < 100000) {
+        // Clean up the number (remove spaces, handle Indonesian comma formatting)
+        const cleanNumber = numericMatch[1].replace(/[\s,]/g, "");
+        const amount = parseFloat(cleanNumber);
+        if (amount > 0 && amount < 10000000) {
+          // Increased limit for IDR amounts
           return amount;
         }
       }
@@ -573,6 +601,14 @@ function extractCategoryFromText(text: string): string {
       "starbucks",
       "mcdonalds",
       "pizza",
+      "grab", // Grab is primarily food delivery in many regions
+      "grabfood",
+      "gojek",
+      "delivery",
+      "makanan", // Indonesian for food
+      "pesanan", // Indonesian for order
+      "kopi", // Indonesian for coffee
+      "mie", // Indonesian for noodles
     ],
     travel: [
       "hotel",
@@ -583,6 +619,8 @@ function extractCategoryFromText(text: string): string {
       "uber",
       "lyft",
       "taxi",
+      "grabcar", // Grab car service
+      "grabbike", // Grab bike service
     ],
     utilities: ["electric", "gas", "water", "internet", "phone", "utility"],
     entertainment: [
@@ -626,26 +664,29 @@ function extractInvoiceNumber(text: string): string | null {
 function detectCurrencyFromText(text: string): string | null {
   const lowerText = text.toLowerCase();
 
-  // Currency symbol patterns
+  // Currency symbol patterns - prioritize more specific patterns first
   const currencyPatterns = [
-    { pattern: /\$\d|usd|\busd\b/i, currency: "USD" },
-    { pattern: /€\d|eur|\beur\b/i, currency: "EUR" },
-    { pattern: /£\d|gbp|\bgbp\b/i, currency: "GBP" },
-    { pattern: /¥\d|jpy|\bjpy\b/i, currency: "JPY" },
-    { pattern: /₹\d|inr|\binr\b/i, currency: "INR" },
-    { pattern: /rp\s*\d|idr|\bidr\b|rupiah/i, currency: "IDR" },
-    { pattern: /s\$\d|sgd|\bsgd\b/i, currency: "SGD" },
-    { pattern: /rm\s*\d|myr|\bmyr\b/i, currency: "MYR" },
-    { pattern: /₿\d|btc|\bbtc\b|bitcoin/i, currency: "BTC" },
+    // Indonesian Rupiah - check first since it's commonly missed
+    { pattern: /rp\s*\d|idr|\bidr\b|rupiah|indonesian/i, currency: "IDR" },
+    // Other Asian currencies
+    { pattern: /s\$\s*\d|sgd|\bsgd\b|singapore/i, currency: "SGD" },
+    { pattern: /rm\s*\d|myr|\bmyr\b|ringgit|malaysian/i, currency: "MYR" },
+    { pattern: /₹\s*\d|inr|\binr\b|rupee|indian/i, currency: "INR" },
+    { pattern: /¥\s*\d|jpy|\bjpy\b|yen|japanese/i, currency: "JPY" },
+    { pattern: /₩\s*\d|krw|\bkrw\b|won|korean/i, currency: "KRW" },
+    { pattern: /฿\s*\d|thb|\bthb\b|baht|thai/i, currency: "THB" },
+    { pattern: /₫\s*\d|vnd|\bvnd\b|dong|vietnamese/i, currency: "VND" },
+    { pattern: /₱\s*\d|php|\bphp\b|peso|philippine/i, currency: "PHP" },
+    // Western currencies
+    { pattern: /\$\s*\d|usd|\busd\b|dollar|american/i, currency: "USD" },
+    { pattern: /€\s*\d|eur|\beur\b|euro|european/i, currency: "EUR" },
+    { pattern: /£\s*\d|gbp|\bgbp\b|pound|british/i, currency: "GBP" },
+    { pattern: /c\$\s*\d|cad|\bcad\b|canadian/i, currency: "CAD" },
+    { pattern: /a\$\s*\d|aud|\baud\b|australian/i, currency: "AUD" },
+    { pattern: /chf|\bchf\b|franc|swiss/i, currency: "CHF" },
+    // Crypto
+    { pattern: /₿\s*\d|btc|\bbtc\b|bitcoin/i, currency: "BTC" },
     { pattern: /eth|\beth\b|ethereum/i, currency: "ETH" },
-    { pattern: /cad|\bcad\b/i, currency: "CAD" },
-    { pattern: /aud|\baud\b/i, currency: "AUD" },
-    { pattern: /chf|\bchf\b/i, currency: "CHF" },
-    { pattern: /cny|\bcny\b|yuan/i, currency: "CNY" },
-    { pattern: /krw|\bkrw\b|won/i, currency: "KRW" },
-    { pattern: /thb|\bthb\b|baht/i, currency: "THB" },
-    { pattern: /vnd|\bvnd\b|dong/i, currency: "VND" },
-    { pattern: /php|\bphp\b|peso/i, currency: "PHP" },
   ];
 
   for (const { pattern, currency } of currencyPatterns) {
@@ -688,11 +729,12 @@ function detectCurrencyFromMerchant(merchant: string): string | null {
     adyen: "EUR",
     spotify: "EUR",
 
-    // Asian companies
-    grab: "SGD",
+    // Southeast Asian companies
+    grab: "IDR", // Default to IDR for Grab, but context-aware
     gojek: "IDR",
     tokopedia: "IDR",
-    shopee: "SGD",
+    bukalapak: "IDR",
+    shopee: "SGD", // Shopee operates across SEA, but Singapore-based
     lazada: "SGD",
     foodpanda: "SGD",
 
@@ -722,4 +764,42 @@ function validateDate(dateStr: string): string | null {
   } catch {
     return null;
   }
+}
+
+// Add a new function to extract dates from email content
+function extractDateFromText(text: string): string | null {
+  // Try to find dates in various formats
+  const datePatterns = [
+    // YYYY-MM-DD format
+    /(\d{4}-\d{2}-\d{2})/,
+    // DD/MM/YYYY or MM/DD/YYYY format
+    /(\d{1,2}\/\d{1,2}\/\d{4})/,
+    // DD MMM YYYY format (e.g., "29 Jun 2025")
+    /(\d{1,2}\s+(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+\d{4})/i,
+    // Month DD, YYYY format
+    /(?:jan|feb|mar|apr|may|jun|jul|aug|sep|oct|nov|dec)\s+\d{1,2},?\s+\d{4}/i,
+  ];
+
+  for (const pattern of datePatterns) {
+    const match = text.match(pattern);
+    if (match) {
+      const dateStr = match[0];
+      const parsedDate = new Date(dateStr);
+
+      // Check if it's a valid date and not too far in the past/future
+      if (!isNaN(parsedDate.getTime())) {
+        const now = new Date();
+        const diffYears = Math.abs(
+          now.getFullYear() - parsedDate.getFullYear()
+        );
+
+        // Only accept dates within 2 years of current date
+        if (diffYears <= 2) {
+          return parsedDate.toISOString();
+        }
+      }
+    }
+  }
+
+  return null;
 }
