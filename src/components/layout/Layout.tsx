@@ -33,11 +33,12 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
     }
   };
 
-  // If on landing page, auth page, or privacy page, don't show sidebar
+  // If on landing page, auth page, privacy page, or docs page, don't show sidebar
   const isPublicPage =
     location.pathname === "/" ||
     location.pathname === "/auth" ||
-    location.pathname === "/privacy";
+    location.pathname === "/privacy" ||
+    location.pathname === "/docs";
 
   if (isPublicPage) {
     return (

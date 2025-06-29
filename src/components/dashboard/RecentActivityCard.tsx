@@ -63,10 +63,10 @@ export default function RecentActivityCard({
               </div>
               <div className="min-w-0 flex-1 px-4">
                 <div>
-                  <p className="text-sm font-medium text-heliotrope truncate">
+                  <p className="text-sm font-medium text-thunder truncate">
                     {title}
                   </p>
-                  <p className="mt-1 flex items-center text-sm text-thunder">
+                  <p className="mt-1 flex items-center text-sm text-gray">
                     From&nbsp;{" "}
                     <span className="font-semibold">{description}</span>
                   </p>
@@ -74,7 +74,7 @@ export default function RecentActivityCard({
               </div>
             </div>
             <div className="flex items-center">
-              <p className="text-sm text-thunder mr-4">{date}</p>
+              <p className="text-sm text-gray mr-4">{date}</p>
               <ChevronRight className="h-5 w-5 text-gray-light" />
             </div>
           </div>

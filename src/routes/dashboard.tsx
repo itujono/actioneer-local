@@ -13,6 +13,8 @@ import { useAuth } from "../hooks/useAuth";
 import {
   DashboardCard,
   DashboardContainer,
+  DashboardSkeleton,
+  DashboardSkeletonSimple,
   GmailOAuthSetup,
   RecentActivityCard,
   WelcomeOnboarding,
@@ -21,7 +23,6 @@ import { formatDistanceToNow } from "date-fns";
 import { useState, useEffect } from "react";
 import Nothing from "../components/Nothing";
 import { currencyManager, formatCurrency } from "../utils/currency";
-import Loading from "../components/Loading";
 
 export const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -76,7 +77,7 @@ function Dashboard() {
   });
 
   // Check Gmail OAuth setup status
-  const { data: gmailOAuthStatus } = useQuery({
+  const { data: gmailOAuthStatus, isLoading: gmailOAuthLoading } = useQuery({
     queryKey: ["gmail-oauth-status", user?.id],
     queryFn: async () => {
       if (!user) throw new Error("User not authenticated");
@@ -298,13 +299,33 @@ function Dashboard() {
   };
 
   // Show auth loading state
-  if (statsLoading) {
-    return <Loading message="Loading dashboard..." />;
+  if (statsLoading || gmailOAuthLoading) {
+    return (
+      <DashboardContainer title="Dashboard">
+        <DashboardSkeletonSimple />
+      </DashboardContainer>
+    );
   }
 
   // Show loading while redirect happens
   if (!user) {
-    return <Loading message="Redirecting to login..." />;
+    return (
+      <DashboardContainer title="Dashboard">
+        <DashboardSkeletonSimple />
+      </DashboardContainer>
+    );
+  }
+
+  // Show appropriate skeleton based on Gmail processing status
+  if (
+    gmailOAuthStatus?.isSetup &&
+    (receiptsLoading || emailsLoading || travelLoading || jobsLoading)
+  ) {
+    return (
+      <DashboardContainer title="Dashboard">
+        <DashboardSkeleton />
+      </DashboardContainer>
+    );
   }
 
   return (

@@ -1,5 +1,6 @@
 export * from "./button";
 export * from "./input";
+export * from "../docs/NavButton";
 export * from "./select";
 export * from "./checkbox";
 export { PageTitle } from "../dashboard/PageTitle";

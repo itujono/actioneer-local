@@ -23,35 +23,35 @@ export default function WelcomeOnboarding({
 
   const steps = [
     {
-      title: "🎉 Welcome to Actioneer!",
+      title: "Welcome to Actioneer!",
       subtitle: "Your AI-powered email assistant is ready",
       description:
         "You've just unlocked the power to transform every email into actionable insights. Let's show you what's possible!",
       color: "from-heliotrope to-purple-600",
     },
     {
-      title: "💰 Smart Expense Tracking",
+      title: "Smart Expense Tracking",
       subtitle: "Every receipt becomes instant data",
       description:
         "Amazon purchases, restaurant bills, subscription renewals - all automatically categorized and tracked. No more manual entry, ever.",
       color: "from-gold to-yellow-600",
     },
     {
-      title: "✈️ Travel Intelligence",
+      title: "Travel Intelligence",
       subtitle: "From booking chaos to trip clarity",
       description:
         "Hotel confirmations, flight details, rental cars - automatically organized with smart recommendations and price comparisons.",
       color: "from-jade to-green-600",
     },
     {
-      title: "💼 Job Application Tracker",
+      title: "Job Application Tracker",
       subtitle: "Never lose track of opportunities",
       description:
         "Application confirmations, interview invites, status updates - all tracked in one intelligent dashboard.",
       color: "from-bittersweet to-red-600",
     },
     {
-      title: "⚡ You're All Set!",
+      title: "You're All Set!",
       subtitle: "Start receiving emails to see the magic",
       description:
         "Your dashboard will populate automatically as emails arrive. Send yourself a receipt or booking confirmation to test it out!",
@@ -76,7 +76,7 @@ export default function WelcomeOnboarding({
   return (
     <Dialog open={open} onOpenChange={() => {}}>
       <DialogContent
-        className="max-w-4xl max-h-[80vh] h-[60rem] overflow-y-hidden [&>button]:hidden bg-heliotrope"
+        className="max-w-4xl max-h-[80vh] h-[60rem] overflow-y-hidden [&>button]:hidden bg-heliotrope border-daisy border-2 focus:outline-none focus:ring-0"
         onEscapeKeyDown={(e) => e.preventDefault()}
         onPointerDownOutside={(e) => e.preventDefault()}
         onInteractOutside={(e) => e.preventDefault()}
@@ -91,25 +91,25 @@ export default function WelcomeOnboarding({
         <div className="p-6 relative">
           <Bubble
             size="small"
-            className="absolute top-1/4 left-[15%] transform -translate-x-1/2 -translate-y-1/2 w-[14rem] h-[14rem] z-10 text-lavender"
+            className="absolute top-1/4 left-0 transform -translate-x-1/2 -translate-y-1/2 w-[14rem] h-[14rem] z-10 text-lavender"
           />
           <Bubble className="absolute top-[100%] left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-[40rem] h-[40rem] z-0 text-daisy" />
 
           <div className="text-center max-w-xl mx-auto relative bottom-10 h-full z-20 flex flex-col justify-center items-center">
             <div>
-              <h2 className="text-3xl font-bold text-white mb-2">
+              <h2 className="text-3xl font-bold text-lavender">
                 {currentStepData.title}
               </h2>
-              <h3 className="text-xl text-daisy font-semibold mb-4">
+              <h3 className="text-xl text-white font-semibold">
                 {currentStepData.subtitle}
               </h3>
-              <p className="text-lg text-concrete leading-relaxed mb-8 px-4">
+              <p className="text-lg text-concrete leading-relaxed px-4 mt-8">
                 {currentStepData.description}
               </p>
-              <div className="flex flex-col gap-4 justify-center items-center">
+              <div className="flex flex-col gap-4 justify-center items-center mt-12">
                 <Button
                   onClick={handleNext}
-                  className="w-full max-w-sm mx-auto bg-daisy"
+                  className="w-full max-w-sm mx-auto !bg-daisy hover:!bg-daisy/90"
                 >
                   {currentStep < steps.length - 1 ? "Next" : "Get Started!"}
                   <ArrowRight className="w-4 h-4 ml-2" />

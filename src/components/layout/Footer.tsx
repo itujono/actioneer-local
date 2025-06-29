@@ -54,14 +54,12 @@ export default function Footer() {
                 </a>
               </li>
               <li>
-                <a
-                  href="https://docs.actioneer.online"
-                  target="_blank"
-                  rel="noopener noreferrer"
+                <Link
+                  to="/docs"
                   className="text-sm text-white/70 hover:text-white transition-colors"
                 >
                   Documentation
-                </a>
+                </Link>
               </li>
               <li>
                 <a

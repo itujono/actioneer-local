@@ -36,7 +36,7 @@ export default function DashboardCard({
                 {title}
               </dt>
               <dd>
-                <div className="text-lg font-medium text-thunder">{value}</div>
+                <div className="text-lg font-bold text-jade">{value}</div>
               </dd>
             </dl>
           </div>

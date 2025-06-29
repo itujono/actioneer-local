@@ -317,7 +317,7 @@ function SettingsDashboard() {
             </div>
 
             <div className="space-y-4">
-              <div className="p-4 bg-gray-50 rounded-lg">
+              <div className="py-4 bg-gray-50 rounded-lg">
                 <h3 className="text-sm font-medium text-thunder mb-1">
                   Subscription Plan
                 </h3>
@@ -329,7 +329,7 @@ function SettingsDashboard() {
                   required
                 </p>
               </div>
-              <div className="p-4 bg-gray-50 rounded-lg">
+              <div className="py-4 bg-gray-50 rounded-lg">
                 <h3 className="text-sm font-medium text-thunder mb-1">
                   Emails Processed
                 </h3>
