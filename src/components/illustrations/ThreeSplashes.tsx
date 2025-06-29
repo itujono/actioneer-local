@@ -1,4 +1,7 @@
-export default function ThreeSplashes(props: React.SVGProps<SVGSVGElement>) {
+export default function ThreeSplashes({
+  className,
+  ...props
+}: React.SVGProps<SVGSVGElement>) {
   return (
     <svg
       xmlns="http://www.w3.org/2000/svg"
@@ -7,7 +10,7 @@ export default function ThreeSplashes(props: React.SVGProps<SVGSVGElement>) {
       strokeWidth={4}
       fill="none"
       stroke="currentColor"
-      className={`absolute ${props.className}`}
+      className={`absolute ${className}`}
       {...props}
     >
       <g>

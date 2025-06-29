@@ -7,9 +7,9 @@ export default function CTASection() {
   return (
     <div className="px-4 sm:px-6 lg:px-8">
       <div className="mx-auto max-w-4xl text-center relative">
-        <Heart className="w-8 h-8 sm:w-10 sm:h-10 -top-8 sm:-top-10 -left-8 sm:-left-10" />
-        <Heart className="w-5 h-5 sm:w-6 sm:h-6 -top-4 sm:-top-4 left-8 sm:left-4" />
-        <ThreeSplashes className="w-8 h-8 sm:w-10 sm:h-10 -top-6 sm:-top-4 right-8 sm:right-16" />
+        <Heart className="w-8 h-8 sm:w-10 sm:h-10 -top-8 sm:-top-10 -left-8 sm:-left-10 text-thunder" />
+        <Heart className="w-5 h-5 sm:w-6 sm:h-6 -top-4 sm:-top-4 left-8 sm:left-4 text-thunder" />
+        <ThreeSplashes className="w-8 h-8 sm:w-10 sm:h-10 -top-6 sm:-top-4 right-8 sm:right-16 text-thunder" />
         <h2 className="text-3xl sm:text-4xl lg:text-5xl font-bold mb-4 sm:mb-6 text-balance px-2">
           Ready to make your inbox work overtime{" "}
           <span className="text-lime">so you don't have to?</span>

@@ -100,7 +100,7 @@ function Index() {
         </div>
 
         <div id="faq" className="section-spacing relative">
-          <Fling className="absolute -top-44 sm:-top-20 right-[70%] w-1/2 h-1/2 scale-x-[-1] rotate-90 sm:rotate-45 z-0 text-lime" />
+          <Fling className="absolute -top-44 sm:-top-20 right-[70%] w-1/2 h-1/2 scale-x-[-1] rotate-90 sm:rotate-45 z-0 text-lime stroke-[70px]" />
           <FAQSection />
         </div>
 

@@ -59,7 +59,24 @@ createRoot(document.getElementById("root")!).render(
   <StrictMode>
     <QueryClientProvider client={queryClient}>
       <RouterProvider router={router} />
-      <Toaster position="top-right" richColors />
+      <Toaster
+        position="top-right"
+        richColors={false}
+        theme="dark"
+        className="actioneer-toaster"
+        toastOptions={{
+          className: "actioneer-toast",
+          style: {
+            background: "#6146C7", // bg-daisy
+            color: "#ffffff", // text-white
+            border: "1px solid #EFEDFD", // border-lavender for subtle outline
+            borderRadius: "8px",
+            fontSize: "14px",
+            fontWeight: "500",
+            boxShadow: "0 4px 12px rgba(97, 70, 199, 0.15)", // shadow with daisy color
+          },
+        }}
+      />
     </QueryClientProvider>
   </StrictMode>
 );

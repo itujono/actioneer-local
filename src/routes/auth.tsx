@@ -30,6 +30,9 @@ const checkAuthSession = async () => {
 };
 
 const createPublicUserRecord = async (session: any) => {
+  console.log("📝 Creating public user record for:", session.user?.email);
+  console.log("🔐 Session access token exists:", !!session.access_token);
+
   const response = await fetch(
     `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auth/oauth-signin`,
     {
@@ -42,13 +45,21 @@ const createPublicUserRecord = async (session: any) => {
     }
   );
 
+  console.log("🌐 Auth endpoint response status:", response.status);
+
   if (!response.ok) {
-    throw new Error(`HTTP error! status: ${response.status}`);
+    const errorText = await response.text();
+    console.error("❌ Auth endpoint error:", errorText);
+    throw new Error(
+      `HTTP error! status: ${response.status}, details: ${errorText}`
+    );
   }
 
   const result = await response.json();
+  console.log("✅ Auth endpoint result:", result);
 
   if (!result.success) {
+    console.error("❌ Auth endpoint returned failure:", result.error);
     throw new Error(result.error || "Failed to create user record");
   }
 
@@ -124,12 +135,14 @@ function Auth() {
     },
     onError: (error) => {
       console.error("❌ Failed to create user record:", error);
+      console.error("❌ Full error details:", JSON.stringify(error, null, 2));
       toast.error(
-        "Sign-in successful, but failed to set up your account. Please try again."
+        "Failed to set up your account. Please try signing in again."
       );
-      // Still navigate to dashboard as auth was successful
-      navigate({ to: "/dashboard" });
+      // DON'T navigate to dashboard on error - stay on auth page for retry
     },
+    retry: 2, // Retry failed requests up to 2 times
+    retryDelay: 1000, // Wait 1 second between retries
   });
 
   // Mutation for Google OAuth
@@ -153,9 +166,27 @@ function Auth() {
     }
   }, [session, checkingAuth, navigate]);
 
-  // Set up auth state listener (this still needs useEffect as it's an event listener)
+  // Set up auth state listener AND check current session
   useEffect(() => {
     if (authListenerSetup) return;
+
+    // Check current session immediately in case user just authenticated
+    const checkCurrentSession = async () => {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession();
+      if (session?.user) {
+        console.log(
+          "🔐 Existing session found on page load:",
+          session.user.email
+        );
+        // Use the mutation to create public user record
+        createUserMutation.mutate(session);
+      }
+    };
+
+    // Check for existing session
+    checkCurrentSession();
 
     const {
       data: { subscription },

@@ -318,6 +318,7 @@ async function handleOAuthSignIn(req: Request, body: any) {
     const email = user.email;
     const name =
       user.user_metadata?.full_name || user.user_metadata?.name || null;
+    const authUserId = user.id;
 
     if (!email) {
       console.error("❌ No email found in user data");
@@ -330,30 +331,112 @@ async function handleOAuthSignIn(req: Request, body: any) {
       );
     }
 
-    console.log("📧 Creating/finding user for OAuth:", email);
+    console.log("📧 Syncing user with auth system:", email, "->", authUserId);
 
-    // Create or get user in our custom users table
-    const { user: actioneerUser, created } = await createOrGetUser(
-      email,
-      name,
-      "web_oauth"
+    // Instead of using RPC, directly create/update the user record
+    // First check if user exists
+    const { data: existingUser, error: findError } = await supabase
+      .from("users")
+      .select("*")
+      .eq("email", email)
+      .eq("is_active", true)
+      .single();
+
+    let actioneerUser;
+    let wasCreated = false;
+
+    if (existingUser && !findError) {
+      console.log(
+        "✅ Found existing user, updating with auth ID:",
+        existingUser.id
+      );
+
+      // Update existing user to use auth ID if not already synced
+      if (existingUser.id !== authUserId) {
+        const { data: updatedUser, error: updateError } = await supabase
+          .from("users")
+          .update({
+            id: authUserId,
+            auth_synced: true,
+          })
+          .eq("email", email)
+          .eq("is_active", true)
+          .select()
+          .single();
+
+        if (updateError) {
+          console.error("❌ Error updating user with auth ID:", updateError);
+          return new Response(
+            JSON.stringify({
+              error: "Failed to sync existing user",
+              details: updateError.message,
+            }),
+            {
+              status: 500,
+              headers: { ...corsHeaders, "Content-Type": "application/json" },
+            }
+          );
+        }
+        actioneerUser = updatedUser;
+      } else {
+        actioneerUser = existingUser;
+      }
+    } else {
+      console.log("🆕 Creating new user with auth ID:", authUserId);
+
+      // Create new user with auth ID
+      const { data: newUser, error: createError } = await supabase
+        .from("users")
+        .insert({
+          id: authUserId, // Use Supabase Auth user ID
+          email: email,
+          api_key: generateSecureApiKey(),
+          name: name || email.split("@")[0],
+          source: "web_oauth",
+          is_active: true,
+          onboarding_completed: false,
+          auth_synced: true,
+        })
+        .select()
+        .single();
+
+      if (createError) {
+        console.error("❌ Error creating new user:", createError);
+        return new Response(
+          JSON.stringify({
+            error: "Failed to create user account",
+            details: createError.message,
+          }),
+          {
+            status: 500,
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      actioneerUser = newUser;
+      wasCreated = true;
+    }
+
+    console.log(
+      `✅ User ${wasCreated ? "created" : "synced"} successfully with ID: ${
+        actioneerUser.id
+      }`
     );
-
-    console.log(`✅ User ${created ? "created" : "found"} successfully`);
 
     // Note: Gmail watch setup will be handled separately via dedicated endpoint
-    console.log(
-      "📝 OAuth user created/found - Gmail setup to be handled separately"
-    );
+    console.log("📝 OAuth user synced - Gmail setup to be handled separately");
 
     return new Response(
       JSON.stringify({
         success: true,
         user_id: actioneerUser.id,
         api_key: actioneerUser.api_key,
-        created: created,
+        created: wasCreated,
         gmail_setup_required: true, // Indicates frontend should handle Gmail setup
-        message: created ? "New user created" : "User signed in successfully",
+        message: wasCreated
+          ? "User account created"
+          : "User signed in successfully",
       }),
       {
         status: 200,

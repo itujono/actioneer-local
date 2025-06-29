@@ -516,8 +516,8 @@ export default function GmailOAuthSetup({
     <div
       className={`bg-daisy border-2 border-daisy rounded-xl p-6 relative overflow-hidden ${className}`}
     >
-      <div className="absolute -bottom-20 -right-64 z-0">
-        <Fling className="w-[32rem] h-[32rem] text-lavender" />
+      <div className="absolute -bottom-40 -right-64 z-0">
+        <Fling className="w-[32rem] h-[32rem] text-lavender stroke-[70px]" />
       </div>
       <div className="mb-6">
         <div className="flex items-center space-x-3 mb-3">

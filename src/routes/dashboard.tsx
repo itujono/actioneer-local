@@ -62,11 +62,20 @@ function Dashboard() {
         .select("id", { count: "exact" })
         .eq("user_id", user.id);
 
-      const { data: hasSeenOnboarding } = await supabase
+      const { data: hasSeenOnboarding, error: onboardingError } = await supabase
         .from("users")
         .select("onboarding_completed")
         .eq("id", user.id)
         .single();
+
+      // If user doesn't exist in our users table yet, treat as new user
+      if (onboardingError && onboardingError.code === "PGRST116") {
+        console.log("User not found in users table, treating as new user");
+        return {
+          totalEmails: emailCount?.length || 0,
+          hasSeenOnboarding: false, // New user needs onboarding
+        };
+      }
 
       return {
         totalEmails: emailCount?.length || 0,
@@ -264,7 +273,7 @@ function Dashboard() {
     console.log("Completing onboarding for user:", user.id);
 
     try {
-      // Mark onboarding as completed in database
+      // First try to update onboarding status
       const { data, error } = await supabase
         .from("users")
         .update({ onboarding_completed: true })
@@ -273,17 +282,53 @@ function Dashboard() {
 
       if (error) {
         console.error("Error updating onboarding status:", error);
-        return;
-      }
 
-      console.log("Database update successful. Updated rows:", data);
+        // If user doesn't exist in our users table, create them
+        if (error.code === "PGRST116") {
+          console.log("User not found in users table, creating record...");
 
-      if (!data || data.length === 0) {
-        console.error(
-          "No rows were updated. User ID might not exist:",
-          user.id
-        );
-        return;
+          // Create user record with Supabase Auth ID
+          const { data: newUserData, error: createError } = await supabase
+            .from("users")
+            .insert({
+              id: user.id, // Use Supabase Auth user ID
+              email: user.email!,
+              api_key: `api_${Math.random()
+                .toString(36)
+                .substring(2, 15)}${Math.random()
+                .toString(36)
+                .substring(2, 15)}`,
+              name:
+                user.user_metadata?.full_name ||
+                user.user_metadata?.name ||
+                user.email?.split("@")[0] ||
+                null,
+              source: "web_oauth",
+              is_active: true,
+              onboarding_completed: true,
+              auth_synced: true,
+            })
+            .select();
+
+          if (createError) {
+            console.error("Error creating user record:", createError);
+            return;
+          }
+
+          console.log("✅ User record created successfully:", newUserData);
+        } else {
+          return;
+        }
+      } else {
+        console.log("Database update successful. Updated rows:", data);
+
+        if (!data || data.length === 0) {
+          console.error(
+            "No rows were updated. User ID might not exist:",
+            user.id
+          );
+          return;
+        }
       }
 
       console.log("Onboarding marked as complete in database");
@@ -297,6 +342,117 @@ function Dashboard() {
       console.error("Error completing onboarding:", error);
     }
   };
+
+  // Ensure user record exists when authenticated (fallback mechanism)
+  useEffect(() => {
+    const ensureUserRecord = async () => {
+      if (!user) {
+        return;
+      }
+
+      // If we already determined user status, don't recreate
+      if (userStats && userStats.hasSeenOnboarding !== undefined) {
+        return;
+      }
+
+      // User is authenticated but we need to check/create the public user record
+      console.log(
+        "🔧 User authenticated, ensuring public user record exists..."
+      );
+
+      try {
+        // First try to get the user from our users table
+        const { data: existingUser, error: findError } = await supabase
+          .from("users")
+          .select("*")
+          .eq("id", user.id)
+          .single();
+
+        if (existingUser && !findError) {
+          console.log("✅ User record already exists in users table");
+          // User exists, just invalidate queries to refresh state
+          queryClient.invalidateQueries({ queryKey: ["user-stats", user.id] });
+          return;
+        }
+
+        // User doesn't exist in public.users, let's call the auth endpoint to create it
+        console.log("📝 Calling auth endpoint to create user record...");
+
+        // Get the current session to get the access token
+        const { data: session } = await supabase.auth.getSession();
+
+        if (!session?.session?.access_token) {
+          console.error("❌ No valid session found for auth endpoint");
+          return;
+        }
+
+        const response = await fetch(
+          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auth/oauth-signin`,
+          {
+            method: "POST",
+            headers: {
+              "Content-Type": "application/json",
+              Authorization: `Bearer ${session.session.access_token}`,
+              apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+            },
+          }
+        );
+
+        if (!response.ok) {
+          console.error("❌ Auth endpoint failed, using local fallback");
+          const errorText = await response.text();
+          console.error("❌ Auth endpoint error details:", errorText);
+
+          // If auth endpoint fails, create user locally as fallback
+          console.log("📝 Creating user record locally with RLS policy...");
+          const { data, error } = await supabase
+            .from("users")
+            .insert({
+              id: user.id, // Use Supabase Auth user ID - must match auth.uid()
+              email: user.email!, // Must match JWT email
+              api_key: `api_${Math.random()
+                .toString(36)
+                .substring(2, 15)}${Math.random()
+                .toString(36)
+                .substring(2, 15)}`,
+              name:
+                user.user_metadata?.full_name ||
+                user.user_metadata?.name ||
+                user.email?.split("@")[0] ||
+                null,
+              source: "web_oauth",
+              is_active: true,
+              onboarding_completed: false,
+              auth_synced: true,
+            })
+            .select();
+
+          if (error) {
+            console.error("❌ Error creating fallback user record:", error);
+            console.error(
+              "❌ Full error details:",
+              JSON.stringify(error, null, 2)
+            );
+            console.log("🔍 Current user ID:", user.id);
+            console.log("🔍 Current user email:", user.email);
+            console.log("🔍 Current JWT token exists:", !!user);
+          } else {
+            console.log("✅ Fallback user record created successfully:", data);
+          }
+        } else {
+          const result = await response.json();
+          console.log("✅ Auth endpoint success:", result);
+        }
+
+        // Always invalidate userStats to refetch with the new user data
+        queryClient.invalidateQueries({ queryKey: ["user-stats", user.id] });
+      } catch (error) {
+        console.error("❌ Exception in ensureUserRecord:", error);
+      }
+    };
+
+    ensureUserRecord();
+  }, [user, userStats, queryClient]);
 
   // Show auth loading state
   if (statsLoading || gmailOAuthLoading) {
