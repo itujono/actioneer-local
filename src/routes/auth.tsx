@@ -221,7 +221,6 @@ function Auth() {
         {/* Left Column - Login Form */}
         <div className="flex flex-col justify-center py-12 px-6 lg:px-8">
           <div className="mx-auto w-full max-w-md lg:order-1">
-          <div className="mx-auto w-full max-w-md lg:order-1">
             <div className="text-center">
               <img
                 src="/logo.png"
@@ -374,10 +373,7 @@ function Auth() {
 
         {/* Colorful Grid Illustration - Mobile & Desktop */}
         <div className="flex items-start lg:items-center justify-center bg-concrete p-4 sm:p-6 lg:p-8">
-        {/* Colorful Grid Illustration - Mobile & Desktop */}
-        <div className="flex items-start lg:items-center justify-center bg-concrete p-4 sm:p-6 lg:p-8">
           <style>{cardStyle}</style>
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 grid-rows-5 sm:grid-rows-4 lg:grid-rows-3 gap-1 sm:gap-2 lg:gap-0 w-full max-w-sm sm:max-w-md lg:max-w-none lg:w-full lg:h-1/2 h-1/2 sm:h-80">
           <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 grid-rows-5 sm:grid-rows-4 lg:grid-rows-3 gap-1 sm:gap-2 lg:gap-0 w-full max-w-sm sm:max-w-md lg:max-w-none lg:w-full lg:h-1/2 h-1/2 sm:h-80">
             {/* Row 1 */}
             <div
@@ -387,8 +383,8 @@ function Auth() {
                 animation: "fadeInScale 0.6s ease-out 0.2s forwards",
               }}
             >
-              <Fling className="w-full h-full lg:w-[16rem] lg:h-[16rem] stroke-lavender stroke-[20px] sm:stroke-[40px] lg:stroke-[70px] stroke-offset-2 lg:bottom-10 lg:right-10 relative" />
-              <Fling className="w-full h-full lg:w-[16rem] lg:h-[16rem] stroke-lavender stroke-[20px] sm:stroke-[40px] lg:stroke-[70px] stroke-offset-2 lg:bottom-10 lg:right-10 relative" />
+              <Fling className="w-[10rem] h-[10rem] lg:w-[16rem] lg:h-[16rem] stroke-lavender stroke-[70px] sm:stroke-[40px] lg:stroke-[70px] stroke-offset-2 lg:bottom-10 lg:right-10 relative" />
+              {/* <Fling className="w-full h-full lg:w-[16rem] lg:h-[16rem] stroke-lavender stroke-[20px] sm:stroke-[40px] lg:stroke-[70px] stroke-offset-2 lg:bottom-10 lg:right-10 relative" /> */}
             </div>
             <div
               className="bg-gold bg-[url('/heart.svg')] bg-contain bg-no-repeat bg-center bg-blend-multiply rounded-3xl"
@@ -460,9 +456,6 @@ function Auth() {
               }}
             >
               <div className="flex justify-center items-center h-full">
-                <h3 className="text-bittersweet text-xs sm:text-base lg:text-lg font-bold">
-                  actioneer
-                </h3>
                 <h3 className="text-bittersweet text-xs sm:text-base lg:text-lg font-bold">
                   actioneer
                 </h3>
@@ -551,7 +544,7 @@ function Auth() {
               }}
             >
               <ThreeSplashes className="w-full h-full lg:w-[14rem] lg:h-[14rem] text-sandy" />
-              <ThreeSplashes className="w-full h-full lg:w-[14rem] lg:h-[14rem] text-sandy" />
+              {/* <ThreeSplashes className="w-full h-full lg:w-[14rem] lg:h-[14rem] text-sandy" /> */}
             </div>
             <div
               className="bg-bittersweet bg-[url('/bubble-small.svg')] bg-cover bg-center bg-blend-color-dodge rounded-3xl"
