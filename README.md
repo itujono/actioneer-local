@@ -345,38 +345,49 @@ careers@techcorp.com
 **Revenue/Payment Email:**
 
 ```
-Subject: Payment Received: Freelance Project Invoice #INV-2024-001
-From: payments@startupx.com
+Subject: Freelance Payment Deposited - Project Completed Successfully
+From: freelancer-payments@startupx.com
 
-Payment Confirmation
+💰 Payment Deposited to Your Account
 
 Dear Freelancer,
 
-We're pleased to confirm that your payment has been processed successfully.
+Excellent news! Your freelance payment has been successfully deposited to your bank account.
 
-Payment Details:
-• Invoice #: INV-2024-001
+💸 Money Added to Your Account:
 • Project: Website Development for StartupX
-• Amount: $2,500.00
-• Payment Date: [Today's date]
-• Payment Method: Bank Transfer
-• Reference: PAY-[6-digit number]
+• Amount Deposited: $2,500.00
+• Deposited On: [Today's date]
+• Transfer Method: Direct Bank Deposit
+• Your Earnings ID: EARN-[6-digit number]
+• Deposit Reference: FREELANCER-INCOME-[4-digit number]
 
-This payment covers:
+🎯 Work Completed & Paid:
 - Frontend development (React/TypeScript)
 - Backend API integration
 - Mobile responsive design
 - 2 rounds of revisions
 
-The funds have been transferred to your account ending in ***1234 and should appear within 1-2 business days.
+✅ $2,500.00 has been added to your account ending in ***1234
+✅ Funds are now available in your bank account
+✅ This confirms your project earnings have been processed
+✅ Payment completed - no further action needed
 
-Thank you for your excellent work on this project! We look forward to collaborating again soon.
+Congratulations on completing another successful project! Your technical expertise and professionalism made this collaboration outstanding. We're excited to work with you on future projects.
+
+Your earnings summary:
+- Base project fee: $2,200.00
+- Bonus for early delivery: $300.00
+- Total deposited: $2,500.00
 
 Best regards,
 Alex Chen
-Project Manager
+Project Manager & Finance
 StartupX Inc.
-payments@startupx.com
+freelancer-payments@startupx.com
+
+---
+💡 This is your income confirmation. Keep this email for tax records.
 ```
 
 ### ⚡ **What to Expect**

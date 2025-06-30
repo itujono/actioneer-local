@@ -22,11 +22,7 @@ const openai = new OpenAI({
   apiKey: Deno.env.get("OPENAI_API_KEY") || "",
 });
 
-export async function extractJobDataWithAI(
-  subject: string,
-  from: string,
-  emailBody: string
-): Promise<JobData> {
+export async function extractJobDataWithAI(subject: string, from: string, emailBody: string): Promise<JobData> {
   const prompt = `
     Analyze this job-related email and extract the following information:
     
@@ -154,10 +150,7 @@ export async function extractJobDataWithAI(
       status: validateStatus(jobData.status) || "applied",
       appliedDate: jobData.appliedDate || null,
       confidence: jobData.confidence || 0.5,
-      countryCode:
-        jobData.countryCode ||
-        extractCountryFromEmail(from) ||
-        extractCountryFromEmailBody(emailBody),
+      countryCode: jobData.countryCode || extractCountryFromEmail(from) || extractCountryFromEmailBody(emailBody),
       website: jobData.website || extractWebsiteFromEmail(from, emailBody),
       details: jobData.details || {},
     };
@@ -167,16 +160,10 @@ export async function extractJobDataWithAI(
   }
 }
 
-export function fallbackJobExtraction(
-  subject: string,
-  from: string,
-  emailBody: string
-): JobData {
+export function fallbackJobExtraction(subject: string, from: string, emailBody: string): JobData {
   console.log("🔄 Using fallback job extraction");
 
-  const company =
-    extractCompanyFromEmail(from) ||
-    extractCompanyFromText(subject + " " + emailBody);
+  const company = extractCompanyFromEmail(from) || extractCompanyFromText(subject + " " + emailBody);
   const position = extractPositionFromText(subject + " " + emailBody);
   const status = extractStatusFromText(subject + " " + emailBody);
   const website = extractWebsiteFromEmail(from, emailBody);
@@ -187,8 +174,7 @@ export function fallbackJobExtraction(
     status: status || "applied",
     appliedDate: null,
     confidence: 0.3,
-    countryCode:
-      extractCountryFromEmail(from) || extractCountryFromEmailBody(emailBody),
+    countryCode: extractCountryFromEmail(from) || extractCountryFromEmailBody(emailBody),
     website: website,
     details: {
       extractionMethod: "fallback",
@@ -198,11 +184,7 @@ export function fallbackJobExtraction(
   };
 }
 
-export async function extractReceiptDataWithAI(
-  subject: string,
-  from: string,
-  emailBody: string
-): Promise<ReceiptData> {
+export async function extractReceiptDataWithAI(subject: string, from: string, emailBody: string): Promise<ReceiptData> {
   const prompt = `
     Analyze this receipt/invoice email and extract the following information:
     
@@ -279,9 +261,7 @@ export async function extractReceiptDataWithAI(
       vendor: receiptData.vendor || extractVendorFromEmail(from),
       amount: parseFloat(receiptData.amount) || null,
       currency: receiptData.currency || "USD",
-      receiptDate:
-        validateDate(receiptData.receiptDate) ||
-        new Date().toISOString().split("T")[0],
+      receiptDate: validateDate(receiptData.receiptDate) || new Date().toISOString().split("T")[0],
       category: receiptData.category || "other",
       description: receiptData.description || subject,
       receiptType: receiptData.receiptType || "purchase",
@@ -294,11 +274,7 @@ export async function extractReceiptDataWithAI(
   }
 }
 
-export function fallbackReceiptExtraction(
-  subject: string,
-  from: string,
-  emailBody: string
-): ReceiptData {
+export function fallbackReceiptExtraction(subject: string, from: string, emailBody: string): ReceiptData {
   console.log("🔄 Using fallback receipt extraction");
 
   const vendor = extractVendorFromEmail(from) || extractVendorFromText(subject);
@@ -323,36 +299,100 @@ export async function classifyEmailWithEnhancedAI(
   from: string,
   emailBody: string
 ): Promise<ClassificationResult> {
+  console.log("🤖 Starting AI-FIRST email classification in Gmail webhook...");
+  console.log("📧 Email preview:", {
+    subject,
+    from,
+    bodyPreview: emailBody.substring(0, 200) + "...",
+  });
+
   try {
-    console.log("🎯 Classifying email directly in Gmail webhook");
+    // Use AI for ALL classification - no pattern fallbacks
+    console.log("🧠 Using AI classification...");
+    const prompt = buildAdvancedClassificationPrompt(subject, from, emailBody);
 
-    // Direct classification using patterns (no authentication needed)
-    const classification = classifyEmailDirect(subject, from, emailBody);
+    // Use the existing OpenAI instance from the top of the file
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini", // Use latest and most capable model
+      messages: [{ role: "user", content: prompt }],
+      temperature: 0.1, // Lower temperature for more consistent results
+      response_format: { type: "json_object" },
+    });
 
-    if (classification) {
-      console.log(
-        "✅ Pattern-based classification successful:",
-        classification.type
-      );
-      return classification;
+    let response = completion.choices[0].message.content;
+    if (!response) throw new Error("Empty response from OpenAI");
+
+    console.log("🤖 AI raw response:", response);
+
+    const classification = JSON.parse(response);
+
+    // Validate AI response
+    if (!classification.type || !classification.confidence || !classification.reasoning) {
+      throw new Error("Invalid AI response format");
     }
 
-    console.log("⚠️ Pattern-based classification failed, using AI fallback");
-    return await fallbackClassification(subject, from, emailBody);
+    console.log("✅ AI classification successful:", {
+      type: classification.type,
+      confidence: classification.confidence,
+      reasoning: classification.reasoning.substring(0, 100) + "...",
+    });
+
+    return {
+      type: classification.type,
+      confidence: classification.confidence,
+      reasoning: classification.reasoning,
+      method: "ai-primary",
+    };
   } catch (error) {
-    console.error("Enhanced classification error:", error);
-    return await fallbackClassification(subject, from, emailBody);
+    console.error("❌ AI classification failed:", error);
+    // Only if AI completely fails, fall back to 'other'
+    return {
+      type: "other",
+      confidence: 0.1,
+      reasoning: `AI classification error: ${error.message}`,
+      method: "ai-fallback",
+    };
   }
+}
+
+function buildAdvancedClassificationPrompt(subject: string, from: string, emailBody: string): string {
+  return `You are an expert email classifier. Analyze this email and classify it into ONE of these categories:
+
+CATEGORIES:
+1. "receipt" - Money you SPENT (purchases, bills, subscriptions you paid for)
+2. "revenue" - Money you RECEIVED (payments to you, refunds, income, earnings)  
+3. "travel" - Travel deals, promotions, booking offers (NOT confirmations)
+4. "job_application" - Job applications, career opportunities, employment
+5. "other" - Everything else
+
+CRITICAL DISTINCTION - Receipt vs Revenue:
+- RECEIPT: "Thank you for your purchase", "Your subscription was charged", "Order confirmation", "Bill paid"
+- REVENUE: "Payment received", "Money deposited", "Refund issued", "You earned", "Funds added to your account"
+
+Email to classify:
+Subject: ${subject}
+From: ${from}
+Content: ${emailBody}
+
+INSTRUCTIONS:
+1. Focus on WHO is receiving money vs WHO is spending money
+2. Look for directional language: "to you" = revenue, "from you" = receipt
+3. Past tense completion language: "received", "deposited", "earned" = revenue
+4. Payment confirmations for services YOU provided = revenue
+5. Purchase confirmations for things YOU bought = receipt
+
+Return ONLY a JSON object with:
+{
+  "type": "receipt|revenue|travel|job_application|other",
+  "confidence": 0.0-1.0,
+  "reasoning": "Detailed explanation of why this classification was chosen, including specific words/phrases that led to this decision"
+}`;
 }
 
 /**
  * Direct classification using patterns (no external API calls)
  */
-function classifyEmailDirect(
-  subject: string,
-  from: string,
-  emailBody: string
-): ClassificationResult | null {
+function classifyEmailDirect(subject: string, from: string, emailBody: string): ClassificationResult | null {
   const subjectLower = subject.toLowerCase();
   const fromLower = from.toLowerCase();
   const bodyLower = emailBody.toLowerCase();
@@ -440,9 +480,7 @@ function classifyEmailDirect(
   const hasGeneralTravelPattern = TRAVEL_PATTERNS.general.some(
     (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
   );
-  const isFromTravelDomain = TRAVEL_PATTERNS.domains.some((pattern) =>
-    pattern.test(fromLower)
-  );
+  const isFromTravelDomain = TRAVEL_PATTERNS.domains.some((pattern) => pattern.test(fromLower));
 
   // Calculate travel confidence
   let travelConfidence = 0;
@@ -452,10 +490,7 @@ function classifyEmailDirect(
     travelConfidence = 0.8;
   } else if (hasDestinationPattern) {
     travelConfidence = 0.7;
-  } else if (
-    isFromTravelDomain &&
-    (bodyLower.includes("booking") || bodyLower.includes("travel"))
-  ) {
+  } else if (isFromTravelDomain && (bodyLower.includes("booking") || bodyLower.includes("travel"))) {
     travelConfidence = 0.65;
   }
 
@@ -536,9 +571,7 @@ function classifyEmailDirect(
   );
 
   if (isPromotionalEmail) {
-    console.log(
-      "🚫 Gmail webhook: Excluded as promotional/administrative email"
-    );
+    console.log("🚫 Gmail webhook: Excluded as promotional/administrative email");
     return null; // This is a promotional/administrative email, not a receipt
   }
 
@@ -552,8 +585,61 @@ function classifyEmailDirect(
     return null; // This is a future notification, not a receipt
   }
 
+  // NUCLEAR OPTION: Force revenue classification for clear revenue language
+  const FORCE_REVENUE_KEYWORDS = [
+    /payment\s+deposited\s+to\s+your\s+account/i,
+    /money\s+added\s+to\s+your\s+account/i,
+    /your\s+earnings\s+id/i,
+    /project\s+earnings\s+have\s+been\s+processed/i,
+    /funds\s+are\s+now\s+available\s+in\s+your\s+bank/i,
+    /freelance\s+payment\s+has\s+been\s+successfully\s+deposited/i,
+  ];
+
+  const hasForceRevenueKeywords = FORCE_REVENUE_KEYWORDS.some(
+    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
+  );
+
+  if (hasForceRevenueKeywords) {
+    console.log("🚨 Gmail webhook: FORCE REVENUE - Nuclear option triggered by clear revenue language");
+    return {
+      type: "revenue",
+      confidence: 0.99,
+      method: "force-revenue-keywords",
+    };
+  }
+
   // THIRD: Check for revenue patterns FIRST (higher priority than receipts)
   const REVENUE_PATTERNS = {
+    // Payment received patterns (highest priority)
+    paymentsReceived: [
+      /payment\s+received/i,
+      /money\s+received/i,
+      /funds\s+received/i,
+      /deposit\s+successful/i,
+      /transfer\s+(?:received|completed)/i,
+      /payout\s+processed/i,
+      /freelance.*payment.*received/i,
+      /project.*payment.*received/i,
+      /payment.*freelance.*project/i,
+      /invoice.*payment.*received/i,
+      /consulting.*payment.*received/i,
+      /payment.*processed.*invoice/i,
+      /client\s+payment.*received/i,
+      // NEW: Enhanced deposited/earnings language
+      /payment\s+deposited/i,
+      /money\s+(?:added|deposited)\s+to\s+your\s+account/i,
+      /funds.*(?:added|deposited).*your\s+account/i,
+      /deposited\s+to\s+your\s+(?:bank\s+)?account/i,
+      /has\s+been\s+(?:added|deposited)\s+to/i,
+      /your\s+earnings/i,
+      /earnings.*processed/i,
+      /project\s+earnings/i,
+      /freelance.*earnings/i,
+      /successfully\s+deposited/i,
+      /payment.*deposited.*your\s+account/i,
+      /funds\s+are\s+now\s+available/i,
+      /money\s+added\s+to\s+your\s+account/i,
+    ],
     // Indonesian refund patterns
     indonesianRefunds: [
       /pengembalian\s+(?:dana|uang)\s+(?:diproses|disetujui|berhasil|selesai)/i,
@@ -590,57 +676,63 @@ function classifyEmailDirect(
   };
 
   // Check revenue patterns
+  const hasPaymentReceived = REVENUE_PATTERNS.paymentsReceived.some(
+    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
+  );
   const hasIndonesianRefund = REVENUE_PATTERNS.indonesianRefunds.some(
     (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
   );
   const hasEnglishRefund = REVENUE_PATTERNS.refunds.some(
     (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
   );
-  const isFromRevenueDomain = REVENUE_PATTERNS.domains.some((pattern) =>
-    pattern.test(fromLower)
-  );
+  const isFromRevenueDomain = REVENUE_PATTERNS.domains.some((pattern) => pattern.test(fromLower));
 
-  // Calculate revenue confidence
+  // DEBUG: Log what we're checking
+  console.log("🔍 Gmail webhook revenue check:", {
+    subject: subjectLower,
+    hasPaymentReceived,
+    hasIndonesianRefund,
+    hasEnglishRefund,
+    isFromRevenueDomain,
+    bodySnippet: bodyLower.substring(0, 200),
+  });
+
+  // Calculate revenue confidence - LOWERED threshold for better catching
   let revenueConfidence = 0;
-  if (hasIndonesianRefund || hasEnglishRefund) {
+  if (hasPaymentReceived) {
+    revenueConfidence = 0.95; // Highest priority for payment received
+    console.log("💰 Gmail webhook: STRONG revenue signal detected - payment received patterns");
+  } else if (hasIndonesianRefund || hasEnglishRefund) {
     revenueConfidence = 0.9;
-  } else if (
-    isFromRevenueDomain &&
-    (bodyLower.includes("refund") || bodyLower.includes("pengembalian"))
-  ) {
+    console.log("💰 Gmail webhook: STRONG revenue signal detected - refund patterns");
+  } else if (isFromRevenueDomain && (bodyLower.includes("refund") || bodyLower.includes("pengembalian"))) {
     revenueConfidence = 0.8;
+    console.log("💰 Gmail webhook: Medium revenue signal detected - domain + refund");
   }
 
-  if (revenueConfidence > 0.7) {
-    console.log(
-      `💰 Revenue email detected with confidence ${revenueConfidence}`
-    );
+  // LOWERED threshold from 0.7 to 0.5 to catch more revenue emails
+  if (revenueConfidence > 0.5) {
+    console.log(`💰 Gmail webhook: Revenue email CONFIRMED with confidence ${revenueConfidence}`);
     return {
       type: "revenue",
       confidence: revenueConfidence,
       method: "pattern-based",
     };
+  } else {
+    console.log("🚫 Gmail webhook: No revenue patterns matched");
   }
 
   // FOURTH: Check for receipt patterns (only after revenue check)
-  const hasReceiptPattern = RECEIPT_PATTERNS.some(
-    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
-  );
+  const hasReceiptPattern = RECEIPT_PATTERNS.some((pattern) => pattern.test(subjectLower) || pattern.test(bodyLower));
 
   // Look for past-tense completion indicators (ONLY past tense, not future)
   const hasCompletionIndicators =
-    /(?:thank\s+you|thanks).*(?:for\s+your\s+)?(?:payment|purchase|order|transaction)/i.test(
-      bodyLower
-    ) ||
-    /(?:successful|completed|processed|confirmed|received).*(?:payment|purchase|order|transaction)/i.test(
-      bodyLower
-    ) ||
+    /(?:thank\s+you|thanks).*(?:for\s+your\s+)?(?:payment|purchase|order|transaction)/i.test(bodyLower) ||
+    /(?:successful|completed|processed|confirmed|received).*(?:payment|purchase|order|transaction)/i.test(bodyLower) ||
     /(?:payment|purchase|order|transaction).*(?:successful|completed|processed|confirmed|received)(?:\s+successfully)?/i.test(
       bodyLower
     ) ||
-    /(?:was|has\s+been|have\s+been)\s+(?:charged|paid|processed|completed|confirmed)/i.test(
-      bodyLower
-    ) ||
+    /(?:was|has\s+been|have\s+been)\s+(?:charged|paid|processed|completed|confirmed)/i.test(bodyLower) ||
     /(?:successfully\s+)?(?:charged|paid)(?:\s+successfully)$/i.test(bodyLower);
 
   if (hasReceiptPattern && hasCompletionIndicators) {
@@ -664,9 +756,7 @@ function classifyEmailDirect(
     /candidate/i,
   ];
 
-  const hasJobPattern = JOB_PATTERNS.some(
-    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
-  );
+  const hasJobPattern = JOB_PATTERNS.some((pattern) => pattern.test(subjectLower) || pattern.test(bodyLower));
 
   if (hasJobPattern) {
     console.log("💼 Job application email detected");

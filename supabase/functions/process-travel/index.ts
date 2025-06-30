@@ -2,25 +2,20 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-user-api-key",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-user-api-key",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 // Initialize Supabase with service role key
-const supabase = createClient(
-  Deno.env.get("SUPABASE_URL") ?? "",
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-    db: {
-      schema: "public",
-    },
-  }
-);
+const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "", {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+  db: {
+    schema: "public",
+  },
+});
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -30,14 +25,11 @@ Deno.serve(async (req) => {
   try {
     // Validate user API key from header
     const userApiKey = req.headers.get("x-user-api-key");
-    if (!userApiKey || !userApiKey.startsWith("ak_")) {
-      return new Response(
-        JSON.stringify({ error: "Missing or invalid user API key" }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+    if (!userApiKey || !(userApiKey.startsWith("ak_") || userApiKey.startsWith("api_"))) {
+      return new Response(JSON.stringify({ error: "Missing or invalid user API key" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Look up user by API key
@@ -50,13 +42,10 @@ Deno.serve(async (req) => {
 
     if (userError || !user) {
       console.error("User lookup error:", userError);
-      return new Response(
-        JSON.stringify({ error: "Invalid or inactive API key" }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "Invalid or inactive API key" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.log("✅ User authenticated:", user.email);
@@ -65,13 +54,10 @@ Deno.serve(async (req) => {
     const { messageId, subject, from, emailBody } = await req.json();
 
     if (!messageId || !subject || !from || !emailBody) {
-      return new Response(
-        JSON.stringify({ error: "Missing required email data" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "Missing required email data" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.log("✈️ Processing travel email:", { subject, from });
@@ -99,8 +85,8 @@ Deno.serve(async (req) => {
       );
     }
 
-    // Extract basic travel info locally (lightweight)
-    const travelData = extractBasicTravelInfo({
+    // Extract travel info using AI (100% AI-first approach)
+    const travelData = await extractTravelInfoWithAI({
       subject,
       from,
       body: emailBody,
@@ -108,10 +94,7 @@ Deno.serve(async (req) => {
       date: new Date().toISOString(),
     });
 
-    console.log(
-      "🧳 Extracted travel data:",
-      JSON.stringify(travelData, null, 2)
-    );
+    console.log("🧳 Extracted travel data:", JSON.stringify(travelData, null, 2));
 
     // Note: type field is now optional since we treat all travel emails uniformly
     // We can skip the type classification entirely for simplicity
@@ -193,119 +176,86 @@ Deno.serve(async (req) => {
 });
 
 /**
- * Extract basic travel information from email content (local processing)
+ * Extract travel information using AI (100% AI-first approach)
  */
-function extractBasicTravelInfo(emailContent: any) {
+async function extractTravelInfoWithAI(emailContent: any) {
   const subject = emailContent.subject || "";
   const body = emailContent.body || "";
-  const from = emailContent.from || "";
 
-  // Simple destination extraction patterns (including "time to" pattern)
-  const destinationPatterns = [
-    // Direct mentions in subject line (including "time to" pattern)
-    /(?:to|in|visit|destination|traveling to|flying to|trip to|time to|booking in|hotel in|flight to)\s+([A-Z][a-zA-Z\s]{2,25})/gi,
-    // City, Country format
-    /([A-Z][a-zA-Z\s]{2,15}),\s*([A-Z][a-zA-Z\s]{2,15})/g,
-    // Airport codes (common in travel emails)
-    /\b([A-Z]{3})\s*(?:airport|to|from|-)/gi,
-    // Hotel/booking specific patterns
-    /(?:hotel|accommodation|stay|booking).*(?:in|at|near)\s+([A-Z][a-zA-Z\s]{2,25})/gi,
-    // Flight specific patterns
-    /(?:flight|ticket|booking).*(?:to|destination)\s+([A-Z][a-zA-Z\s]{2,25})/gi,
-  ];
+  console.log("🤖 Using AI for travel data extraction...");
 
-  let destination: string | null = null;
+  try {
+    const { OpenAI } = await import("npm:openai@4");
+    const openai = new OpenAI({
+      apiKey: Deno.env.get("OPENAI_API_KEY") || "",
+    });
 
-  // Try to extract destination from subject first (most reliable)
-  for (const pattern of destinationPatterns) {
-    const matches = subject.match(pattern);
-    if (matches && matches.length > 0) {
-      let match = matches[0];
+    const prompt = `Extract travel information from this email. Return a JSON object with these fields:
+- destination: The main travel destination (CITY NAME ONLY - no neighborhoods, districts, or regions, e.g., "Miami", "Paris", "Tokyo")
+- travelers: Number of travelers (default 1 if not specified)
+- startDate: Start/departure date in format MM/DD/YYYY or YYYY-MM-DD (null if not found)
+- endDate: End/return date in format MM/DD/YYYY or YYYY-MM-DD (null if not found)
+- bookingReference: Booking/confirmation code (null if not found)
+- origin: Origin city/location (null if not found)
 
-      // Clean up the match
-      match = match
-        .replace(
-          /^(to|in|visit|destination|traveling to|flying to|trip to|time to|booking in|hotel in|flight to|hotel|accommodation|stay|booking|flight|ticket)\s*/i,
-          ""
-        )
-        .replace(/\s*(airport|to|from|-).*$/i, "")
-        .trim();
+Email to analyze:
+Subject: ${subject}
+Content: ${body}
 
-      if (
-        match.length > 2 &&
-        match.length < 50 &&
-        !match.match(/^(and|or|the|of|at|in|on)$/i)
-      ) {
-        destination = match;
-        console.log("🎯 Found destination in subject:", destination);
-        break;
-      }
+Examples:
+- "Miami Beach Hotels" → destination: "Miami" (city, not neighborhood)
+- "South Beach Resort" → destination: "Miami" (city, not district)
+- "Paris Flight Deals" → destination: "Paris"
+- "Tokyo Vacation Package" → destination: "Tokyo"
+- "Downtown Barcelona Hotel" → destination: "Barcelona" (city, not district)
+- "Manhattan Hotels" → destination: "New York" (city, not borough)
+
+IMPORTANT: Always extract the CITY name only, ignoring neighborhoods, districts, boroughs, or specific areas within cities.
+
+Return only valid JSON, no other text.`;
+
+    const completion = await openai.chat.completions.create({
+      model: "gpt-4o-mini",
+      messages: [{ role: "user", content: prompt }],
+      response_format: { type: "json_object" },
+      temperature: 0.1,
+    });
+
+    const result = completion.choices[0]?.message?.content;
+    if (!result) {
+      console.log("⚠️ AI extraction failed, using fallback");
+      return getFallbackTravelData();
     }
+
+    const extractedData = JSON.parse(result);
+    console.log("✅ AI extracted travel data:", JSON.stringify(extractedData, null, 2));
+
+    return {
+      destination: extractedData.destination || null,
+      travelers: extractedData.travelers || 1,
+      startDate: extractedData.startDate || null,
+      endDate: extractedData.endDate || null,
+      bookingReference: extractedData.bookingReference || null,
+      origin: extractedData.origin || null,
+    };
+  } catch (error) {
+    console.error("AI travel extraction error:", error);
+    console.log("🔄 Falling back to basic extraction");
+    return getFallbackTravelData();
   }
+}
 
-  // Extract traveler count
-  const travelerPatterns = [
-    /(\d+)\s*(?:traveler|passenger|guest|adult|person)/gi,
-    /(?:for|party of)\s*(\d+)/gi,
-    /(\d+)\s*(?:people|individuals)/gi,
-  ];
-
-  let travelers = 1;
-  const emailText = `${subject} ${body}`.toLowerCase();
-
-  for (const pattern of travelerPatterns) {
-    const matches = emailText.match(pattern);
-    if (matches && matches.length > 0) {
-      const numberMatch = matches[0].match(/(\d+)/);
-      if (numberMatch) {
-        const count = parseInt(numberMatch[1]);
-        if (count > 0 && count <= 20) {
-          travelers = count;
-          break;
-        }
-      }
-    }
-  }
-
-  // Simple date extraction (basic patterns)
-  const datePatterns = [
-    /(\d{1,2}[\/\-]\d{1,2}[\/\-]\d{2,4})/g,
-    /(\d{4}-\d{2}-\d{2})/g,
-  ];
-
-  const foundDates: string[] = [];
-  for (const pattern of datePatterns) {
-    const matches = emailText.match(pattern);
-    if (matches) {
-      foundDates.push(...matches.slice(0, 2)); // Max 2 dates
-    }
-  }
-
-  // Extract booking reference
-  const refPatterns = [
-    /(?:confirmation|booking|reference).*?([A-Z0-9]{6,})/gi,
-    /([A-Z0-9]{6,})/g,
-  ];
-
-  let bookingReference: string | null = null;
-  for (const pattern of refPatterns) {
-    const matches = emailText.match(pattern);
-    if (matches && matches.length > 0) {
-      const ref = matches[0].replace(/.*?([A-Z0-9]{6,}).*/, "$1");
-      if (ref.length >= 6 && ref.length <= 15) {
-        bookingReference = ref;
-        break;
-      }
-    }
-  }
-
+/**
+ * Fallback travel data when AI extraction fails
+ */
+function getFallbackTravelData() {
   return {
-    destination: destination,
-    travelers: travelers,
-    startDate: foundDates.length > 0 ? foundDates[0] : null,
-    endDate: foundDates.length > 1 ? foundDates[1] : null,
-    bookingReference: bookingReference,
-    origin: null, // We'll keep this simple for now
+    destination: null,
+    travelers: 1,
+    startDate: null,
+    endDate: null,
+    bookingReference: null,
+    origin: null,
   };
 }
 

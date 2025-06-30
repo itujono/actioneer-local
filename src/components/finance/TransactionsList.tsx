@@ -114,10 +114,14 @@ export function TransactionsList({
 
         <div className="mb-6 pt-6 max-w-lg mt-6 border-t">
           <p className="text-white font-medium text-sm">
-            <strong>Don't have any receipts nor income emails yet?</strong> Send yourself a test receipt to watch your
-            spending get tracked automatically!
+            <strong>Don't have any financial emails yet?</strong> Send yourself test emails to watch your spending and
+            income get tracked automatically!
           </p>
-          <TestEmailButton category="receipt" variant="primary" className="mt-4" />
+          <div className="flex flex-col sm:flex-row items-center gap-3 mt-4">
+            <TestEmailButton category="receipt" variant="primary" className="flex-1" />
+            <span className="text-white">or</span>
+            <TestEmailButton category="revenue" variant="primary" className="flex-1" />
+          </div>
         </div>
       </div>
     );

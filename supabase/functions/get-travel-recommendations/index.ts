@@ -5,8 +5,7 @@ const AMADEUS_BASE_URL = "https://api.amadeus.com";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
@@ -103,20 +102,14 @@ async function getAmadeusToken(): Promise<string> {
   const apiKey = Deno.env.get("AMADEUS_CLIENT_ID");
   const apiSecret = Deno.env.get("AMADEUS_CLIENT_SECRET");
 
-  console.log(
-    `🔑 Getting Amadeus token with client_id: ${
-      apiKey ? apiKey.substring(0, 8) + "..." : "MISSING"
-    }`
-  );
+  console.log(`🔑 Getting Amadeus token with client_id: ${apiKey ? apiKey.substring(0, 8) + "..." : "MISSING"}`);
   console.log(`🔑 Client secret present: ${apiSecret ? "YES" : "NO"}`);
 
   if (!apiKey || !apiSecret) {
     throw new Error("Amadeus API credentials not configured");
   }
 
-  console.log(
-    `🔑 Requesting token from: ${AMADEUS_BASE_URL}/v1/security/oauth2/token`
-  );
+  console.log(`🔑 Requesting token from: ${AMADEUS_BASE_URL}/v1/security/oauth2/token`);
 
   const response = await fetch(`${AMADEUS_BASE_URL}/v1/security/oauth2/token`, {
     method: "POST",
@@ -134,18 +127,12 @@ async function getAmadeusToken(): Promise<string> {
 
   if (!response.ok) {
     const errorText = await response.text();
-    console.log(
-      `🔑 Token error: ${response.status} ${response.statusText} ${errorText}`
-    );
-    throw new Error(
-      `Failed to get Amadeus token: ${response.statusText} - ${errorText}`
-    );
+    console.log(`🔑 Token error: ${response.status} ${response.statusText} ${errorText}`);
+    throw new Error(`Failed to get Amadeus token: ${response.statusText} - ${errorText}`);
   }
 
   const data: AmadeusTokenResponse = await response.json();
-  console.log(
-    `🔑 Token received successfully, expires in: ${data.expires_in} seconds`
-  );
+  console.log(`🔑 Token received successfully, expires in: ${data.expires_in} seconds`);
   return data.access_token;
 }
 
@@ -153,9 +140,7 @@ async function searchCityCoordinates(destination: string, token: string) {
   console.log(`🔍 Searching for city coordinates: ${destination}`);
 
   // Try city search first
-  const cityUrl = new URL(
-    `${AMADEUS_BASE_URL}/v1/reference-data/locations/cities`
-  );
+  const cityUrl = new URL(`${AMADEUS_BASE_URL}/v1/reference-data/locations/cities`);
   cityUrl.searchParams.set("keyword", destination);
   cityUrl.searchParams.set("max", "1");
 
@@ -183,17 +168,13 @@ async function searchCityCoordinates(destination: string, token: string) {
     }
   } else {
     const cityError = await cityResponse.text();
-    console.log(
-      `🔍 City search failed: ${cityResponse.status} ${cityResponse.statusText} ${cityError}`
-    );
+    console.log(`🔍 City search failed: ${cityResponse.status} ${cityResponse.statusText} ${cityError}`);
   }
 
   // If city search fails, try airport/location search as fallback
   console.log("City search failed, trying general location search...");
 
-  const locationUrl = new URL(
-    `${AMADEUS_BASE_URL}/v1/reference-data/locations`
-  );
+  const locationUrl = new URL(`${AMADEUS_BASE_URL}/v1/reference-data/locations`);
   locationUrl.searchParams.set("keyword", destination);
   locationUrl.searchParams.set("subType", "AIRPORT,CITY");
   locationUrl.searchParams.set("page[limit]", "1");
@@ -208,18 +189,11 @@ async function searchCityCoordinates(destination: string, token: string) {
 
   if (locationResponse.ok) {
     const locationData = await locationResponse.json();
-    console.log(
-      "Location search result:",
-      JSON.stringify(locationData, null, 2)
-    );
+    console.log("Location search result:", JSON.stringify(locationData, null, 2));
 
     if (locationData.data && locationData.data.length > 0) {
       const location = locationData.data[0];
-      if (
-        location.geoCode &&
-        location.geoCode.latitude &&
-        location.geoCode.longitude
-      ) {
+      if (location.geoCode && location.geoCode.latitude && location.geoCode.longitude) {
         return {
           lat: parseFloat(location.geoCode.latitude),
           lng: parseFloat(location.geoCode.longitude),
@@ -232,10 +206,7 @@ async function searchCityCoordinates(destination: string, token: string) {
   // If both searches fail, provide fallback coordinates for popular destinations
   const fallbackCoordinates = getFallbackCoordinates(destination);
   if (fallbackCoordinates) {
-    console.log(
-      `Using fallback coordinates for ${destination}:`,
-      fallbackCoordinates
-    );
+    console.log(`Using fallback coordinates for ${destination}:`, fallbackCoordinates);
     return fallbackCoordinates;
   }
 
@@ -259,89 +230,128 @@ function parseDestinationFromText(text: string): string {
     china: "beijing",
   };
 
-  // Simplified approach - look for known city names first (most reliable)
+  // Enhanced city destinations with common variations and neighborhoods
   const knownDestinations = [
-    "Singapore",
-    "Thailand",
-    "Bangkok",
-    "Turkey",
-    "Istanbul",
-    "Ankara",
-    "London",
-    "Paris",
-    "New York",
-    "Tokyo",
-    "Sydney",
-    "Berlin",
-    "Madrid",
-    "Rome",
-    "Amsterdam",
-    "Barcelona",
-    "Milan",
-    "Vienna",
-    "Prague",
-    "Budapest",
-    "Jakarta",
-    "Manila",
-    "Kuala Lumpur",
-    "Hong Kong",
-    "Taipei",
-    "Seoul",
-    "Beijing",
-    "Shanghai",
-    "Mumbai",
-    "Delhi",
+    // US Cities
+    { main: "Miami", variations: ["miami", "miami beach", "south beach"] },
+    { main: "New York", variations: ["new york", "nyc", "manhattan", "brooklyn", "queens"] },
+    { main: "Los Angeles", variations: ["los angeles", "la", "hollywood", "beverly hills"] },
+    { main: "San Francisco", variations: ["san francisco", "sf", "silicon valley"] },
+    { main: "Las Vegas", variations: ["las vegas", "vegas"] },
+    { main: "Chicago", variations: ["chicago"] },
+    { main: "Boston", variations: ["boston"] },
+    { main: "Seattle", variations: ["seattle"] },
+
+    // International Cities
+    { main: "Singapore", variations: ["singapore"] },
+    { main: "Bangkok", variations: ["bangkok"] },
+    { main: "Thailand", variations: ["thailand"] },
+    { main: "Istanbul", variations: ["istanbul"] },
+    { main: "Turkey", variations: ["turkey"] },
+    { main: "Ankara", variations: ["ankara"] },
+    { main: "London", variations: ["london"] },
+    { main: "Paris", variations: ["paris"] },
+    { main: "Tokyo", variations: ["tokyo"] },
+    { main: "Sydney", variations: ["sydney"] },
+    { main: "Berlin", variations: ["berlin"] },
+    { main: "Madrid", variations: ["madrid"] },
+    { main: "Rome", variations: ["rome"] },
+    { main: "Amsterdam", variations: ["amsterdam"] },
+    { main: "Barcelona", variations: ["barcelona"] },
+    { main: "Milan", variations: ["milan"] },
+    { main: "Vienna", variations: ["vienna"] },
+    { main: "Prague", variations: ["prague"] },
+    { main: "Budapest", variations: ["budapest"] },
+    { main: "Jakarta", variations: ["jakarta"] },
+    { main: "Manila", variations: ["manila"] },
+    { main: "Kuala Lumpur", variations: ["kuala lumpur", "kl"] },
+    { main: "Hong Kong", variations: ["hong kong"] },
+    { main: "Taipei", variations: ["taipei"] },
+    { main: "Seoul", variations: ["seoul"] },
+    { main: "Beijing", variations: ["beijing"] },
+    { main: "Shanghai", variations: ["shanghai"] },
+    { main: "Mumbai", variations: ["mumbai", "bombay"] },
+    { main: "Delhi", variations: ["delhi", "new delhi"] },
   ];
 
+  // Clean the input text and make lowercase for matching
+  const cleanText = text
+    .toLowerCase()
+    .replace(/[🌴🏖️✈️🏨🎯🧳]/g, "") // Remove travel emojis
+    .replace(/[^\w\s]/g, " ") // Replace non-word characters with spaces
+    .replace(/\s+/g, " ") // Normalize spaces
+    .trim();
+
+  console.log(`📍 Cleaned text for matching: "${cleanText}"`);
+
+  // First, try exact and partial matches with known destinations
   for (const dest of knownDestinations) {
-    if (text.toLowerCase().includes(dest.toLowerCase())) {
-      console.log(`📍 Found destination by keyword: "${dest}"`);
+    for (const variation of dest.variations) {
+      if (cleanText.includes(variation)) {
+        console.log(`📍 Found destination by variation: "${variation}" → "${dest.main}"`);
 
-      // If it's a country, map it to the main city for better hotel results
-      const destLower = dest.toLowerCase();
-      if (countryToMainCity[destLower]) {
-        const mainCity = countryToMainCity[destLower];
-        console.log(
-          `📍 Mapping country "${dest}" to main city "${mainCity}" for hotel search`
-        );
-        return mainCity;
+        // If it's a country, map it to the main city for better hotel results
+        const destLower = dest.main.toLowerCase();
+        if (countryToMainCity[destLower]) {
+          const mainCity = countryToMainCity[destLower];
+          console.log(`📍 Mapping country "${dest.main}" to main city "${mainCity}" for hotel search`);
+          return mainCity;
+        }
+
+        return dest.main;
       }
-
-      return dest;
     }
   }
 
-  // Pattern-based extraction as fallback
+  // Enhanced pattern-based extraction for promotional emails
   const destinationPatterns = [
-    // Look for "to [destination]" patterns with flexible ending
-    /(?:to|in|visit|trip to|holiday to|itinerary to)\s+([A-Za-z\s&,]+?)(?:\s+🇸🇬|\s+🇹🇭|$|\s+&)/i,
+    // Hotel/destination patterns in promotional emails
+    /(?:off|discount on|deals?)\s+([a-z\s]+?)\s+(?:hotel|resort|beach|vacation|trip)/i,
+    /([a-z\s]+?)\s+(?:hotel|resort|beach|vacation|trip|deal|package)/i,
+    // Standard travel patterns
+    /(?:to|in|visit|trip to|holiday to|itinerary to)\s+([a-z\s&,]+?)(?:\s+|$)/i,
     // Direct city/country names in context
-    /(Singapore|Thailand|London|Paris|Bangkok)/gi,
+    /\b(singapore|thailand|london|paris|bangkok|miami|tokyo|sydney)\b/gi,
   ];
 
   for (const pattern of destinationPatterns) {
-    const match = text.match(pattern);
+    const match = cleanText.match(pattern);
     if (match) {
       let destination = match[1] || match[0];
+
       // Clean up the destination
       destination = destination
         .replace(/[&,]/g, "") // Remove & and commas
         .replace(/\s+/g, " ") // Normalize spaces
         .trim();
 
-      // If multiple destinations, take the first one
+      // Handle multi-word destinations
       if (destination.includes(" ")) {
         const words = destination.split(" ");
-        // Look for known cities/countries
+
+        // Look for known city names in the words
+        for (const dest of knownDestinations) {
+          for (const variation of dest.variations) {
+            if (words.some((word) => word === variation)) {
+              console.log(`📍 Found destination in multi-word: "${variation}" → "${dest.main}"`);
+              return dest.main;
+            }
+          }
+        }
+
+        // Take the first meaningful word (length > 2, alphabetic only)
         for (const word of words) {
-          if (word.length > 2 && /^[A-Za-z]+$/.test(word)) {
+          if (word.length > 2 && /^[a-z]+$/.test(word)) {
             destination = word;
             break;
           }
         }
       }
 
-      console.log(`📍 Extracted destination: "${destination}"`);
+      // Capitalize first letter
+      destination = destination.charAt(0).toUpperCase() + destination.slice(1);
+
+      console.log(`📍 Extracted destination from pattern: "${destination}"`);
       return destination;
     }
   }
@@ -350,13 +360,8 @@ function parseDestinationFromText(text: string): string {
   return text;
 }
 
-function getFallbackCoordinates(
-  destination: string
-): { lat: number; lng: number; cityCode?: string } | null {
-  const fallbacks: Record<
-    string,
-    { lat: number; lng: number; cityCode?: string }
-  > = {
+function getFallbackCoordinates(destination: string): { lat: number; lng: number; cityCode?: string } | null {
+  const fallbacks: Record<string, { lat: number; lng: number; cityCode?: string }> = {
     // Popular destinations with known coordinates
     singapore: { lat: 1.3521, lng: 103.8198, cityCode: "SIN" },
     thailand: { lat: 13.7563, lng: 100.5018, cityCode: "BKK" }, // Bangkok as main city
@@ -382,18 +387,10 @@ function getFallbackCoordinates(
 async function getHotelSentiments(
   hotelIds: string[],
   token: string
-): Promise<
-  Record<
-    string,
-    { sentimentScore: number; reviewCount: number; overallRating: number }
-  >
-> {
+): Promise<Record<string, { sentimentScore: number; reviewCount: number; overallRating: number }>> {
   if (hotelIds.length === 0) return {};
 
-  const sentiments: Record<
-    string,
-    { sentimentScore: number; reviewCount: number; overallRating: number }
-  > = {};
+  const sentiments: Record<string, { sentimentScore: number; reviewCount: number; overallRating: number }> = {};
 
   // Amadeus sentiments API has a limit - let's batch requests with max 3 hotels per request
   const batchSize = 3;
@@ -403,22 +400,14 @@ async function getHotelSentiments(
     batches.push(hotelIds.slice(i, i + batchSize));
   }
 
-  console.log(
-    `🌟 Fetching sentiments for ${hotelIds.length} hotels in ${batches.length} batches of max ${batchSize}`
-  );
+  console.log(`🌟 Fetching sentiments for ${hotelIds.length} hotels in ${batches.length} batches of max ${batchSize}`);
 
   // Process batches sequentially to avoid rate limiting
   for (let batchIndex = 0; batchIndex < batches.length; batchIndex++) {
     const batch = batches[batchIndex];
-    console.log(
-      `🌟 Processing batch ${batchIndex + 1}/${batches.length}: ${batch.join(
-        ", "
-      )}`
-    );
+    console.log(`🌟 Processing batch ${batchIndex + 1}/${batches.length}: ${batch.join(", ")}`);
 
-    const sentimentsUrl = `${AMADEUS_BASE_URL}/v2/e-reputation/hotel-sentiments?hotelIds=${batch.join(
-      ","
-    )}`;
+    const sentimentsUrl = `${AMADEUS_BASE_URL}/v2/e-reputation/hotel-sentiments?hotelIds=${batch.join(",")}`;
 
     try {
       const response = await fetch(sentimentsUrl, {
@@ -427,16 +416,11 @@ async function getHotelSentiments(
         },
       });
 
-      console.log(
-        `🌟 Batch ${batchIndex + 1} response status: ${response.status}`
-      );
+      console.log(`🌟 Batch ${batchIndex + 1} response status: ${response.status}`);
 
       if (response.ok) {
         const data = await response.json();
-        console.log(
-          `🌟 Batch ${batchIndex + 1} response:`,
-          JSON.stringify(data, null, 2)
-        );
+        console.log(`🌟 Batch ${batchIndex + 1} response:`, JSON.stringify(data, null, 2));
 
         if (data.data && Array.isArray(data.data)) {
           data.data.forEach((sentiment: any) => {
@@ -451,12 +435,7 @@ async function getHotelSentiments(
         }
       } else {
         const errorText = await response.text();
-        console.error(
-          `🌟 Batch ${batchIndex + 1} failed: ${response.status} ${
-            response.statusText
-          }`,
-          errorText
-        );
+        console.error(`🌟 Batch ${batchIndex + 1} failed: ${response.status} ${response.statusText}`, errorText);
         // Continue with other batches even if one fails
       }
 
@@ -470,11 +449,7 @@ async function getHotelSentiments(
     }
   }
 
-  console.log(
-    `🌟 Final: Processed sentiments for ${
-      Object.keys(sentiments).length
-    } out of ${hotelIds.length} hotels`
-  );
+  console.log(`🌟 Final: Processed sentiments for ${Object.keys(sentiments).length} out of ${hotelIds.length} hotels`);
   return sentiments;
 }
 
@@ -487,17 +462,11 @@ async function searchHotels(
 ): Promise<RecommendationItem[]> {
   // For hotel search, we need check-in and check-out dates
   // Default to next week (7 days from now) and 1 night stay
-  const defaultCheckIn =
-    checkIn ||
-    new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
-  const defaultCheckOut =
-    checkOut ||
-    new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const defaultCheckIn = checkIn || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
+  const defaultCheckOut = checkOut || new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString().split("T")[0];
 
   console.log(
-    `🏨 Hotel search params: lat=${coordinates.lat}, lng=${
-      coordinates.lng
-    }, cityCode=${
+    `🏨 Hotel search params: lat=${coordinates.lat}, lng=${coordinates.lng}, cityCode=${
       (coordinates as any).cityCode || "N/A"
     }, checkIn=${defaultCheckIn}, checkOut=${defaultCheckOut}, adults=${adults}`
   );
@@ -514,9 +483,7 @@ async function searchHotels(
   // Add city code search if available
   if ((coordinates as any).cityCode) {
     hotelRefUrls.unshift(
-      `${AMADEUS_BASE_URL}/v1/reference-data/locations/hotels/by-city?cityCode=${
-        (coordinates as any).cityCode
-      }`
+      `${AMADEUS_BASE_URL}/v1/reference-data/locations/hotels/by-city?cityCode=${(coordinates as any).cityCode}`
     );
   }
 
@@ -530,16 +497,11 @@ async function searchHotels(
       },
     });
 
-    console.log(
-      `🏨 Hotel reference ${i + 1} response status: ${response.status}`
-    );
+    console.log(`🏨 Hotel reference ${i + 1} response status: ${response.status}`);
 
     if (response.ok) {
       const data = await response.json();
-      console.log(
-        `🏨 Hotel reference ${i + 1} response:`,
-        JSON.stringify(data, null, 2)
-      );
+      console.log(`🏨 Hotel reference ${i + 1} response:`, JSON.stringify(data, null, 2));
 
       if (data.data && data.data.length > 0) {
         hotelIds = data.data.slice(0, 10).map((hotel: any) => hotel.hotelId);
@@ -548,19 +510,12 @@ async function searchHotels(
       }
     } else {
       const errorText = await response.text();
-      console.error(
-        `🏨 Hotel reference ${i + 1} failed: ${response.status} ${
-          response.statusText
-        }`,
-        errorText
-      );
+      console.error(`🏨 Hotel reference ${i + 1} failed: ${response.status} ${response.statusText}`, errorText);
     }
   }
 
   if (hotelIds.length === 0) {
-    console.warn(
-      `🏨 No hotel IDs found for coordinates: lat=${coordinates.lat}, lng=${coordinates.lng}`
-    );
+    console.warn(`🏨 No hotel IDs found for coordinates: lat=${coordinates.lat}, lng=${coordinates.lng}`);
     return [];
   }
 
@@ -584,135 +539,98 @@ async function searchHotels(
 
   if (offersResponse.ok) {
     const offersData = await offersResponse.json();
-    console.log(
-      `🏨 Hotel offers response:`,
-      JSON.stringify(offersData, null, 2)
-    );
+    console.log(`🏨 Hotel offers response:`, JSON.stringify(offersData, null, 2));
 
     // Wait for sentiments data
     const sentiments = await sentimentsPromise;
     console.log(`🌟 Final sentiments object:`, sentiments);
-    console.log(
-      `🌟 Number of hotels with sentiment data: ${
-        Object.keys(sentiments).length
-      }`
-    );
+    console.log(`🌟 Number of hotels with sentiment data: ${Object.keys(sentiments).length}`);
 
     if (offersData.data && offersData.data.length > 0) {
-      return offersData.data
-        .slice(0, 6)
-        .map((hotelOffer: any): RecommendationItem => {
-          const hotel = hotelOffer.hotel;
-          const offer = hotelOffer.offers?.[0];
+      return offersData.data.slice(0, 6).map((hotelOffer: any): RecommendationItem => {
+        const hotel = hotelOffer.hotel;
+        const offer = hotelOffer.offers?.[0];
 
-          // Extract amenities from hotel data
-          const amenities: string[] = [];
-          if (hotel.amenities) {
-            hotel.amenities.forEach((amenity: any) => {
-              if (amenity.description) {
-                amenities.push(amenity.description);
-              }
-            });
-          }
-
-          // Determine area/district from address
-          console.log(
-            `🏨 Hotel address data:`,
-            JSON.stringify(hotel.address, null, 2)
-          );
-
-          let area: string | undefined = undefined;
-          if (hotel.address) {
-            if (hotel.address.postalCode) {
-              area = `${hotel.address.cityName || ""} ${
-                hotel.address.postalCode
-              }`.trim();
-            } else if (hotel.address.lines && hotel.address.lines.length > 0) {
-              // Use first line of address as area if no postal code
-              area = hotel.address.lines[0];
-            } else if (hotel.address.cityName) {
-              area = hotel.address.cityName;
+        // Extract amenities from hotel data
+        const amenities: string[] = [];
+        if (hotel.amenities) {
+          hotel.amenities.forEach((amenity: any) => {
+            if (amenity.description) {
+              amenities.push(amenity.description);
             }
+          });
+        }
+
+        // Determine area/district from address
+        console.log(`🏨 Hotel address data:`, JSON.stringify(hotel.address, null, 2));
+
+        let area: string | undefined = undefined;
+        if (hotel.address) {
+          if (hotel.address.postalCode) {
+            area = `${hotel.address.cityName || ""} ${hotel.address.postalCode}`.trim();
+          } else if (hotel.address.lines && hotel.address.lines.length > 0) {
+            // Use first line of address as area if no postal code
+            area = hotel.address.lines[0];
+          } else if (hotel.address.cityName) {
+            area = hotel.address.cityName;
           }
+        }
 
-          // Get sentiment data for this hotel
-          const hotelSentiment = sentiments[hotel.hotelId];
-          console.log(`🏨 Hotel ${hotel.hotelId} (${hotel.name}):`);
-          console.log(`  - Basic rating: ${hotel.rating}`);
-          console.log(`  - Sentiment data:`, hotelSentiment);
-          console.log(
-            `  - Final rating: ${
-              hotelSentiment?.overallRating ||
-              (hotel.rating ? parseFloat(hotel.rating) : undefined)
-            }`
-          );
+        // Get sentiment data for this hotel
+        const hotelSentiment = sentiments[hotel.hotelId];
+        console.log(`🏨 Hotel ${hotel.hotelId} (${hotel.name}):`);
+        console.log(`  - Basic rating: ${hotel.rating}`);
+        console.log(`  - Sentiment data:`, hotelSentiment);
+        console.log(
+          `  - Final rating: ${hotelSentiment?.overallRating || (hotel.rating ? parseFloat(hotel.rating) : undefined)}`
+        );
 
-          return {
-            id: hotel.hotelId,
-            name: hotel.name,
-            type: "hotel" as const,
-            description: hotel.description?.text,
-            price: offer?.price
-              ? {
-                  amount: offer.price.total,
-                  currency: offer.price.currency,
-                  perNight: true,
-                }
-              : undefined,
-            // Use sentiment-based rating if available, fallback to basic rating
-            rating:
-              hotelSentiment?.overallRating ||
-              (hotel.rating ? parseFloat(hotel.rating) : undefined),
-            address: hotel.address
-              ? `${hotel.address.lines?.join(", ") || ""}, ${
-                  hotel.address.cityName || ""
-                }`.trim()
-              : undefined,
-            coordinates: {
-              lat: parseFloat(hotel.latitude || coordinates.lat),
-              lng: parseFloat(hotel.longitude || coordinates.lng),
-            },
-            // Enhanced hotel information
-            amenities: amenities.length > 0 ? amenities.slice(0, 5) : undefined, // Limit to top 5
-            area,
-            chain: hotel.chainCode || undefined,
-            starRating: hotel.rating
-              ? Math.round(parseFloat(hotel.rating))
-              : undefined,
-            roomType:
-              offer?.room?.description?.text ||
-              offer?.room?.typeEstimated?.category,
-            cancellationPolicy:
-              offer?.policies?.cancellation?.type || undefined,
-            // Enhanced rating information from sentiments API
-            sentimentScore: hotelSentiment?.sentimentScore,
-            reviewCount: hotelSentiment?.reviewCount,
-            overallRating: hotelSentiment?.overallRating,
-            // Extract image URL if available
-            imageUrl: hotel.media?.[0]?.uri || hotel.pictures?.[0] || undefined,
-            // Generate booking URL for popular booking sites
-            bookingUrl: `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(
-              hotel.name + " " + (hotel.address?.cityName || "")
-            )}&checkin=${
-              checkIn ||
-              new Date(Date.now() + 7 * 24 * 60 * 60 * 1000)
-                .toISOString()
-                .split("T")[0]
-            }&checkout=${
-              checkOut ||
-              new Date(Date.now() + 8 * 24 * 60 * 60 * 1000)
-                .toISOString()
-                .split("T")[0]
-            }`,
-          };
-        });
+        return {
+          id: hotel.hotelId,
+          name: hotel.name,
+          type: "hotel" as const,
+          description: hotel.description?.text,
+          price: offer?.price
+            ? {
+                amount: offer.price.total,
+                currency: offer.price.currency,
+                perNight: true,
+              }
+            : undefined,
+          // Use sentiment-based rating if available, fallback to basic rating
+          rating: hotelSentiment?.overallRating || (hotel.rating ? parseFloat(hotel.rating) : undefined),
+          address: hotel.address
+            ? `${hotel.address.lines?.join(", ") || ""}, ${hotel.address.cityName || ""}`.trim()
+            : undefined,
+          coordinates: {
+            lat: parseFloat(hotel.latitude || coordinates.lat),
+            lng: parseFloat(hotel.longitude || coordinates.lng),
+          },
+          // Enhanced hotel information
+          amenities: amenities.length > 0 ? amenities.slice(0, 5) : undefined, // Limit to top 5
+          area,
+          chain: hotel.chainCode || undefined,
+          starRating: hotel.rating ? Math.round(parseFloat(hotel.rating)) : undefined,
+          roomType: offer?.room?.description?.text || offer?.room?.typeEstimated?.category,
+          cancellationPolicy: offer?.policies?.cancellation?.type || undefined,
+          // Enhanced rating information from sentiments API
+          sentimentScore: hotelSentiment?.sentimentScore,
+          reviewCount: hotelSentiment?.reviewCount,
+          overallRating: hotelSentiment?.overallRating,
+          // Extract image URL if available
+          imageUrl: hotel.media?.[0]?.uri || hotel.pictures?.[0] || undefined,
+          // Generate booking URL for popular booking sites
+          bookingUrl: `https://www.booking.com/searchresults.html?ss=${encodeURIComponent(
+            hotel.name + " " + (hotel.address?.cityName || "")
+          )}&checkin=${
+            checkIn || new Date(Date.now() + 7 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]
+          }&checkout=${checkOut || new Date(Date.now() + 8 * 24 * 60 * 60 * 1000).toISOString().split("T")[0]}`,
+        };
+      });
     }
   } else {
     const errorText = await offersResponse.text();
-    console.error(
-      `🏨 Hotel offers search failed: ${offersResponse.status} ${offersResponse.statusText}`,
-      errorText
-    );
+    console.error(`🏨 Hotel offers search failed: ${offersResponse.status} ${offersResponse.statusText}`, errorText);
   }
 
   console.warn(`🏨 Hotel search completed but no offers found`);
@@ -723,9 +641,7 @@ async function searchActivities(
   coordinates: { lat: number; lng: number },
   token: string
 ): Promise<RecommendationItem[]> {
-  console.log(
-    `🎭 Activities search params: lat=${coordinates.lat}, lng=${coordinates.lng}`
-  );
+  console.log(`🎭 Activities search params: lat=${coordinates.lat}, lng=${coordinates.lng}`);
 
   // Use the new Activities API endpoint
   const activitiesUrl = `${AMADEUS_BASE_URL}/v1/shopping/activities?latitude=${coordinates.lat}&longitude=${coordinates.lng}&radius=10`;
@@ -746,59 +662,49 @@ async function searchActivities(
       console.log(`🎭 Activities response:`, JSON.stringify(data, null, 2));
 
       if (data.data && data.data.length > 0) {
-        return data.data
-          .slice(0, 8)
-          .map((activity: any): RecommendationItem => {
-            // Extract price information if available
-            let price:
-              | { amount: string; currency: string; perNight: boolean }
-              | undefined = undefined;
-            if (activity.price && activity.price.amount) {
-              price = {
-                amount: activity.price.amount,
-                currency: activity.price.currencyCode || "EUR",
-                perNight: false,
-              };
-            }
-
-            // Extract rating from review scores if available
-            let rating: number | undefined = undefined;
-            if (activity.rating) {
-              rating = parseFloat(activity.rating);
-            }
-
-            return {
-              id: activity.id,
-              name: activity.name,
-              type: "attraction" as const,
-              description: activity.shortDescription || activity.description,
-              price,
-              rating,
-              category:
-                activity.categories?.[0] || activity.category || "ACTIVITY",
-              coordinates: {
-                lat: parseFloat(activity.geoCode?.latitude || coordinates.lat),
-                lng: parseFloat(activity.geoCode?.longitude || coordinates.lng),
-              },
-              bookingUrl: activity.bookingLink,
-              imageUrl: activity.pictures?.[0] || undefined,
+        return data.data.slice(0, 8).map((activity: any): RecommendationItem => {
+          // Extract price information if available
+          let price: { amount: string; currency: string; perNight: boolean } | undefined = undefined;
+          if (activity.price && activity.price.amount) {
+            price = {
+              amount: activity.price.amount,
+              currency: activity.price.currencyCode || "EUR",
+              perNight: false,
             };
-          });
+          }
+
+          // Extract rating from review scores if available
+          let rating: number | undefined = undefined;
+          if (activity.rating) {
+            rating = parseFloat(activity.rating);
+          }
+
+          return {
+            id: activity.id,
+            name: activity.name,
+            type: "attraction" as const,
+            description: activity.shortDescription || activity.description,
+            price,
+            rating,
+            category: activity.categories?.[0] || activity.category || "ACTIVITY",
+            coordinates: {
+              lat: parseFloat(activity.geoCode?.latitude || coordinates.lat),
+              lng: parseFloat(activity.geoCode?.longitude || coordinates.lng),
+            },
+            bookingUrl: activity.bookingLink,
+            imageUrl: activity.pictures?.[0] || undefined,
+          };
+        });
       }
     } else {
       const errorText = await response.text();
-      console.error(
-        `🎭 Activities search failed: ${response.status} ${response.statusText}`,
-        errorText
-      );
+      console.error(`🎭 Activities search failed: ${response.status} ${response.statusText}`, errorText);
     }
   } catch (error) {
     console.error(`🎭 Activities search error:`, error);
   }
 
-  console.warn(
-    `🎭 Activities search failed for coordinates: lat=${coordinates.lat}, lng=${coordinates.lng}`
-  );
+  console.warn(`🎭 Activities search failed for coordinates: lat=${coordinates.lat}, lng=${coordinates.lng}`);
 
   // Return some mock activities if API is completely unavailable
   console.log(`🎭 Returning mock activities as fallback`);
@@ -828,24 +734,18 @@ serve(async (req) => {
   }
 
   try {
-    const { destination, checkIn, checkOut, travelers }: TravelRequest =
-      await req.json();
+    const { destination, checkIn, checkOut, travelers }: TravelRequest = await req.json();
 
     if (!destination) {
-      return new Response(
-        JSON.stringify({ error: "Destination is required" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "Destination is required" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Parse the actual destination from the email subject/text
     const parsedDestination = parseDestinationFromText(destination);
-    console.log(
-      `🎯 Original: "${destination}" → Parsed: "${parsedDestination}"`
-    );
+    console.log(`🎯 Original: "${destination}" → Parsed: "${parsedDestination}"`);
 
     // Get Amadeus access token
     const token = await getAmadeusToken();
@@ -864,26 +764,15 @@ serve(async (req) => {
 
     // Search for both hotels and activities in parallel
     console.log(`🏨 Starting hotel search for ${parsedDestination}...`);
-    const hotelsPromise = searchHotels(
-      cityInfo,
-      token,
-      checkIn,
-      checkOut,
-      travelers
-    );
+    const hotelsPromise = searchHotels(cityInfo, token, checkIn, checkOut, travelers);
 
     console.log(`🎭 Starting activities search for ${parsedDestination}...`);
     const activitiesPromise = searchActivities(cityInfo, token);
 
     // Wait for both searches to complete
-    const [hotels, attractions] = await Promise.all([
-      hotelsPromise,
-      activitiesPromise,
-    ]);
+    const [hotels, attractions] = await Promise.all([hotelsPromise, activitiesPromise]);
 
-    console.log(
-      `📊 Results: ${hotels.length} hotels, ${attractions.length} activities found`
-    );
+    console.log(`📊 Results: ${hotels.length} hotels, ${attractions.length} activities found`);
 
     const response: RecommendationsResponse = {
       hotels,

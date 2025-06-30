@@ -43,6 +43,7 @@ export interface ClassificationResult {
   type: string;
   confidence: number;
   method?: string;
+  reasoning?: string;
 }
 
 export interface ProcessingResult {

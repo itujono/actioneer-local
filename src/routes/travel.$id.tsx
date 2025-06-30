@@ -1,14 +1,7 @@
 import { createRoute } from "@tanstack/react-router";
 import { rootRoute } from "./root";
 import { useQuery } from "@tanstack/react-query";
-import {
-  MapPin,
-  Camera,
-  Hotel,
-  Loader2,
-  AlertCircle,
-  ArrowLeft,
-} from "lucide-react";
+import { MapPin, Camera, Hotel, Loader2, AlertCircle, ArrowLeft } from "lucide-react";
 import { DashboardContainer } from "../components/dashboard";
 import { Button } from "../components/ui/button";
 import { useAuth } from "../hooks/useAuth";
@@ -42,12 +35,7 @@ function TravelDetailPage() {
     queryFn: async () => {
       if (!user) throw new Error("User not authenticated");
 
-      const { data, error } = await supabase
-        .from("travel")
-        .select("*")
-        .eq("id", id)
-        .eq("user_id", user.id)
-        .single();
+      const { data, error } = await supabase.from("travel").select("*").eq("id", id).eq("user_id", user.id).single();
 
       if (error) throw error;
       return data;
@@ -55,8 +43,7 @@ function TravelDetailPage() {
     enabled: !!user && !authLoading && !!id,
   });
 
-  const destinationName =
-    travelEmail?.details?.origin || travelEmail?.subject || "Unknown";
+  const destinationName = travelEmail?.details?.origin || travelEmail?.subject || "Unknown";
   const travelers = travelEmail?.details?.travelers || 2;
 
   // Fetch travel recommendations
@@ -78,10 +65,7 @@ function TravelDetailPage() {
 
   if (authLoading) {
     return (
-      <DashboardContainer
-        title="Loading..."
-        description="Fetching travel details"
-      >
+      <DashboardContainer title="Loading..." description="Fetching travel details">
         <div className="animate-pulse space-y-4">
           <div className="h-8 bg-gray-200 rounded w-1/3"></div>
           <div className="h-32 bg-gray-200 rounded"></div>
@@ -93,14 +77,9 @@ function TravelDetailPage() {
 
   if (!user) {
     return (
-      <DashboardContainer
-        title="Authentication Required"
-        description="Please log in to view travel details"
-      >
+      <DashboardContainer title="Authentication Required" description="Please log in to view travel details">
         <div className="text-center py-8">
-          <p className="text-thunder">
-            You need to be logged in to view this page.
-          </p>
+          <p className="text-thunder">You need to be logged in to view this page.</p>
         </div>
       </DashboardContainer>
     );
@@ -129,6 +108,7 @@ function TravelDetailPage() {
       title={`Explore ${destinationName}`}
       description={`Travel recommendations for ${travelers} travelers`}
       backButtonText="Back to Travel"
+      className="pb-12"
     >
       {/* Email Details Section */}
       {/* {travelEmail && (
@@ -177,13 +157,9 @@ function TravelDetailPage() {
         {recommendations && (
           <>
             {recommendations.overview && (
-              <div className="bg-jade/10 border border-jade/20 rounded-lg p-6">
-                <h3 className="text-lg font-semibold mb-3 text-thunder">
-                  Overview
-                </h3>
-                <p className="text-thunder leading-relaxed">
-                  {recommendations.overview}
-                </p>
+              <div className="bg-jade border border-jade rounded-lg p-6">
+                <h3 className="text-lg font-semibold text-lime">Overview</h3>
+                <p className="text-white leading-relaxed">{recommendations.overview}</p>
               </div>
             )}
 
@@ -191,19 +167,12 @@ function TravelDetailPage() {
               <div>
                 <div className="flex items-center gap-2 mb-6">
                   <Camera className="h-6 w-6 text-jade" />
-                  <h3 className="text-xl font-semibold">
-                    Attractions ({recommendations.attractions.length})
-                  </h3>
+                  <h3 className="text-xl font-semibold">Attractions ({recommendations.attractions.length})</h3>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-                  {recommendations.attractions.map(
-                    (attraction: RecommendationItem) => (
-                      <RecommendationCard
-                        key={attraction.id}
-                        item={attraction}
-                      />
-                    )
-                  )}
+                  {recommendations.attractions.map((attraction: RecommendationItem) => (
+                    <RecommendationCard key={attraction.id} item={attraction} />
+                  ))}
                 </div>
               </div>
             )}
@@ -212,9 +181,7 @@ function TravelDetailPage() {
               <div>
                 <div className="flex items-center gap-2 mb-6">
                   <Hotel className="h-6 w-6 text-jade" />
-                  <h3 className="text-xl font-semibold">
-                    Hotels ({recommendations.hotels.length})
-                  </h3>
+                  <h3 className="text-xl font-semibold">Hotels ({recommendations.hotels.length})</h3>
                 </div>
                 <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
                   {recommendations.hotels.map((hotel: RecommendationItem) => (
@@ -224,21 +191,14 @@ function TravelDetailPage() {
               </div>
             )}
 
-            {recommendations.hotels.length === 0 &&
-              recommendations.attractions.length === 0 && (
-                <div className="text-center py-12 bg-gray-50 rounded-lg">
-                  <Camera className="h-16 w-16 mx-auto mb-4 text-jade/20" />
-                  <h3 className="text-lg font-medium text-thunder mb-2">
-                    No recommendations found
-                  </h3>
-                  <p className="text-thunder">
-                    We couldn't find any recommendations for this destination.
-                  </p>
-                  <p className="text-sm text-gray-600 mt-1">
-                    Try searching for a more specific location.
-                  </p>
-                </div>
-              )}
+            {recommendations.hotels.length === 0 && recommendations.attractions.length === 0 && (
+              <div className="text-center py-12 bg-gray-50 rounded-lg">
+                <Camera className="h-16 w-16 mx-auto mb-4 text-jade/20" />
+                <h3 className="text-lg font-medium text-thunder mb-2">No recommendations found</h3>
+                <p className="text-thunder">We couldn't find any recommendations for this destination.</p>
+                <p className="text-sm text-gray-600 mt-1">Try searching for a more specific location.</p>
+              </div>
+            )}
           </>
         )}
       </div>

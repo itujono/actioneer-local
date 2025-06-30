@@ -2,30 +2,35 @@
 import type { EmailData, Classification, Action } from "../types.ts";
 
 export const REVENUE_PATTERNS = {
-  // Payment received patterns
+  // Enhanced payment received patterns with more variations
   payments_received: [
-    /payment\s+(?:received|successful|completed|processed)/i,
-    /money\s+(?:received|sent\s+to\s+you|transferred\s+to)/i,
+    /payment\s+(?:received|successful|completed|processed|confirmed)/i,
+    /money\s+(?:received|sent\s+to\s+you|transferred\s+to|deposited|added)/i,
     /you\s+(?:received|got)\s+(?:a\s+)?payment/i,
-    /funds\s+(?:received|added|deposited)/i,
-    /deposit\s+(?:successful|completed|received)/i,
-    /transfer\s+(?:received|completed|successful)/i,
+    /funds\s+(?:received|added|deposited|credited)/i,
+    /deposit\s+(?:successful|completed|received|confirmed)/i,
+    /transfer\s+(?:received|completed|successful|confirmed)/i,
     /credited\s+to\s+your\s+account/i,
     /has\s+been\s+deposited/i,
     /payment\s+confirmation.*received/i,
+    /successfully\s+(?:received|transferred|deposited)/i,
+    /(?:income|earnings|revenue)\s+(?:received|credited|deposited)/i,
+    /(?:payout|disbursement)\s+(?:successful|completed|processed)/i,
   ],
 
-  // Refunds and reimbursements
+  // Enhanced refunds and reimbursements with more coverage
   refunds: [
-    /refund\s+(?:issued|processed|completed|successful)/i,
-    /reimbursement\s+(?:issued|processed|approved)/i,
-    /credit\s+(?:issued|applied|processed)/i,
-    /chargeback\s+(?:successful|completed)/i,
-    /return\s+(?:processed|completed|successful)/i,
-    /reversal\s+(?:completed|processed)/i,
-    /money\s+back\s+guarantee/i,
-    /cancelled\s+order.*refund/i,
-    /dispute\s+resolved.*credit/i,
+    /refund\s+(?:issued|processed|completed|successful|approved|confirmed)/i,
+    /reimbursement\s+(?:issued|processed|approved|completed)/i,
+    /credit\s+(?:issued|applied|processed|added|returned)/i,
+    /chargeback\s+(?:successful|completed|approved)/i,
+    /return\s+(?:processed|completed|successful|approved)/i,
+    /reversal\s+(?:completed|processed|successful)/i,
+    /money\s+back\s+(?:guarantee|processed|issued)/i,
+    /cancelled\s+(?:order|subscription).*refund/i,
+    /dispute\s+resolved.*(?:credit|refund)/i,
+    /(?:partial|full)\s+refund\s+(?:issued|processed)/i,
+    /refund.*(?:your\s+account|has\s+been|successfully)/i,
     // Indonesian refund patterns
     /pengembalian\s+(?:dana|uang)\s+(?:diproses|disetujui|berhasil|selesai)/i,
     /refund\s+diproses/i,
@@ -35,91 +40,120 @@ export const REVENUE_PATTERNS = {
     /layanan.*dibatalkan.*pengembalian/i,
   ],
 
-  // Business income patterns
+  // Enhanced business income patterns
   business_income: [
-    /invoice\s+(?:#[\w-]+\s+)?(?:paid|payment\s+received)/i,
-    /client\s+payment\s+received/i,
-    /freelance\s+payment/i,
-    /commission\s+(?:payment|earned)/i,
-    /royalty\s+payment/i,
-    /consulting\s+fee\s+received/i,
-    /project\s+payment\s+completed/i,
-    /service\s+payment\s+received/i,
-    /contract\s+payment/i,
+    /invoice\s+(?:#[\w-]+\s+)?(?:paid|payment\s+received|settled)/i,
+    /client\s+payment\s+(?:received|processed|completed)/i,
+    /freelance\s+(?:payment|invoice)\s+(?:received|paid)/i,
+    /project\s+(?:payment|invoice)\s+(?:completed|received|paid)/i,
+    /commission\s+(?:payment|earned|received)/i,
+    /royalty\s+(?:payment|received|credited)/i,
+    /consulting\s+fee\s+(?:received|paid|processed)/i,
+    /service\s+payment\s+(?:received|completed)/i,
+    /contract\s+payment\s+(?:received|completed)/i,
+    /professional\s+services.*(?:payment|paid)/i,
+    /(?:work|services)\s+completed.*payment/i,
+    /milestone\s+payment\s+received/i,
+    // NEW: Enhanced freelance and project payment patterns
+    /payment\s+received.*freelance/i,
+    /freelance.*(?:project|invoice).*payment/i,
+    /project.*payment.*(?:received|completed|processed)/i,
+    /payment.*freelance.*project/i,
+    /invoice.*(?:paid|payment\s+received).*freelance/i,
+    /consulting.*payment.*received/i,
+    /contractor.*payment.*received/i,
+    /payment\s+confirmation.*freelance/i,
+    /website\s+development.*payment/i,
+    /development.*project.*payment/i,
+    // NEW: Payment received with invoice number patterns
+    /payment\s+received.*invoice\s*#/i,
+    /invoice\s*#[\w-]+.*payment.*(?:received|processed)/i,
+    /payment.*processed.*invoice\s*#/i,
   ],
 
-  // Investment and passive income
+  // Enhanced investment and passive income
   investments: [
-    /dividend\s+(?:payment|received|credited)/i,
-    /interest\s+(?:payment|earned|credited)/i,
-    /investment\s+(?:return|profit|gain)/i,
-    /stock\s+(?:dividend|gain)/i,
-    /crypto\s+(?:profit|gain|earnings)/i,
-    /trading\s+(?:profit|gain)/i,
-    /rental\s+(?:income|payment)/i,
-    /bond\s+(?:payment|interest)/i,
+    /dividend\s+(?:payment|received|credited|distributed)/i,
+    /interest\s+(?:payment|earned|credited|received)/i,
+    /investment\s+(?:return|profit|gain|payout)/i,
+    /stock\s+(?:dividend|gain|profit)/i,
+    /crypto\s+(?:profit|gain|earnings|payout)/i,
+    /trading\s+(?:profit|gain|commission)/i,
+    /rental\s+(?:income|payment|received)/i,
+    /bond\s+(?:payment|interest|coupon)/i,
+    /portfolio\s+(?:earnings|gains|returns)/i,
+    /(?:mutual\s+fund|etf)\s+(?:dividend|distribution)/i,
   ],
 
-  // Government and benefits
+  // Enhanced government and benefits
   government: [
-    /tax\s+(?:refund|return|credit)/i,
-    /stimulus\s+payment/i,
-    /unemployment\s+(?:benefit|payment)/i,
-    /social\s+security\s+payment/i,
-    /government\s+(?:payment|benefit|refund)/i,
-    /irs\s+(?:refund|payment)/i,
-    /medicare\s+(?:refund|reimbursement)/i,
-    /insurance\s+(?:claim|payout|settlement)/i,
+    /tax\s+(?:refund|return|credit|rebate)/i,
+    /stimulus\s+(?:payment|check|deposit)/i,
+    /unemployment\s+(?:benefit|payment|compensation)/i,
+    /social\s+security\s+(?:payment|benefit)/i,
+    /government\s+(?:payment|benefit|refund|grant)/i,
+    /irs\s+(?:refund|payment|deposit)/i,
+    /medicare\s+(?:refund|reimbursement|payment)/i,
+    /insurance\s+(?:claim|payout|settlement|reimbursement)/i,
+    /disability\s+(?:payment|benefit)/i,
+    /veteran\s+(?:benefit|payment)/i,
   ],
 
-  // Digital platform income
+  // Enhanced digital platform income
   digital_platforms: [
-    /paypal.*(?:payment\s+received|money\s+received)/i,
-    /venmo.*(?:payment\s+received|sent\s+you)/i,
-    /zelle.*(?:payment\s+received|sent\s+you)/i,
-    /stripe.*payment\s+received/i,
-    /square.*payment\s+received/i,
-    /cashapp.*payment\s+received/i,
-    /apple\s+pay.*received/i,
-    /google\s+pay.*received/i,
+    /paypal.*(?:payment\s+received|money\s+received|you\s+received)/i,
+    /venmo.*(?:payment\s+received|sent\s+you|paid\s+you)/i,
+    /zelle.*(?:payment\s+received|sent\s+you|paid\s+you)/i,
+    /stripe.*(?:payment\s+received|payout|transfer)/i,
+    /square.*(?:payment\s+received|payout|deposit)/i,
+    /cashapp.*(?:payment\s+received|sent\s+you)/i,
+    /apple\s+pay.*(?:received|payment)/i,
+    /google\s+pay.*(?:received|payment)/i,
+    /(?:wise|transferwise).*(?:received|transferred)/i,
+    /remitly.*(?:received|delivered)/i,
   ],
 
   // EXCLUSION PATTERNS - Future notifications, pending transfers, failed transactions
   future_notifications: [
     /(?:will|going\s+to|about\s+to)\s+(?:receive|transfer|send|deposit)/i,
-    /(?:upcoming|next|future)\s+(?:payment|transfer|deposit|payout)/i,
+    /(?:upcoming|next|future|scheduled)\s+(?:payment|transfer|deposit|payout)/i,
     /(?:pending|processing|in\s+progress).*(?:transfer|payment|deposit)/i,
-    /(?:failed|declined|rejected).*(?:transfer|payment|deposit)/i,
-    /(?:scheduled|planned).*(?:transfer|payment|deposit)/i,
+    /(?:failed|declined|rejected|cancelled).*(?:transfer|payment|deposit)/i,
+    /(?:on\s+hold|delayed|suspended).*(?:transfer|payment|deposit)/i,
     /transfer.*(?:on\s+hold|delayed|suspended)/i,
     /payment.*(?:method|verification).*(?:required|needed)/i,
+    /(?:awaiting|waiting\s+for).*(?:approval|confirmation)/i,
   ],
 
-  // Cryptocurrency and withdrawal patterns
+  // Enhanced cryptocurrency and withdrawal patterns
   crypto_withdrawals: [
-    /withdrawal\s+(?:successful|completed|processed)/i,
+    /withdrawal\s+(?:successful|completed|processed|confirmed)/i,
     /successfully\s+withdrawn/i,
     /you\s+have\s+successfully\s+(?:withdrawn|made\s+a\s+withdrawal)/i,
-    /crypto\s+withdrawal\s+(?:successful|completed)/i,
+    /crypto\s+withdrawal\s+(?:successful|completed|confirmed)/i,
     /funds\s+(?:withdrawn|transferred)\s+to\s+(?:your\s+)?bank/i,
     /withdrawal.*to\s+(?:your\s+)?bank\s+account/i,
     /(?:rupiah|usd|dollar|eur|euro)\s+withdrawal\s+successful/i,
     /transferred\s+to\s+your\s+bank\s+account/i,
     /withdrawal\s+confirmation/i,
     /successfully\s+transferred.*to.*bank/i,
+    /cash\s+out\s+(?:successful|completed)/i,
+    /converted.*to.*(?:bank|fiat)/i,
   ],
 
-  // Sale and marketplace income
+  // Enhanced sale and marketplace income
   sales: [
-    /sale\s+(?:completed|successful|confirmed)/i,
-    /item\s+sold/i,
-    /listing\s+sold/i,
-    /marketplace\s+sale/i,
-    /etsy.*sale/i,
-    /ebay.*sale/i,
-    /amazon.*seller\s+payment/i,
-    /shopify.*payout/i,
-    /product\s+purchase.*seller/i,
+    /sale\s+(?:completed|successful|confirmed|finalized)/i,
+    /item\s+(?:sold|purchased)/i,
+    /listing\s+(?:sold|completed)/i,
+    /marketplace\s+(?:sale|payout)/i,
+    /etsy.*(?:sale|payout|payment)/i,
+    /ebay.*(?:sale|payout|payment)/i,
+    /amazon.*seller\s+(?:payment|payout)/i,
+    /shopify.*(?:payout|payment)/i,
+    /product\s+(?:purchase|sale).*(?:seller|revenue)/i,
+    /(?:booking|reservation).*payment\s+received/i,
+    /commission.*(?:earned|received)/i,
   ],
 
   // Enhanced domains for revenue sources
@@ -178,6 +212,26 @@ export const REVENUE_PATTERNS = {
     /godaddy/i,
     /bluehost/i,
     /digitalocean/i,
+  ],
+
+  // KEY REVENUE INDICATORS - These are strong signals of incoming money
+  strong_revenue_signals: [
+    /payment\s+received/i,
+    /money\s+received/i,
+    /funds\s+received/i,
+    /refund\s+(?:issued|processed)/i,
+    /deposit\s+successful/i,
+    /transfer\s+completed/i,
+    /withdrawal\s+successful/i,
+    /payout\s+processed/i,
+    /invoice.*paid/i,
+    /commission\s+earned/i,
+    // NEW: Enhanced freelance and business income signals
+    /freelance.*payment.*received/i,
+    /project.*payment.*received/i,
+    /payment.*freelance.*project/i,
+    /invoice.*payment.*received/i,
+    /consulting.*payment.*received/i,
   ],
 };
 
@@ -264,14 +318,17 @@ export function classifyRevenue(emailData: EmailData): Classification | null {
   );
 
   if (isFutureNotification) {
-    console.log("🚫 Excluded as future/pending/failed payment notification");
-    return null; // This is a future notification, not actual revenue
+    console.log("🚫 Revenue: Excluded as future/pending/failed payment notification");
+    return null;
   }
 
-  // Check for revenue domains
-  const isFromRevenueDomain = REVENUE_PATTERNS.revenue_domains.some((pattern) =>
-    pattern.test(fromLower)
+  // SECOND: Check for strong revenue signals first - these are high confidence
+  const hasStrongRevenueSignal = REVENUE_PATTERNS.strong_revenue_signals.some(
+    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
   );
+
+  // Check for revenue domains
+  const isFromRevenueDomain = REVENUE_PATTERNS.revenue_domains.some((pattern) => pattern.test(fromLower));
 
   // Check for specific revenue patterns
   const hasPaymentReceivedPattern = REVENUE_PATTERNS.payments_received.some(
@@ -306,53 +363,72 @@ export function classifyRevenue(emailData: EmailData): Classification | null {
     (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
   );
 
-  // Look for monetary amounts (incoming money indicators) - comprehensive currency support
+  // Enhanced monetary amount detection with better currency support
   const hasMoneyAmount =
     /(\$|USD|CAD|AUD|NZD|MXN)\s*[\d,\.]+|(€|EUR)\s*[\d,\.]+|(£|GBP)\s*[\d,\.]+|(¥|JPY)\s*[\d,\.]+|(₩|KRW|won)\s*[\d,\.]+|(₹|INR|rupee)\s*[\d,\.]+|(Rp|IDR|rupiah)\s*[\d,\.]+|(S\$|SGD)\s*[\d,\.]+|(HK\$|HKD)\s*[\d,\.]+|(NT\$|TWD)\s*[\d,\.]+|(₱|PHP|peso)\s*[\d,\.]+|(RM|MYR)\s*[\d,\.]+|(฿|THB|baht)\s*[\d,\.]+|(₫|VND|dong)\s*[\d,\.]+|(CHF|franc)\s*[\d,\.]+|(SEK|kr)\s*[\d,\.]+|(R\$|BRL|real)\s*[\d,\.]+|(ZAR|rand)\s*[\d,\.]+|(₦|NGN|naira)\s*[\d,\.]+|total.*\d+|amount.*\d+|received.*\d+|\d+[\.\,]\d+/i.test(
       bodyLower
     );
 
-  // Determine confidence and type
+  // Determine confidence and type with enhanced logic
   let confidence = 0;
   let revenueType = "payment_received";
 
-  if (hasPaymentReceivedPattern && hasMoneyAmount) {
-    confidence = 0.9;
-    revenueType = "payment_received";
-  } else if (hasRefundPattern) {
-    confidence = 0.85;
-    revenueType = "refund";
-  } else if (hasBusinessIncomePattern) {
-    confidence = 0.85;
-    revenueType = "business_income";
-  } else if (hasInvestmentPattern) {
-    confidence = 0.8;
-    revenueType = "investment";
-  } else if (hasGovernmentPattern) {
-    confidence = 0.8;
-    revenueType = "government";
-  } else if (hasDigitalPlatformPattern && hasMoneyAmount) {
-    confidence = 0.8;
-    revenueType = "digital_platform";
-  } else if (hasSalesPattern) {
-    confidence = 0.75;
-    revenueType = "sales";
-  } else if (hasCryptoWithdrawalPattern && hasMoneyAmount) {
-    confidence = 0.85;
-    revenueType = "digital_platform";
-  } else if (
-    isFromRevenueDomain &&
-    (hasMoneyAmount ||
-      bodyLower.includes("received") ||
-      bodyLower.includes("credited") ||
-      bodyLower.includes("withdrawal") ||
-      bodyLower.includes("withdrawn"))
-  ) {
-    confidence = 0.7;
-    revenueType = "payment_received";
+  // Strong revenue signals get highest priority
+  if (hasStrongRevenueSignal) {
+    if (hasPaymentReceivedPattern && hasMoneyAmount) {
+      confidence = 0.95;
+      revenueType = "payment_received";
+    } else if (hasRefundPattern) {
+      confidence = 0.9;
+      revenueType = "refund";
+    } else if (hasBusinessIncomePattern) {
+      confidence = 0.9;
+      revenueType = "business_income";
+    } else {
+      confidence = 0.8;
+      revenueType = "payment_received";
+    }
+  } else {
+    // Standard pattern matching
+    if (hasPaymentReceivedPattern && hasMoneyAmount) {
+      confidence = 0.85;
+      revenueType = "payment_received";
+    } else if (hasRefundPattern) {
+      confidence = 0.8;
+      revenueType = "refund";
+    } else if (hasBusinessIncomePattern) {
+      confidence = 0.8;
+      revenueType = "business_income";
+    } else if (hasInvestmentPattern) {
+      confidence = 0.75;
+      revenueType = "investment";
+    } else if (hasGovernmentPattern) {
+      confidence = 0.75;
+      revenueType = "government";
+    } else if (hasDigitalPlatformPattern && hasMoneyAmount) {
+      confidence = 0.75;
+      revenueType = "digital_platform";
+    } else if (hasSalesPattern) {
+      confidence = 0.7;
+      revenueType = "sales";
+    } else if (hasCryptoWithdrawalPattern && hasMoneyAmount) {
+      confidence = 0.8;
+      revenueType = "crypto_withdrawal";
+    } else if (
+      isFromRevenueDomain &&
+      (hasMoneyAmount ||
+        bodyLower.includes("received") ||
+        bodyLower.includes("credited") ||
+        bodyLower.includes("withdrawal") ||
+        bodyLower.includes("withdrawn"))
+    ) {
+      confidence = 0.65;
+      revenueType = "payment_received";
+    }
   }
 
   if (confidence > 0.6) {
+    console.log(`✅ Revenue: Detected ${revenueType} with confidence ${confidence}`);
     return {
       type: "revenue",
       confidence,

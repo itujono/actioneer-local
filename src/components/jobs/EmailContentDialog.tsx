@@ -24,7 +24,7 @@ export function EmailContentDialog({ emailId, isOpen, onClose, company, position
         .from("emails")
         .select("subject, from_email, email_body, date")
         .eq("message_id", emailId)
-        .single();
+        .maybeSingle();
 
       if (error) {
         throw error;
@@ -34,6 +34,8 @@ export function EmailContentDialog({ emailId, isOpen, onClose, company, position
     },
     enabled: !!emailId && isOpen,
   });
+
+  const emailNotFound = !isLoading && !error && emailContent === null;
 
   return (
     <Dialog open={isOpen} onOpenChange={onClose}>
@@ -81,7 +83,24 @@ export function EmailContentDialog({ emailId, isOpen, onClose, company, position
           {error && (
             <div className="bg-red-50 border border-red-200 rounded-lg p-4">
               <p className="text-sm text-red-800">
-                Failed to load email content. This might happen if the email is older than our storage policy.
+                Failed to load email content due to a database error. Please try again later.
+              </p>
+            </div>
+          )}
+
+          {emailNotFound && (
+            <div className="bg-bittersweet border border-bittersweet rounded-lg p-4">
+              <h4 className="font-bold text-gold mb-2">Email Content Not Available</h4>
+              <p className="text-sm text-white">
+                The original email for this job application is no longer available. This can happen when:
+              </p>
+              <ul className="text-sm text-white mt-2 ml-4 list-disc space-y-1">
+                <li>The email was processed before our email storage policy was implemented</li>
+                <li>The job application was created manually or imported from another source</li>
+                <li>The email has been removed due to storage cleanup policies</li>
+              </ul>
+              <p className="text-sm text-white mt-3">
+                All other job application details remain intact and fully functional.
               </p>
             </div>
           )}

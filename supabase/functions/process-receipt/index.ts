@@ -2,8 +2,7 @@ import { createClient } from "npm:@supabase/supabase-js@2";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type, x-user-api-key",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type, x-user-api-key",
   "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
 };
 
@@ -36,13 +35,10 @@ Deno.serve(async (req) => {
     // Extract user API key from custom header
     const userApiKey = req.headers.get("x-user-api-key");
     if (!userApiKey) {
-      return new Response(
-        JSON.stringify({ error: "Missing user API key header" }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "Missing user API key header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     // Validate user API key using the same logic as job applications
@@ -60,13 +56,10 @@ Deno.serve(async (req) => {
     const { messageId, subject, from, emailBody } = body;
 
     if (!messageId || !subject || !from || !emailBody) {
-      return new Response(
-        JSON.stringify({ error: "Missing required fields" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "Missing required fields" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.log("🔍 Processing receipt email:", {
@@ -86,10 +79,7 @@ Deno.serve(async (req) => {
       .single();
 
     if (existingReceipt && !existingError) {
-      console.log(
-        "✅ Receipt already exists for this email:",
-        existingReceipt.id
-      );
+      console.log("✅ Receipt already exists for this email:", existingReceipt.id);
       return new Response(
         JSON.stringify({
           success: true,
@@ -112,21 +102,15 @@ Deno.serve(async (req) => {
 
     console.log("🆕 No existing receipt found, processing new email...");
 
-    // Extract receipt data using AI
-    const receiptData = await extractReceiptDataWithAI(
-      subject,
-      from,
-      emailBody
-    );
+    // Extract receipt data using AI - use email date as fallback
+    const emailDate = new Date().toISOString(); // Current processing time as fallback
+    const receiptData = await extractReceiptDataWithAI(subject, from, emailBody, emailDate);
 
     if (!receiptData) {
-      return new Response(
-        JSON.stringify({ error: "Failed to extract receipt data" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "Failed to extract receipt data" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.log("📊 Extracted receipt data:", receiptData);
@@ -167,13 +151,10 @@ Deno.serve(async (req) => {
 
     if (storeError) {
       console.error("Error storing receipt:", storeError);
-      return new Response(
-        JSON.stringify({ error: "Failed to store receipt data" }),
-        {
-          status: 500,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "Failed to store receipt data" }), {
+        status: 500,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.log("✅ Receipt stored successfully:", storedData.id);
@@ -207,10 +188,7 @@ Deno.serve(async (req) => {
 
 async function getUserByApiKey(apiKey: string) {
   try {
-    console.log(
-      "🔍 Starting user lookup with API key:",
-      apiKey.substring(0, 10) + "..."
-    );
+    console.log("🔍 Starting user lookup with API key:", apiKey.substring(0, 10) + "...");
 
     // Use admin client for users table access (has service role permissions)
     const { data, error } = await supabaseAdmin
@@ -238,8 +216,7 @@ async function getUserByApiKey(apiKey: string) {
 
     try {
       // Use the correct method to get user by email
-      const { data: authUsers, error: authError } =
-        await supabaseAdmin.auth.admin.listUsers();
+      const { data: authUsers, error: authError } = await supabaseAdmin.auth.admin.listUsers();
 
       if (authError) {
         console.log("⚠️ Auth users list error:", authError.message);
@@ -248,9 +225,7 @@ async function getUserByApiKey(apiKey: string) {
       }
 
       // Find user by email in the list
-      const authUser = authUsers.users?.find(
-        (user) => user.email === data.email
-      );
+      const authUser = authUsers.users?.find((user) => user.email === data.email);
 
       if (authUser?.id) {
         console.log("✅ Found Supabase Auth user:", authUser.id);
@@ -279,11 +254,7 @@ async function getUserByApiKey(apiKey: string) {
   }
 }
 
-async function extractReceiptDataWithAI(
-  subject: string,
-  from: string,
-  emailBody: string
-) {
+async function extractReceiptDataWithAI(subject: string, from: string, emailBody: string, emailDate?: string) {
   if (!OPENAI_API_KEY) {
     console.log("⚠️ No OpenAI API key, using fallback extraction");
     return fallbackReceiptExtraction(subject, from, emailBody);
@@ -319,7 +290,7 @@ Important rules:
 - For Indonesian Rupiah "Rp" use currency "IDR"
 - For Singapore Dollar "S$" use currency "SGD"
 - For Malaysian Ringgit "RM" use currency "MYR"
-- Date should be current date if not clearly specified in the email
+- Date should be extracted from email content, or use email received date if not clearly specified
 - Category should be one of the predefined options
 - Be conservative - if unsure, use null or "other"
 
@@ -387,13 +358,8 @@ Currency Detection Examples:
       // Try to extract from sender domain as last resort
       const emailMatch = from.match(/@([^>]+)/);
       if (emailMatch) {
-        const domain = emailMatch[1].replace(
-          /^(www\.|mail\.|noreply\.|no-reply\.)/i,
-          ""
-        );
-        merchant =
-          domain.split(".")[0].charAt(0).toUpperCase() +
-          domain.split(".")[0].slice(1);
+        const domain = emailMatch[1].replace(/^(www\.|mail\.|noreply\.|no-reply\.)/i, "");
+        merchant = domain.split(".")[0].charAt(0).toUpperCase() + domain.split(".")[0].slice(1);
       } else {
         merchant = "Unknown Merchant";
       }
@@ -401,28 +367,18 @@ Currency Detection Examples:
 
     // Enhanced currency detection
     const detectedCurrency =
-      receiptData.currency ||
-      detectCurrencyFromText(subject) ||
-      detectCurrencyFromMerchant(merchant) ||
-      "USD";
+      receiptData.currency || detectCurrencyFromText(subject) || detectCurrencyFromMerchant(merchant) || "USD";
 
     return {
       merchant,
-      amount:
-        typeof receiptData.amount === "number" ? receiptData.amount : null,
+      amount: typeof receiptData.amount === "number" ? receiptData.amount : null,
       currency: detectedCurrency,
       category: receiptData.category || "other",
       description: receiptData.description || subject,
-      date:
-        validateDate(receiptData.date) ||
-        extractDateFromText(emailBody) ||
-        new Date().toISOString(),
+      date: validateDate(receiptData.date) || extractDateFromText(emailBody) || emailDate || new Date().toISOString(),
       invoice_number: receiptData.invoice_number,
       payment_method: receiptData.payment_method,
-      tax_amount:
-        typeof receiptData.tax_amount === "number"
-          ? receiptData.tax_amount
-          : null,
+      tax_amount: typeof receiptData.tax_amount === "number" ? receiptData.tax_amount : null,
     };
   } catch (error) {
     console.error("AI extraction failed:", error);
@@ -431,11 +387,7 @@ Currency Detection Examples:
   }
 }
 
-function fallbackReceiptExtraction(
-  subject: string,
-  from: string,
-  emailBody: string
-) {
+function fallbackReceiptExtraction(subject: string, from: string, emailBody: string) {
   console.log("🔍 Using fallback pattern-based extraction");
 
   const text = `${subject} ${emailBody}`.toLowerCase();
@@ -448,27 +400,18 @@ function fallbackReceiptExtraction(
     // Try to extract from sender domain
     const emailMatch = from.match(/@([^>]+)/);
     if (emailMatch) {
-      const domain = emailMatch[1].replace(
-        /^(www\.|mail\.|noreply\.|no-reply\.)/i,
-        ""
-      );
-      merchant =
-        domain.split(".")[0].charAt(0).toUpperCase() +
-        domain.split(".")[0].slice(1);
+      const domain = emailMatch[1].replace(/^(www\.|mail\.|noreply\.|no-reply\.)/i, "");
+      merchant = domain.split(".")[0].charAt(0).toUpperCase() + domain.split(".")[0].slice(1);
     } else {
       // Last resort: use "Unknown Merchant"
       merchant = "Unknown Merchant";
     }
   }
 
-  const detectedCurrency =
-    detectCurrencyFromText(text) ||
-    detectCurrencyFromMerchant(merchant) ||
-    "USD";
+  const detectedCurrency = detectCurrencyFromText(text) || detectCurrencyFromMerchant(merchant) || "USD";
 
   // Try to extract date from email content, fallback to current date
-  const extractedDate =
-    extractDateFromText(emailBody) || new Date().toISOString();
+  const extractedDate = extractDateFromText(emailBody) || new Date().toISOString();
 
   return {
     merchant,
@@ -561,9 +504,7 @@ function extractAmountFromText(text: string): number | null {
   for (const pattern of patterns) {
     const matches = text.match(pattern);
     if (matches && matches.length > 0) {
-      const numericMatch = matches[0].match(
-        /(\d+(?:[,\.\s]\d{3})*(?:[,\.]\d{2})?)/
-      );
+      const numericMatch = matches[0].match(/(\d+(?:[,\.\s]\d{3})*(?:[,\.]\d{2})?)/);
       if (numericMatch) {
         // Clean up the number (remove spaces, handle Indonesian comma formatting)
         const cleanNumber = numericMatch[1].replace(/[\s,]/g, "");
@@ -581,17 +522,7 @@ function extractAmountFromText(text: string): number | null {
 
 function extractCategoryFromText(text: string): string {
   const categoryKeywords = {
-    software: [
-      "software",
-      "saas",
-      "subscription",
-      "app",
-      "license",
-      "vercel",
-      "github",
-      "adobe",
-      "microsoft",
-    ],
+    software: ["software", "saas", "subscription", "app", "license", "vercel", "github", "adobe", "microsoft"],
     food: [
       "restaurant",
       "cafe",
@@ -623,14 +554,7 @@ function extractCategoryFromText(text: string): string {
       "grabbike", // Grab bike service
     ],
     utilities: ["electric", "gas", "water", "internet", "phone", "utility"],
-    entertainment: [
-      "netflix",
-      "spotify",
-      "movie",
-      "game",
-      "music",
-      "streaming",
-    ],
+    entertainment: ["netflix", "spotify", "movie", "game", "music", "streaming"],
     shopping: ["amazon", "walmart", "target", "purchase", "order", "shopping"],
   };
 
@@ -789,9 +713,7 @@ function extractDateFromText(text: string): string | null {
       // Check if it's a valid date and not too far in the past/future
       if (!isNaN(parsedDate.getTime())) {
         const now = new Date();
-        const diffYears = Math.abs(
-          now.getFullYear() - parsedDate.getFullYear()
-        );
+        const diffYears = Math.abs(now.getFullYear() - parsedDate.getFullYear());
 
         // Only accept dates within 2 years of current date
         if (diffYears <= 2) {

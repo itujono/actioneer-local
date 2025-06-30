@@ -94,36 +94,47 @@ TechCorp
 careers@techcorp.com`,
   },
   revenue: {
-    subject: "Payment Received: Freelance Project Invoice #INV-2024-001",
-    body: `Payment Confirmation
+    subject: "Freelance Payment Deposited - Project Completed Successfully",
+    body: `💰 Payment Deposited to Your Account
 
 Dear Freelancer,
 
-We're pleased to confirm that your payment has been processed successfully.
+Excellent news! Your freelance payment has been successfully deposited to your bank account.
 
-Payment Details:
-• Invoice #: INV-2024-001
+💸 Money Added to Your Account:
 • Project: Website Development for StartupX
-• Amount: $2,500.00
-• Payment Date: ${new Date().toLocaleDateString()}
-• Payment Method: Bank Transfer
-• Reference: PAY-${Date.now().toString().slice(-6)}
+• Amount Deposited: $2,500.00
+• Deposited On: ${new Date().toLocaleDateString()}
+• Transfer Method: Direct Bank Deposit
+• Your Earnings ID: EARN-${Date.now().toString().slice(-6)}
+• Deposit Reference: FREELANCER-INCOME-${Date.now().toString().slice(-4)}
 
-This payment covers:
+🎯 Work Completed & Paid:
 - Frontend development (React/TypeScript)
 - Backend API integration
 - Mobile responsive design
 - 2 rounds of revisions
 
-The funds have been transferred to your account ending in ***1234 and should appear within 1-2 business days.
+✅ $2,500.00 has been added to your account ending in ***1234
+✅ Funds are now available in your bank account
+✅ This confirms your project earnings have been processed
+✅ Payment completed - no further action needed
 
-Thank you for your excellent work on this project! We look forward to collaborating again soon.
+Congratulations on completing another successful project! Your technical expertise and professionalism made this collaboration outstanding. We're excited to work with you on future projects.
+
+Your earnings summary:
+- Base project fee: $2,200.00
+- Bonus for early delivery: $300.00
+- Total deposited: $2,500.00
 
 Best regards,
 Alex Chen
-Project Manager
+Project Manager & Finance
 StartupX Inc.
-payments@startupx.com`,
+freelancer-payments@startupx.com
+
+---
+💡 This is your income confirmation. Keep this email for tax records.`,
   },
 };
 
@@ -133,9 +144,9 @@ export function TestEmailButton({ category, className = "", variant = "outline",
   const getCategoryLabel = (category: EmailCategory): string => {
     const labels = {
       receipt: "Receipt",
-      travel: "Travel",
+      travel: "Travel Deal",
       job: "Job Application",
-      revenue: "Payment",
+      revenue: "Revenue",
     };
     return labels[category];
   };
@@ -166,7 +177,7 @@ export function TestEmailButton({ category, className = "", variant = "outline",
       className={`${className} flex items-center gap-2`}
     >
       <Send className="h-4 w-4" />
-      Test {getCategoryLabel(category)}
+      Test send {getCategoryLabel(category).toLowerCase()} email
     </Button>
   );
 }

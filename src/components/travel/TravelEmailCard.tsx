@@ -30,9 +30,7 @@ export function TravelEmailCard({ travel, onExplore }: TravelEmailCardProps) {
         <div className="flex-1 space-y-4">
           {/* Email Subject/Description - truncated to 3 lines */}
           <div>
-            <p className="text-black text-sm leading-relaxed">
-              {truncateText(description)}
-            </p>
+            <p className="text-black text-sm leading-relaxed">{truncateText(description)}</p>
           </div>
 
           {/* Email Date */}
@@ -45,7 +43,6 @@ export function TravelEmailCard({ travel, onExplore }: TravelEmailCardProps) {
         <div className="pt-4">
           <Button
             onClick={() => onExplore(travel)}
-            variant="outline"
             size="sm"
             className="w-full text-sm font-medium hover:bg-concrete/50 transition-colors"
           >

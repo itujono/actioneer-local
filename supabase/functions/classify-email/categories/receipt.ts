@@ -2,55 +2,55 @@
 import type { EmailData, Classification, Action } from "../types.ts";
 
 export const RECEIPT_PATTERNS = {
-  // Purchase receipts
+  // Enhanced purchase receipts with more specific patterns
   purchases: [
     /receipt.*(?:purchase|order|payment|transaction)/i,
     /purchase\s+(?:confirmation|receipt|summary)/i,
     /order\s+(?:confirmation|receipt|summary|complete)/i,
     /transaction\s+(?:receipt|confirmation|summary|complete)/i,
-    /payment\s+(?:confirmation|receipt|successful|processed)/i,
     /your\s+(?:receipt|purchase|order)/i,
     /thank\s+you\s+for\s+your\s+(?:purchase|order)/i,
+    /order\s+#[\w-]+.*(?:confirmed|shipped)/i,
+    /shopping\s+(?:receipt|confirmation)/i,
   ],
 
-  // Enhanced invoices and bills patterns with specific invoice number formats
+  // Enhanced invoices and bills patterns - AVOID revenue conflicts
   invoices: [
-    /invoice.*(?:payment|due|amount|billing)/i,
-    /bill.*(?:payment|due|amount)/i,
+    /invoice.*(?:due|amount|billing)/i, // Removed "payment" to avoid revenue conflicts
+    /bill.*(?:due|amount)/i,
     /billing\s+(?:statement|summary|notice)/i,
     /payment\s+(?:due|reminder|notice)/i,
     /account\s+(?:statement|summary|balance)/i,
     /monthly\s+(?:statement|bill|invoice)/i,
-    /subscription\s+(?:renewal|payment|charge)/i,
-    // Specific invoice number patterns for Supabase-style receipts
+    /subscription\s+(?:renewal|charge)/i, // Removed "payment" to avoid conflicts
+    // Specific invoice number patterns for company receipts
     /receipt\s+\[#[\w-]+\]/i, // Matches "receipt [#1946-4660]"
     /invoice\s+\(#[\w-]+\)/i, // Matches "invoice (#WGTALJ-00010)"
-    /payment\s+received.*invoice\s+\(#[\w-]+\)/i, // Matches "Payment received for ... invoice (#...)"
-    /your\s+[\w\s]+(?:pte\s+ltd|ltd|llc|inc|corp|corporation)\s+receipt/i, // Company receipt patterns
+    /your\s+[\w\s]+(?:pte\s+ltd|ltd|llc|inc|corp|corporation)\s+receipt/i,
     /receipt\s+from\s+[\w\s]+(?:pte\s+ltd|ltd|llc|inc|corp)/i,
-    // Generic invoice number patterns
-    /invoice\s*#[\w-]+/i,
-    /receipt\s*#[\w-]+/i,
-    /bill\s*#[\w-]+/i,
-    /reference\s*#[\w-]+/i,
-    /transaction\s*#[\w-]+/i,
+    // Generic invoice number patterns - but only when NOT revenue context
+    /invoice\s*#[\w-]+.*(?:paid|charged|processed)/i, // Past tense only
+    /receipt\s*#[\w-]+.*(?:confirmed|processed)/i,
+    /bill\s*#[\w-]+.*(?:paid|processed)/i,
+    /reference\s*#[\w-]+.*(?:charged|completed)/i,
+    /transaction\s*#[\w-]+.*(?:successful|confirmed)/i,
   ],
 
-  // Digital receipts and confirmations
+  // Enhanced digital receipts and confirmations
   digital: [
-    /apple\s+(?:receipt|purchase)/i,
+    /apple\s+(?:receipt|purchase|store)/i,
     /google\s+play\s+(?:receipt|purchase)/i,
     /app\s+store\s+(?:receipt|purchase)/i,
-    /paypal\s+(?:receipt|payment|transaction)/i,
-    /venmo\s+(?:payment|charge)/i,
-    /zelle\s+(?:payment|transfer)/i,
-    /stripe\s+(?:receipt|payment)/i,
-    /square\s+(?:receipt|payment)/i,
+    /steam\s+(?:receipt|purchase)/i,
+    /microsoft\s+store\s+(?:receipt|purchase)/i,
+    /playstation\s+(?:receipt|purchase)/i,
+    /xbox\s+(?:receipt|purchase)/i,
+    /digital\s+(?:receipt|purchase|download)/i,
   ],
 
-  // Enhanced subscription and recurring payments with SaaS patterns - COMPLETED ONLY
+  // Enhanced subscription and recurring payments - COMPLETED ONLY
   subscriptions: [
-    /subscription\s+(?:payment|charge)\s+(?:successful|completed|processed|confirmed)/i,
+    /subscription\s+(?:charge|payment)\s+(?:successful|completed|processed|confirmed)/i,
     /recurring\s+(?:payment|charge)\s+(?:successful|completed|processed)/i,
     /auto-renewal\s+(?:completed|successful|processed)/i,
     /membership\s+(?:payment|fee)\s+(?:paid|processed|completed)/i,
@@ -77,6 +77,39 @@ export const RECEIPT_PATTERNS = {
     /(?:expir|renew).*(?:on|in)\s+\d+/i,
     /payment\s+method.*(?:update|change|expires?)/i,
     /billing\s+information.*(?:update|change|expires?)/i,
+  ],
+
+  // ENHANCED REVENUE EXCLUSIONS - These should NEVER be receipts
+  revenue_exclusions: [
+    /payment\s+received/i,
+    /money\s+received/i,
+    /funds\s+received/i,
+    /refund\s+(?:issued|processed|completed)/i,
+    /credit\s+(?:issued|applied)/i,
+    /deposit\s+successful/i,
+    /transfer\s+(?:received|completed)/i,
+    /withdrawal\s+successful/i,
+    /payout\s+processed/i,
+    /you\s+(?:received|got)\s+(?:a\s+)?payment/i,
+    /freelance.*payment.*received/i,
+    /invoice.*(?:paid|settled).*you/i, // "Invoice paid to you"
+    /commission\s+(?:earned|received)/i,
+    /dividend\s+(?:payment|received)/i,
+    /tax\s+refund/i,
+    /insurance\s+(?:claim|payout)/i,
+    /crypto.*withdrawal/i,
+    /successfully\s+withdrawn/i,
+    // NEW: Specific freelance income patterns that should be revenue
+    /payment\s+received.*freelance/i,
+    /freelance.*invoice.*(?:paid|payment)/i,
+    /project.*payment.*(?:received|completed)/i,
+    /invoice.*payment.*received/i,
+    /payment.*(?:successfully\s+)?processed.*invoice/i,
+    /freelance\s+project.*payment/i,
+    // NEW: Payment received with invoice references
+    /payment\s+received.*invoice\s*#/i,
+    /invoice.*payment.*processed/i,
+    /(?:freelance|project|consulting).*payment.*received/i,
   ],
 
   // MARKETING AND PROMOTIONAL EXCLUSIONS - These are NOT receipts
@@ -109,7 +142,7 @@ export const RECEIPT_PATTERNS = {
     /free.*(?:until|through|this\s+weekend|next\s+\w+)/i,
     /(?:weekend|temporary|limited\s+time).*free/i,
 
-    // Specific promotional phrases from the Bolt example
+    // Specific promotional phrases
     /(?:it's\s+go\s+time|run\s+don't\s+walk|countdown\s+is\s+on)/i,
     /(?:starting\s+now|officially\s+free|partnered\s+with)/i,
     /(?:boost|tokens|rate\s+limits|peak\s+hours)/i,
@@ -133,31 +166,37 @@ export const RECEIPT_PATTERNS = {
     /(?:fix\s+any\s+issues|make\s+sure\s+you|ensure\s+accurate)/i,
   ],
 
-  // Enhanced domains with SaaS and business service providers
-  domains: [
-    /paypal/i,
-    /stripe/i,
-    /square/i,
-    /venmo/i,
-    /zelle/i,
-    /apple\.com/i,
-    /google\.com/i,
-    /amazon/i,
-    /shopify/i,
-    /etsy/i,
-    /ebay/i,
+  // Enhanced domains for expense sources - be more specific
+  expense_domains: [
+    // Retail and shopping
+    /amazon(?!.*seller)/i, // Amazon but NOT seller emails
+    /shopify(?!.*payout)/i, // Shopify but NOT payout emails
+    /etsy(?!.*sale)/i, // Etsy but NOT sale emails
+    /ebay(?!.*seller)/i, // eBay but NOT seller emails
     /walmart/i,
     /target/i,
     /bestbuy/i,
     /homedepot/i,
     /lowes/i,
     /costco/i,
+
+    // Digital platforms (as customers, not sellers)
+    /apple\.com/i,
+    /google\.com/i,
+
+    // Payment processors (when you're charged, not when you receive)
+    /paypal(?!.*(?:payment\s+received|money\s+received))/i,
+    /stripe(?!.*(?:payout|transfer))/i,
+    /square(?!.*(?:payout|deposit))/i,
+
+    // Banks and credit cards
     /chase\.com/i,
     /bankofamerica/i,
     /wellsfargo/i,
     /citi\.com/i,
     /americanexpress/i,
-    // SaaS and business service domains
+
+    // SaaS and business services (as customers)
     /supabase/i,
     /vercel/i,
     /netlify/i,
@@ -180,7 +219,7 @@ export const RECEIPT_PATTERNS = {
     /figma/i,
   ],
 
-  // Expense categories
+  // Enhanced expense categories
   categories: [
     /restaurant\s+(?:receipt|bill|payment)/i,
     /grocery\s+(?:receipt|purchase)/i,
@@ -199,71 +238,88 @@ export const RECEIPT_PATTERNS = {
     /ssl\s+(?:certificate|cert)/i,
     /api\s+(?:usage|subscription|fee)/i,
     /database\s+(?:hosting|service)/i,
+    // Travel and transportation
+    /uber\s+(?:receipt|trip)/i,
+    /lyft\s+(?:receipt|trip)/i,
+    /taxi\s+(?:receipt|fare)/i,
+    /airline\s+(?:ticket|booking)/i,
+    /hotel\s+(?:booking|reservation)/i,
+  ],
+
+  // STRONG RECEIPT INDICATORS - These strongly suggest outgoing money
+  strong_receipt_signals: [
+    /thank\s+you\s+for\s+your\s+(?:purchase|order)/i,
+    /your\s+(?:order|purchase)\s+(?:has\s+been|was)\s+(?:confirmed|processed)/i,
+    /payment\s+(?:confirmed|successful|processed).*(?:order|purchase)/i,
+    /order\s+#[\w-]+.*(?:confirmed|shipped)/i,
+    /subscription\s+(?:renewed|charged)/i,
+    /bill\s+(?:paid|processed)/i,
+    /charged.*(?:your|account)/i,
+    /deducted\s+from\s+your\s+account/i,
   ],
 };
 
 export function buildReceiptPrompt(emailData: EmailData): string {
   return `
-    Analyze this email to determine if it's a receipt, invoice, or financial transaction confirmation.
+    Analyze this email to determine if it's a receipt, invoice, or financial transaction confirmation for money you SPENT.
     
-    ⚠️ CRITICAL: ONLY classify as receipt if the transaction has ALREADY HAPPENED (past tense).
+    ⚠️ CRITICAL: ONLY classify as receipt if YOU paid money OUT (expense/outgoing transaction).
     
-    FINANCIAL EMAIL TYPES (COMPLETED TRANSACTIONS ONLY):
-    - Purchase receipts from online/offline stores (payment already processed)
-    - Digital receipts (App Store, Google Play, PayPal, etc.) - transaction complete
-    - Service invoices and bills (utilities, subscriptions) - payment already processed
-    - Payment confirmations and transaction receipts - money already charged
-    - Subscription renewal confirmations - charge already completed
-    - Banking and credit card statements - transactions already occurred
-    - Expense-related confirmations - payment already made
-    - SaaS platform invoices (Supabase, Vercel, AWS, etc.) - billing already processed
-    - Business service receipts with invoice numbers - payment completed
+    ⚠️ NEVER classify as receipt if this is about money coming TO you (revenue/refunds/payments received).
     
-    SPECIFIC PATTERNS TO LOOK FOR (PAST TENSE ONLY):
-    - "Thank you for your purchase" or "Payment successful"
-    - "Your payment has been processed" or "Transaction completed"
-    - "Invoice paid" or "Payment received"
-    - "Subscription renewed" or "Charge successful"
-    - Invoice numbers with confirmation: "Payment for invoice (#XYZ) processed"
-    - Reference numbers: "Receipt #ABC-123 - Payment confirmed"
-    - SaaS billing: "Your subscription has been charged" or "Payment processed"
+    RECEIPT EMAIL TYPES (YOUR EXPENSES ONLY):
+    - Purchase receipts from stores where YOU bought something
+    - Digital receipts (App Store, Google Play) where YOU paid for apps/services
+    - Service invoices where YOU paid for utilities, subscriptions, etc.
+    - Payment confirmations where YOUR account was charged
+    - Subscription renewals where YOU were charged
+    - Banking statements showing YOUR spending
+    - SaaS platform invoices where YOU paid for services
+    - Business service receipts where YOUR company paid
+    
+    SPECIFIC PATTERNS TO LOOK FOR (YOUR OUTGOING MONEY):
+    - "Thank you for your purchase" (you bought something)
+    - "Your payment has been processed" (your money went out)
+    - "Order confirmed" or "Payment successful" (you ordered/paid)
+    - "Subscription renewed" (you were charged)
+    - "Your account has been charged" (money left your account)
+    - "Bill paid" or "Payment due" (you owe/paid money)
+    - "Invoice #ABC-123 - Payment processed" (you paid the invoice)
+    - "Receipt #123 - Purchase confirmed" (you made a purchase)
+    - "Your credit card was charged" (money left your account)
     
     INCLUDE ONLY:
-    - Emails confirming money was ALREADY spent or charged (past tense)
-    - Completed transactions with confirmation language
-    - Receipts showing payment was successfully processed
-    - Invoices with payment confirmation or "paid" status
-    - Subscription charges that have been completed
+    - Notifications that YOU spent money (outgoing transactions)
+    - Completed purchases where YOU were the buyer
+    - Bills and invoices that YOU paid
+    - Subscriptions that YOU were charged for
+    - Services that YOU purchased
     
-    🚫 STRICTLY EXCLUDE:
-    - Future billing notifications ("will renew", "will be charged", "upcoming billing")
-    - Payment reminders or due notices ("payment due", "renews soon")
-    - Billing information update requests
-    - Subscription expiration warnings
-    - Marketing emails from retailers
-    - Promotional offers or discounts ("free for 48 hours", "special offer", "limited time")
-    - Free trial announcements or free access promotions
-    - Product announcements, feature launches, or company updates
-    - Contest/giveaway announcements ("chance to win", "competition")
-    - Newsletter content or marketing campaigns
-    - Community building emails ("bring a friend", "show us what you build")
-    - Partnership announcements ("we've partnered with...")
-    - Account signup confirmations (without payment)
-    - Trial signup confirmations (unless paid trial completed)
-    - Any email talking about FUTURE transactions
-    - Emails with unsubscribe links that are clearly promotional
-    - Time-limited free offers or weekend promotions
-    - Administrative notices requiring action ("[Action required]", "provide your tax info")
-    - Tax compliance or verification emails ("verify your NPWP", "tax information")
-    - Account settings or billing setup instructions ("sign in to console", "click navigation")
-    - Government compliance notices ("government records", "regulatory requirements")
-    - Help/tutorial emails with step-by-step instructions ("how to add", "steps to")
-    - System notifications about account verification or setup
+    🚫 STRICTLY EXCLUDE (these are REVENUE, not receipts):
+    - "Payment received" (money coming TO you)
+    - "Refund issued" (money returning TO you)
+    - "You received payment" (income TO you)
+    - "Funds deposited" (money added TO your account)
+    - "Invoice paid to you" (you earned money)
+    - "Commission earned" (you made money)
+    - "Dividend payment" (you received money)
+    - "Tax refund" (money returned TO you)
+    - "Withdrawal successful" (you moved YOUR money)
+    - "Transfer completed to your account" (money came TO you)
+    - "Freelance payment received" (you earned money)
+    - Any email about money coming TO you (that's revenue!)
     
-    TEMPORAL INDICATORS TO CHECK:
-    - Past tense: "was charged", "has been processed", "payment completed", "thank you for"
-    - Future tense: "will be charged", "will renew", "upcoming", "soon", "next billing"
-    - Reminder language: "reminder", "notice", "heads up", "expiring"
+    ALSO EXCLUDE:
+    - Future billing notifications ("will be charged", "upcoming renewal")
+    - Payment reminders ("payment due", "please pay")
+    - Marketing emails and promotions
+    - Free trial or promotional offers
+    - Account setup or verification emails
+    - Administrative notices
+    
+    TEMPORAL INDICATORS:
+    - Receipt language: "charged", "paid", "purchased", "bought", "ordered"
+    - Revenue language: "received", "deposited", "credited", "refunded", "earned"
     
     Email Subject: ${emailData.subject}
     From: ${emailData.from}
@@ -278,30 +334,43 @@ export function classifyReceipt(emailData: EmailData): Classification | null {
   const fromLower = emailData.from.toLowerCase();
   const bodyLower = emailData.body.toLowerCase();
 
-  // FIRST: Check for promotional/marketing patterns - EXCLUDE these immediately
+  // FIRST: Check for revenue patterns - EXCLUDE these immediately
+  const isRevenueEmail = RECEIPT_PATTERNS.revenue_exclusions.some(
+    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
+  );
+
+  if (isRevenueEmail) {
+    console.log("🚫 Receipt: Excluded as revenue email (money coming IN)");
+    return null;
+  }
+
+  // SECOND: Check for promotional/marketing patterns - EXCLUDE these immediately
   const isPromotionalEmail = RECEIPT_PATTERNS.promotional_exclusions.some(
     (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
   );
 
   if (isPromotionalEmail) {
-    console.log("🚫 Excluded as promotional/marketing email");
-    return null; // This is a promotional email, not a receipt
+    console.log("🚫 Receipt: Excluded as promotional/marketing email");
+    return null;
   }
 
-  // SECOND: Check for future/reminder patterns - EXCLUDE these immediately
+  // THIRD: Check for future/reminder patterns - EXCLUDE these immediately
   const isFutureNotification = RECEIPT_PATTERNS.future_notifications.some(
     (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
   );
 
   if (isFutureNotification) {
-    console.log("🚫 Excluded as future billing notification/reminder");
-    return null; // This is a future notification, not a receipt
+    console.log("🚫 Receipt: Excluded as future billing notification/reminder");
+    return null;
   }
 
-  // Check for financial domains (but this will be overridden by exclusions)
-  const isFromFinancialDomain = RECEIPT_PATTERNS.domains.some((pattern) =>
-    pattern.test(fromLower)
+  // Check for strong receipt signals first
+  const hasStrongReceiptSignal = RECEIPT_PATTERNS.strong_receipt_signals.some(
+    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
   );
+
+  // Check for expense domains
+  const isFromExpenseDomain = RECEIPT_PATTERNS.expense_domains.some((pattern) => pattern.test(fromLower));
 
   // Check for specific receipt patterns
   const hasPurchasePattern = RECEIPT_PATTERNS.purchases.some(
@@ -324,60 +393,73 @@ export function classifyReceipt(emailData: EmailData): Classification | null {
     (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
   );
 
-  // Look for monetary amounts (more specific patterns)
+  // Enhanced monetary amount detection
   const hasMoneyAmount =
-    /\$\d+[\.,]?\d*|\d+[\.,]\d{2}|total[:\s]+\$?\d+|amount[:\s]+\$?\d+|charged[:\s]+\$?\d+|paid[:\s]+\$?\d+/i.test(
+    /\$\d+[\.,]?\d*|\d+[\.,]\d{2}|total[:\s]+\$?\d+|amount[:\s]+\$?\d+|charged[:\s]+\$?\d+|paid[:\s]+\$?\d+|bill[:\s]+\$?\d+/i.test(
       bodyLower
     );
 
-  // Look for past-tense completion indicators (ONLY past tense, not future)
-  const hasCompletionIndicators =
-    /(?:thank\s+you|thanks).*(?:for\s+your\s+)?(?:payment|purchase|order|transaction)/i.test(
+  // Look for past-tense completion indicators (YOUR money going OUT)
+  const hasExpenseIndicators =
+    /(?:thank\s+you|thanks).*(?:for\s+your\s+)?(?:payment|purchase|order|subscription)/i.test(bodyLower) ||
+    /(?:your\s+)?(?:payment|purchase|order|subscription).*(?:successful|completed|processed|confirmed)/i.test(
       bodyLower
     ) ||
-    /(?:successful|completed|processed|confirmed|received).*(?:payment|purchase|order|transaction)/i.test(
-      bodyLower
-    ) ||
-    /(?:payment|purchase|order|transaction).*(?:successful|completed|processed|confirmed|received)(?:\s+successfully)?/i.test(
-      bodyLower
-    ) ||
-    /(?:was|has\s+been|have\s+been)\s+(?:charged|paid|processed|completed|confirmed)/i.test(
-      bodyLower
-    ) ||
-    /(?:successfully\s+)?(?:charged|paid)(?:\s+successfully)$/i.test(bodyLower);
+    /(?:was|has\s+been|have\s+been)\s+(?:charged|paid|processed|completed|deducted)/i.test(bodyLower) ||
+    /(?:charged|deducted).*(?:your|from\s+your)\s+(?:account|card)/i.test(bodyLower) ||
+    /(?:successfully\s+)?(?:charged|paid|purchased|ordered)(?:\s+successfully)?/i.test(bodyLower);
 
-  // Determine confidence and type
+  // Determine confidence and type with enhanced logic
   let confidence = 0;
   let receiptType = "purchase";
 
-  if (hasPurchasePattern && hasMoneyAmount && hasCompletionIndicators) {
-    confidence = 0.9;
-    receiptType = "purchase";
-  } else if (hasInvoicePattern && hasCompletionIndicators) {
-    confidence = 0.85;
-    receiptType = "invoice";
-  } else if (hasDigitalPattern && hasCompletionIndicators) {
-    confidence = 0.85;
-    receiptType = "digital";
-  } else if (hasSubscriptionPattern && hasCompletionIndicators) {
-    confidence = 0.8;
-    receiptType = "subscription";
-  } else if (hasCategoryPattern && hasMoneyAmount && hasCompletionIndicators) {
-    confidence = 0.75;
-    receiptType = "purchase";
-  } else if (
-    isFromFinancialDomain &&
-    hasMoneyAmount &&
-    hasCompletionIndicators &&
-    (bodyLower.includes("payment received") ||
-      bodyLower.includes("transaction completed") ||
-      bodyLower.includes("order confirmed"))
-  ) {
-    confidence = 0.7;
-    receiptType = "purchase";
+  // Strong receipt signals get highest priority
+  if (hasStrongReceiptSignal) {
+    if (hasPurchasePattern && hasMoneyAmount) {
+      confidence = 0.95;
+      receiptType = "purchase";
+    } else if (hasSubscriptionPattern) {
+      confidence = 0.9;
+      receiptType = "subscription";
+    } else if (hasInvoicePattern) {
+      confidence = 0.9;
+      receiptType = "invoice";
+    } else {
+      confidence = 0.85;
+      receiptType = "purchase";
+    }
+  } else {
+    // Standard pattern matching
+    if (hasPurchasePattern && hasMoneyAmount && hasExpenseIndicators) {
+      confidence = 0.85;
+      receiptType = "purchase";
+    } else if (hasInvoicePattern && hasExpenseIndicators) {
+      confidence = 0.8;
+      receiptType = "invoice";
+    } else if (hasDigitalPattern && hasExpenseIndicators) {
+      confidence = 0.8;
+      receiptType = "digital";
+    } else if (hasSubscriptionPattern && hasExpenseIndicators) {
+      confidence = 0.75;
+      receiptType = "subscription";
+    } else if (hasCategoryPattern && hasMoneyAmount && hasExpenseIndicators) {
+      confidence = 0.7;
+      receiptType = "purchase";
+    } else if (
+      isFromExpenseDomain &&
+      hasMoneyAmount &&
+      hasExpenseIndicators &&
+      (bodyLower.includes("order confirmed") ||
+        bodyLower.includes("transaction completed") ||
+        bodyLower.includes("payment processed"))
+    ) {
+      confidence = 0.65;
+      receiptType = "purchase";
+    }
   }
 
   if (confidence > 0.6) {
+    console.log(`✅ Receipt: Detected ${receiptType} with confidence ${confidence}`);
     return {
       type: "receipt",
       confidence,
