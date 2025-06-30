@@ -1,5 +1,6 @@
 import React from "react";
 import { Link, useLocation } from "@tanstack/react-router";
+import { useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../supabase/client";
 import { toast } from "sonner";
 import { LayoutDashboard, Receipt, Plane, Briefcase, LogOut, Menu, X } from "lucide-react";
@@ -12,10 +13,13 @@ interface LayoutProps {
 export default function Layout({ children, isAuthenticated }: LayoutProps) {
   const [sidebarOpen, setSidebarOpen] = React.useState(false);
   const location = useLocation();
+  const queryClient = useQueryClient();
 
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
+      // Immediately invalidate auth cache for instant UI update
+      queryClient.invalidateQueries({ queryKey: ["auth"] });
       toast.success("Signed out successfully");
       // Redirect to home page after sign out
       window.location.href = "/";

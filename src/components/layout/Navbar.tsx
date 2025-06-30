@@ -1,12 +1,13 @@
 import { Link, useNavigate } from "@tanstack/react-router";
 import { supabase } from "../../supabase/client";
 import { toast } from "sonner";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { useState } from "react";
 import { Menu, X } from "lucide-react";
 
 export default function Navbar() {
   const navigate = useNavigate();
+  const queryClient = useQueryClient();
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
 
   // Simple auth check for navbar - doesn't trigger redirects
@@ -25,6 +26,9 @@ export default function Navbar() {
   const handleSignOut = async () => {
     try {
       await supabase.auth.signOut();
+      // Immediately invalidate auth cache for instant UI update
+      queryClient.invalidateQueries({ queryKey: ["auth"] });
+      queryClient.invalidateQueries({ queryKey: ["navbar-auth"] });
       toast.success("Signed out successfully");
       navigate({ to: "/" });
     } catch (error) {
@@ -44,9 +48,7 @@ export default function Navbar() {
           <div className="flex items-center">
             <Link to="/" className="flex items-center">
               <img src="/logo.png" alt="Actioneer" className="h-8 w-8" />
-              <span className="ml-2 text-xl font-bold text-white">
-                Actioneer
-              </span>
+              <span className="ml-2 text-xl font-bold text-white">Actioneer</span>
             </Link>
           </div>
 
@@ -85,11 +87,7 @@ export default function Navbar() {
               className="inline-flex items-center justify-center p-2 rounded-md text-white hover:text-white/80 hover:bg-white/10 focus:outline-none focus:ring-2 focus:ring-inset focus:ring-white transition-colors duration-200"
             >
               <span className="sr-only">Open main menu</span>
-              {isMobileMenuOpen ? (
-                <X className="h-6 w-6" />
-              ) : (
-                <Menu className="h-6 w-6" />
-              )}
+              {isMobileMenuOpen ? <X className="h-6 w-6" /> : <Menu className="h-6 w-6" />}
             </button>
           </div>
         </div>

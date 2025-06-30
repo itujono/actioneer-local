@@ -99,21 +99,26 @@ export function useAuth(): UseAuthReturn {
       // Update the query cache with new auth state
       queryClient.setQueryData(["auth", "session"], user);
 
-      // Redirect to login if user logged out
+      // Redirect to login if user logged out, but only from protected routes
       if (!user) {
-        navigate({ to: "/auth" });
+        const publicRoutes = ["/", "/auth", "/privacy", "/docs"];
+        const isPublicRoute = publicRoutes.includes(location.pathname);
+
+        if (!isPublicRoute) {
+          navigate({ to: "/auth" });
+        }
       }
     });
 
     return () => {
       subscription.unsubscribe();
     };
-  }, [queryClient, navigate]);
+  }, [queryClient, navigate, location.pathname]);
 
   // Redirect to login if not authenticated and on protected route
   useEffect(() => {
     // Define public routes that don't require authentication
-    const publicRoutes = ["/", "/auth", "/privacy"];
+    const publicRoutes = ["/", "/auth", "/privacy", "/docs"];
     const isPublicRoute = publicRoutes.includes(location.pathname);
 
     // Only redirect if we're not on a public route and user is not authenticated
