@@ -7,3 +7,4 @@ export { PageTitle } from "../dashboard/PageTitle";
 export * from "./TabSelector";
 export * from "./dialog";
 export * from "./alert-dialog";
+export * from "./TestEmailButton";

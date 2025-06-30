@@ -12,6 +12,7 @@ import {
 import { JobTableRow, GroupedJobTableRow } from "./JobTableRow";
 import { Button } from "../ui/button";
 import type { JobsTableProps, JobApplicationGroup } from "./types";
+import Loading from "../Loading";
 
 // Update JobsTableProps to support grouped data
 export interface ExtendedJobsTableProps
@@ -49,32 +50,20 @@ export function JobsTable({
     : filteredAndSortedApplications.data.length > 0;
 
   if (isLoading) {
-    return (
-      <div className="overflow-hidden">
-        <div className="py-12 text-center">
-          <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-jade"></div>
-          <p className="mt-2 text-sm text-thunder">Loading applications...</p>
-        </div>
-      </div>
-    );
+    return <Loading message="Loading applications..." />;
   }
 
   if (!hasData) {
     return (
-      <div className="overflow-hidden">
-        <div className="py-12 text-center">
-          <BriefcaseIcon className="mx-auto h-12 w-12 text-concrete" />
-          <h3 className="mt-2 text-sm font-medium text-thunder">
-            {filteredAndSortedApplications.totalCount === 0
-              ? "No job applications yet"
-              : "No applications match your filters"}
-          </h3>
-          <p className="mt-1 text-sm text-thunder">
-            {filteredAndSortedApplications.totalCount === 0
-              ? "Job application emails will automatically appear here when detected."
-              : "Try adjusting your search or filters to find what you're looking for."}
-          </p>
-        </div>
+      <div className="bg-white rounded-xl border-2 border-concrete/30 p-8 text-center mt-8">
+        <BriefcaseIcon className="mx-auto h-12 w-12 text-thunder/50 mb-4" />
+        <h3 className="text-lg font-semibold text-black mb-2">
+          No applications match your filters
+        </h3>
+        <p className="text-thunder text-sm">
+          Try adjusting your search terms or filters to find what you're looking
+          for.
+        </p>
       </div>
     );
   }

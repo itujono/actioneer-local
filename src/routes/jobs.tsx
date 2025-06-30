@@ -5,7 +5,7 @@ import React, { useState, useMemo } from "react";
 import { useAuth } from "../hooks/useAuth";
 import { XCircle } from "lucide-react";
 import { supabase } from "../supabase/client";
-import { CustomFieldForm, CustomFieldsManager } from "../components/jobs";
+import { CustomFieldForm, CustomFieldsManager, JobsEmpty } from "../components/jobs";
 import { useCustomFields } from "../hooks/useCustomFields";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { DragEndEvent } from "@dnd-kit/core";
@@ -14,13 +14,7 @@ import { JobsStats, JobsControls, JobsTable } from "../components/jobs";
 import { DashboardContainer } from "../components/dashboard";
 import type { JobApplication, SortConfig } from "../components/jobs/types";
 import { groupJobApplications } from "../components/jobs/constants";
-import {
-  Button,
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-} from "../components/ui";
+import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui";
 
 export const jobsRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -35,12 +29,9 @@ function JobsDashboard() {
     key: "applied_date",
     direction: "desc",
   });
-  const [editingCustomFieldId, setEditingCustomFieldId] = useState<
-    string | null
-  >(null);
+  const [editingCustomFieldId, setEditingCustomFieldId] = useState<string | null>(null);
   const [showCustomFieldsManager, setShowCustomFieldsManager] = useState(false);
-  const [groupSimilarApplications, setGroupSimilarApplications] =
-    useState(true);
+  const [groupSimilarApplications, setGroupSimilarApplications] = useState(true);
 
   // Pagination state
   const [currentPage, setCurrentPage] = useState(1);
@@ -49,21 +40,13 @@ function JobsDashboard() {
   const { user, isLoading: authLoading } = useAuth();
 
   // Custom fields hook
-  const {
-    customFields,
-    getCustomFieldValue,
-    setCustomFieldValue,
-    updateField,
-    isUpdating,
-  } = useCustomFields({
+  const { customFields, getCustomFieldValue, setCustomFieldValue, updateField, isUpdating } = useCustomFields({
     tableName: "job_applications",
     userId: user?.id,
   });
 
   // Find the custom field being edited
-  const editingCustomField = customFields.find(
-    (field) => field.id === editingCustomFieldId
-  );
+  const editingCustomField = customFields.find((field) => field.id === editingCustomFieldId);
 
   // Handler for editing a specific custom field
   const handleEditCustomField = (fieldId: string) => {
@@ -115,10 +98,7 @@ function JobsDashboard() {
   // Add custom fields to columns
   const columnsWithCustomFields = React.useMemo(() => {
     const baseColumns = defaultColumns.filter(
-      (col) =>
-        col.id !== "applied_date" &&
-        col.id !== "created_at" &&
-        col.id !== "actions"
+      (col) => col.id !== "applied_date" && col.id !== "created_at" && col.id !== "actions"
     );
     const customFieldColumns: ColumnConfig[] = customFields.map((field) => ({
       id: `custom-${field.id}`,
@@ -129,10 +109,7 @@ function JobsDashboard() {
 
     // Add back the date columns and actions at the end
     const endColumns = defaultColumns.filter(
-      (col) =>
-        col.id === "applied_date" ||
-        col.id === "created_at" ||
-        col.id === "actions"
+      (col) => col.id === "applied_date" || col.id === "created_at" || col.id === "actions"
     );
 
     return [...baseColumns, ...customFieldColumns, ...endColumns];
@@ -157,15 +134,7 @@ function JobsDashboard() {
 
   // Mutation to update job application custom fields
   const updateJobApplicationMutation = useMutation({
-    mutationFn: async ({
-      jobId,
-      fieldName,
-      newValue,
-    }: {
-      jobId: string;
-      fieldName: string;
-      newValue: any;
-    }) => {
+    mutationFn: async ({ jobId, fieldName, newValue }: { jobId: string; fieldName: string; newValue: any }) => {
       // Find the job application to update
       const jobApp = jobApplications?.find((app) => app.id === jobId);
       if (!jobApp) {
@@ -173,11 +142,7 @@ function JobsDashboard() {
       }
 
       // Update the custom field value in the details JSON
-      const updatedDetails = setCustomFieldValue(
-        jobApp.details,
-        fieldName,
-        newValue
-      );
+      const updatedDetails = setCustomFieldValue(jobApp.details, fieldName, newValue);
 
       // Update in database
       const { data, error } = await supabase
@@ -194,10 +159,7 @@ function JobsDashboard() {
       return data;
     },
     onSuccess: () => {
-      // Invalidate and refetch job applications
-      queryClient.invalidateQueries({
-        queryKey: ["job-applications", user?.id],
-      });
+      queryClient.invalidateQueries({ queryKey: ["job-applications", user?.id] });
     },
   });
 
@@ -209,11 +171,7 @@ function JobsDashboard() {
       }
 
       // Delete from database
-      const { error } = await supabase
-        .from("job_applications")
-        .delete()
-        .eq("id", jobId)
-        .eq("user_id", user.id); // Extra safety check
+      const { error } = await supabase.from("job_applications").delete().eq("id", jobId).eq("user_id", user.id); // Extra safety check
 
       if (error) {
         throw error;
@@ -223,9 +181,7 @@ function JobsDashboard() {
     },
     onSuccess: () => {
       // Invalidate and refetch job applications
-      queryClient.invalidateQueries({
-        queryKey: ["job-applications", user?.id],
-      });
+      queryClient.invalidateQueries({ queryKey: ["job-applications", user?.id] });
     },
   });
 
@@ -280,13 +236,8 @@ function JobsDashboard() {
       }
 
       // Combine both results and remove duplicates
-      const allData: JobApplication[] = [
-        ...(directData || []),
-        ...customUserData,
-      ];
-      const uniqueData = allData.filter(
-        (item, index, self) => index === self.findIndex((t) => t.id === item.id)
-      );
+      const allData: JobApplication[] = [...(directData || []), ...customUserData];
+      const uniqueData = allData.filter((item, index, self) => index === self.findIndex((t) => t.id === item.id));
 
       const data = uniqueData;
       const error = directError;
@@ -310,8 +261,7 @@ function JobsDashboard() {
         app.company.toLowerCase().includes(searchTerm.toLowerCase()) ||
         app.position.toLowerCase().includes(searchTerm.toLowerCase());
 
-      const matchesStatus =
-        statusFilter === "all" || app.status === statusFilter;
+      const matchesStatus = statusFilter === "all" || app.status === statusFilter;
 
       return matchesSearch && matchesStatus;
     });
@@ -322,10 +272,7 @@ function JobsDashboard() {
       let bValue: string | number = b[sortConfig.key] as string | number;
 
       // Handle date sorting
-      if (
-        sortConfig.key === "applied_date" ||
-        sortConfig.key === "created_at"
-      ) {
+      if (sortConfig.key === "applied_date" || sortConfig.key === "created_at") {
         aValue = new Date(aValue as string).getTime();
         bValue = new Date(bValue as string).getTime();
       }
@@ -384,23 +331,15 @@ function JobsDashboard() {
   ]);
 
   // Calculate pagination info
-  const totalPages = Math.ceil(
-    filteredAndSortedApplications.totalCount / pageSize
-  );
+  const totalPages = Math.ceil(filteredAndSortedApplications.totalCount / pageSize);
 
   // Calculate pagination display values based on what we're actually showing
   const actualItemsOnPage = groupSimilarApplications
     ? filteredAndSortedApplications.groups?.length || 0
     : filteredAndSortedApplications.data.length;
 
-  const startItem =
-    filteredAndSortedApplications.totalCount > 0
-      ? (currentPage - 1) * pageSize + 1
-      : 0;
-  const endItem = Math.min(
-    (currentPage - 1) * pageSize + actualItemsOnPage,
-    filteredAndSortedApplications.totalCount
-  );
+  const startItem = filteredAndSortedApplications.totalCount > 0 ? (currentPage - 1) * pageSize + 1 : 0;
+  const endItem = Math.min((currentPage - 1) * pageSize + actualItemsOnPage, filteredAndSortedApplications.totalCount);
 
   // Reset to first page when filters change
   React.useEffect(() => {
@@ -409,19 +348,12 @@ function JobsDashboard() {
 
   const handleSort = (key: string) => {
     // Type guard to ensure we only sort by valid JobApplication keys
-    const validKeys: (keyof JobApplication)[] = [
-      "company",
-      "position",
-      "status",
-      "applied_date",
-      "created_at",
-    ];
+    const validKeys: (keyof JobApplication)[] = ["company", "position", "status", "applied_date", "created_at"];
 
     if (validKeys.includes(key as keyof JobApplication)) {
       setSortConfig((current: SortConfig) => ({
         key: key as keyof JobApplication,
-        direction:
-          current.key === key && current.direction === "asc" ? "desc" : "asc",
+        direction: current.key === key && current.direction === "asc" ? "desc" : "asc",
       }));
     }
   };
@@ -439,9 +371,7 @@ function JobsDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="py-12 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-bittersweet"></div>
-            <p className="mt-2 text-sm text-thunder">
-              Checking authentication...
-            </p>
+            <p className="mt-2 text-sm text-thunder">Checking authentication...</p>
           </div>
         </div>
       </div>
@@ -471,13 +401,9 @@ function JobsDashboard() {
             <div className="flex">
               <XCircle className="h-5 w-5 text-red-400" />
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-red-800">
-                  Error loading job applications
-                </h3>
+                <h3 className="text-sm font-medium text-red-800">Error loading job applications</h3>
                 <p className="mt-1 text-sm text-red-700">
-                  {error instanceof Error
-                    ? error.message
-                    : "An unexpected error occurred"}
+                  {error instanceof Error ? error.message : "An unexpected error occurred"}
                 </p>
                 <div className="mt-2 text-xs text-red-600">
                   User ID: {user?.id || "Not authenticated"}
@@ -508,12 +434,8 @@ function JobsDashboard() {
       description="Track and manage your job search progress"
       headerActions={
         <>
-          <Button
-            onClick={() => setShowCustomFieldsManager(true)}
-            variant="outline"
-            size="sm"
-          >
-            Manage Fields
+          <Button onClick={() => setShowCustomFieldsManager(true)} variant="outline" size="sm">
+            Custom Fields...
           </Button>
           <Button onClick={resetColumnOrder} variant="outline" size="sm">
             Reset Layout
@@ -523,38 +445,48 @@ function JobsDashboard() {
     >
       <JobsStats jobApplications={jobApplications} isLoading={isLoading} />
 
-      <JobsControls
-        searchTerm={searchTerm}
-        setSearchTerm={setSearchTerm}
-        statusFilter={statusFilter}
-        setStatusFilter={setStatusFilter}
-        uniqueStatuses={uniqueStatuses}
-        pageSize={pageSize}
-        setPageSize={setPageSize}
-        groupSimilarApplications={groupSimilarApplications}
-        setGroupSimilarApplications={setGroupSimilarApplications}
-      />
+      {/* Check if we have any job applications at all */}
+      {!isLoading && (!jobApplications || jobApplications.length === 0) ? (
+        <JobsEmpty />
+      ) : (
+        <>
+          {/* Only show controls when there are job applications */}
+          {jobApplications && jobApplications.length > 0 && (
+            <JobsControls
+              searchTerm={searchTerm}
+              setSearchTerm={setSearchTerm}
+              statusFilter={statusFilter}
+              setStatusFilter={setStatusFilter}
+              uniqueStatuses={uniqueStatuses}
+              pageSize={pageSize}
+              setPageSize={setPageSize}
+              groupSimilarApplications={groupSimilarApplications}
+              setGroupSimilarApplications={setGroupSimilarApplications}
+            />
+          )}
 
-      <div className="mt-8 bg-concrete/50">
-        <JobsTable
-          isLoading={isLoading}
-          filteredAndSortedApplications={filteredAndSortedApplications}
-          sortConfig={sortConfig}
-          handleSort={handleSort}
-          columnOrder={columnOrder}
-          onDragEnd={onDragEnd}
-          customFields={customFields}
-          getCustomFieldValue={getCustomFieldValue}
-          updateJobApplicationMutation={updateJobApplicationMutation}
-          currentPage={currentPage}
-          setCurrentPage={setCurrentPage}
-          totalPages={totalPages}
-          startItem={startItem}
-          endItem={endItem}
-          onEditCustomField={handleEditCustomField}
-          onDeleteApplication={handleDeleteApplication}
-        />
-      </div>
+          <div className="mt-8 bg-concrete/50">
+            <JobsTable
+              isLoading={isLoading}
+              filteredAndSortedApplications={filteredAndSortedApplications}
+              sortConfig={sortConfig}
+              handleSort={handleSort}
+              columnOrder={columnOrder}
+              onDragEnd={onDragEnd}
+              customFields={customFields}
+              getCustomFieldValue={getCustomFieldValue}
+              updateJobApplicationMutation={updateJobApplicationMutation}
+              currentPage={currentPage}
+              setCurrentPage={setCurrentPage}
+              totalPages={totalPages}
+              startItem={startItem}
+              endItem={endItem}
+              onEditCustomField={handleEditCustomField}
+              onDeleteApplication={handleDeleteApplication}
+            />
+          </div>
+        </>
+      )}
 
       {/* Custom Field Edit Form Modal */}
       <Dialog

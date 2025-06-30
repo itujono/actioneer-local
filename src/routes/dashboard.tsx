@@ -7,6 +7,7 @@ import {
   BriefcaseIcon,
   Calendar,
   DollarSign,
+  Mail,
 } from "lucide-react";
 import { supabase } from "../supabase/client";
 import { useAuth } from "../hooks/useAuth";
@@ -24,6 +25,7 @@ import { useState, useEffect } from "react";
 import Nothing from "../components/illustrations/Nothing";
 import { currencyManager, formatCurrency } from "../utils/currency";
 import { GmailTokenManager } from "../utils/gmailTokenManager";
+import { TestEmailButton } from "../components/ui";
 
 export const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -635,11 +637,44 @@ function Dashboard() {
                   ))}
                 </ul>
               ) : (
-                <Nothing>
-                  No actionable emails found yet. We'll show insights here as we
-                  process your receipts, travel plans, job applications, and
-                  income emails.
-                </Nothing>
+                <div className="bg-white rounded-lg p-8 text-center border-2 border-concrete">
+                  <Mail className="h-12 w-12 text-heliotrope mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-black mb-2">
+                    Your Insights Dashboard Awaits! 📊
+                  </h3>
+                  <p className="text-thunder text-sm max-w-md mx-auto leading-relaxed mb-6">
+                    Once your email is connected, we'll automatically surface
+                    actionable insights from your receipts, travel plans, job
+                    applications, and revenue notifications.
+                    <span className="font-medium text-heliotrope">
+                      {" "}
+                      The magic happens behind the scenes!
+                    </span>
+                  </p>
+
+                  <div className="flex flex-wrap gap-2 justify-center">
+                    <TestEmailButton
+                      category="receipt"
+                      variant="outline"
+                      size="sm"
+                    />
+                    <TestEmailButton
+                      category="travel"
+                      variant="outline"
+                      size="sm"
+                    />
+                    <TestEmailButton
+                      category="job"
+                      variant="outline"
+                      size="sm"
+                    />
+                    <TestEmailButton
+                      category="revenue"
+                      variant="outline"
+                      size="sm"
+                    />
+                  </div>
+                </div>
               )}
             </div>
           </div>
