@@ -4,25 +4,20 @@ import { classifyEmail } from "./classifiers.ts";
 
 const corsHeaders = {
   "Access-Control-Allow-Origin": "*",
-  "Access-Control-Allow-Headers":
-    "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
   "Access-Control-Allow-Methods": "POST, OPTIONS",
 };
 
 // Initialize Supabase with service role key - bypass RLS for our custom auth
-const supabase = createClient(
-  Deno.env.get("SUPABASE_URL") ?? "",
-  Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "",
-  {
-    auth: {
-      autoRefreshToken: false,
-      persistSession: false,
-    },
-    db: {
-      schema: "public",
-    },
-  }
-);
+const supabase = createClient(Deno.env.get("SUPABASE_URL") ?? "", Deno.env.get("SUPABASE_SERVICE_ROLE_KEY") ?? "", {
+  auth: {
+    autoRefreshToken: false,
+    persistSession: false,
+  },
+  db: {
+    schema: "public",
+  },
+});
 
 Deno.serve(async (req) => {
   if (req.method === "OPTIONS") {
@@ -33,13 +28,10 @@ Deno.serve(async (req) => {
     // Validate user API key
     const authHeader = req.headers.get("Authorization");
     if (!authHeader || !authHeader.startsWith("Bearer ")) {
-      return new Response(
-        JSON.stringify({ error: "Missing or invalid authorization header" }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "Missing or invalid authorization header" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     const apiKey = authHeader.split(" ")[1];
@@ -62,34 +54,22 @@ Deno.serve(async (req) => {
 
     if (userError || !user) {
       console.error("User lookup error:", userError);
-      return new Response(
-        JSON.stringify({ error: "Invalid or inactive API key" }),
-        {
-          status: 401,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "Invalid or inactive API key" }), {
+        status: 401,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.log("✅ User authenticated:", user.email);
 
     // Parse request body
-    const {
-      messageId,
-      subject,
-      from,
-      body: emailBody,
-      date,
-    } = await req.json();
+    const { messageId, subject, from, body: emailBody, date } = await req.json();
 
     if (!messageId || !subject || !from || !emailBody) {
-      return new Response(
-        JSON.stringify({ error: "Missing required email data" }),
-        {
-          status: 400,
-          headers: { ...corsHeaders, "Content-Type": "application/json" },
-        }
-      );
+      return new Response(JSON.stringify({ error: "Missing required email data" }), {
+        status: 400,
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
+      });
     }
 
     console.log("📧 Classifying email:", { subject, from });
@@ -110,9 +90,7 @@ Deno.serve(async (req) => {
 
     // Early exit for "other" category - we don't care about these emails
     if (classification.type === "other") {
-      console.log(
-        "🚫 Email classified as 'other' - skipping storage and returning early"
-      );
+      console.log("🚫 Email classified as 'other' - skipping storage and returning early");
       return new Response(
         JSON.stringify({
           type: "other",
@@ -126,16 +104,38 @@ Deno.serve(async (req) => {
       );
     }
 
+    // Check user category settings - exit early if category is disabled
+    const { data: userSettings, error: settingsError } = await supabase.rpc("get_user_category_settings", {
+      p_user_id: user.id,
+    });
+
+    if (settingsError) {
+      console.error("Error getting user settings:", settingsError);
+      // Default to allowing all categories if we can't get settings
+    } else if (userSettings) {
+      const isEnabled = userSettings[classification.type] === true;
+
+      if (!isEnabled) {
+        console.log(`🚫 Category '${classification.type}' is disabled for user ${user.email} - skipping processing`);
+        return new Response(
+          JSON.stringify({
+            type: classification.type,
+            confidence: classification.confidence,
+            actions: [],
+            message: `Category '${classification.type}' is disabled in user settings`,
+            skipped: true,
+          }),
+          {
+            headers: { ...corsHeaders, "Content-Type": "application/json" },
+          }
+        );
+      }
+
+      console.log(`✅ Category '${classification.type}' is enabled for user ${user.email}`);
+    }
+
     // Only store and process emails that matter to us
-    await storeEmailClassification(
-      user.id,
-      messageId,
-      subject,
-      from,
-      emailBody,
-      date,
-      classification.type
-    );
+    await storeEmailClassification(user.id, messageId, subject, from, emailBody, date, classification.type);
 
     console.log("💾 Stored classification for relevant email");
 

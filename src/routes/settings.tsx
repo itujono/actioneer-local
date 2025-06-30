@@ -1,7 +1,7 @@
 import { createRoute } from "@tanstack/react-router";
 import { rootRoute } from "./root";
 import { DashboardContainer } from "../components/dashboard";
-import { useState } from "react";
+import { useState, useEffect } from "react";
 import { Checkbox, Button } from "../components/ui";
 import {
   Dialog,
@@ -23,8 +23,11 @@ import {
   DollarSign,
   Plane,
   Briefcase,
+  Loader2,
 } from "lucide-react";
 import { useAuth } from "../hooks/useAuth";
+import { useUserSettings, defaultCategorySettings } from "../hooks/useUserSettings";
+import { toast } from "sonner";
 
 export const settingsRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -51,8 +54,7 @@ const EMAIL_CATEGORIES = [
   {
     id: "travel",
     title: "Travel & Promotional Emails",
-    description:
-      "Organize travel deals, destination offers, and promotional travel content",
+    description: "Organize travel deals, destination offers, and promotional travel content",
     icon: Plane,
     enabled: true,
   },
@@ -68,25 +70,39 @@ const EMAIL_CATEGORIES = [
 function SettingsDashboard() {
   const { user } = useAuth();
 
-  // Category toggles state
-  const [categorySettings, setCategorySettings] = useState(
-    EMAIL_CATEGORIES.reduce((acc, category) => {
-      acc[category.id] = category.enabled;
-      return acc;
-    }, {} as Record<string, boolean>)
-  );
+  // Get user settings from API
+  const { settings, isLoading, updateSettings, isUpdating, error } = useUserSettings();
+
+  // Category toggles state - initialize from API or defaults
+  const [categorySettings, setCategorySettings] = useState(defaultCategorySettings);
 
   // Multi-account dialog state
   const [showMultiAccountDialog, setShowMultiAccountDialog] = useState(false);
   const [isConnectingAccount, setIsConnectingAccount] = useState(false);
 
+  // Update local state when API data loads
+  useEffect(() => {
+    if (settings) {
+      setCategorySettings(settings);
+    }
+  }, [settings]);
+
   const handleCategoryToggle = (categoryId: string, enabled: boolean) => {
-    setCategorySettings((prev) => ({
-      ...prev,
+    const newSettings = {
+      ...categorySettings,
       [categoryId]: enabled,
-    }));
-    // TODO: Implement backend integration to save settings
-    console.log(`Category ${categoryId} ${enabled ? "enabled" : "disabled"}`);
+    };
+
+    // Update local state immediately for responsive UI
+    setCategorySettings(newSettings);
+
+    // Update on server
+    updateSettings(newSettings);
+
+    // Show success toast
+    const categoryTitle = EMAIL_CATEGORIES.find((cat) => cat.id === categoryId)?.title || categoryId;
+    const action = enabled ? "enabled" : "disabled";
+    toast.success(`${categoryTitle} ${action}`);
   };
 
   const handleMultiAccountConnect = async () => {
@@ -98,8 +114,7 @@ function SettingsDashboard() {
     console.log("Multi-account connection initiated");
   };
 
-  const enabledCategoriesCount =
-    Object.values(categorySettings).filter(Boolean).length;
+  const enabledCategoriesCount = Object.values(categorySettings).filter(Boolean).length;
   const totalCategories = EMAIL_CATEGORIES.length;
 
   return (
@@ -121,20 +136,19 @@ function SettingsDashboard() {
                   <Mail className="h-5 w-5 text-heliotrope" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-thunder">
-                    Email Categories
-                  </h2>
+                  <h2 className="text-xl font-semibold text-thunder">Email Categories</h2>
                   <p className="text-sm text-gray mt-1">
-                    Choose which types of emails Actioneer should process and
-                    analyze
+                    Choose which types of emails Actioneer should process and analyze
                   </p>
+                  {error && <p className="text-sm text-red-600 mt-1">⚠️ Failed to load settings: {error.message}</p>}
                 </div>
               </div>
               <div className="text-right">
-                <div className="text-sm font-medium text-thunder">
+                <div className="text-sm font-medium text-thunder flex items-center gap-2">
+                  {isLoading && <Loader2 className="h-4 w-4 animate-spin" />}
                   {enabledCategoriesCount}/{totalCategories} enabled
                 </div>
-                <div className="text-xs text-gray">Categories active</div>
+                <div className="text-xs text-gray">{isUpdating ? "Saving..." : "Categories active"}</div>
               </div>
             </div>
 
@@ -147,12 +161,7 @@ function SettingsDashboard() {
                       ? "border-heliotrope/30 bg-heliotrope/5"
                       : "border-gray-light bg-gray-50 hover:border-heliotrope/40"
                   }`}
-                  onClick={() =>
-                    handleCategoryToggle(
-                      category.id,
-                      !categorySettings[category.id]
-                    )
-                  }
+                  onClick={() => handleCategoryToggle(category.id, !categorySettings[category.id])}
                 >
                   <div className="flex items-start space-x-4">
                     <div className="p-2 bg-heliotrope/10 rounded-lg mt-1">
@@ -161,15 +170,11 @@ function SettingsDashboard() {
                     <div className="flex-1 min-w-0">
                       <div className="flex items-center justify-between">
                         <div className="flex items-center space-x-2">
-                          <h3 className="text-base font-medium text-thunder">
-                            {category.title}
-                          </h3>
+                          <h3 className="text-base font-medium text-thunder">{category.title}</h3>
                           {categorySettings[category.id] && (
                             <div className="flex items-center space-x-1">
                               <Check className="h-3 w-3 text-jade" />
-                              <span className="text-xs text-jade font-medium">
-                                Processing enabled
-                              </span>
+                              <span className="text-xs text-jade font-medium">Processing enabled</span>
                             </div>
                           )}
                         </div>
@@ -182,9 +187,7 @@ function SettingsDashboard() {
                           className="pointer-events-none" // Prevent double-clicking
                         />
                       </div>
-                      <p className="text-sm text-gray mt-1">
-                        {category.description}
-                      </p>
+                      <p className="text-sm text-gray mt-1">{category.description}</p>
                     </div>
                   </div>
                 </div>
@@ -196,8 +199,8 @@ function SettingsDashboard() {
                 <div className="flex items-center space-x-2">
                   <AlertCircle className="h-4 w-4 text-amber-600" />
                   <p className="text-sm text-amber-800">
-                    <strong>No categories enabled.</strong> Actioneer won't
-                    process any emails until you enable at least one category.
+                    <strong>No categories enabled.</strong> Actioneer won't process any emails until you enable at least
+                    one category.
                   </p>
                 </div>
               </div>
@@ -212,12 +215,8 @@ function SettingsDashboard() {
                   <Users className="h-5 w-5 text-gold" />
                 </div>
                 <div>
-                  <h2 className="text-xl font-semibold text-thunder">
-                    Multi-Account Management
-                  </h2>
-                  <p className="text-sm text-gray mt-1">
-                    Connect multiple Gmail accounts for unified email insights
-                  </p>
+                  <h2 className="text-xl font-semibold text-thunder">Multi-Account Management</h2>
+                  <p className="text-sm text-gray mt-1">Connect multiple Gmail accounts for unified email insights</p>
                 </div>
               </div>
               <div className="px-3 py-1 bg-heliotrope/10 text-heliotrope text-xs font-medium rounded-full">
@@ -234,20 +233,12 @@ function SettingsDashboard() {
                       <Check className="h-4 w-4 text-white" />
                     </div>
                     <div>
-                      <h3 className="text-base font-medium text-thunder">
-                        Primary Gmail Account
-                      </h3>
-                      <p className="text-sm text-gray">
-                        {user?.email || "Loading..."}
-                      </p>
-                      <p className="text-xs text-gray mt-1">
-                        Currently connected and processing emails
-                      </p>
+                      <h3 className="text-base font-medium text-thunder">Primary Gmail Account</h3>
+                      <p className="text-sm text-gray">{user?.email || "Loading..."}</p>
+                      <p className="text-xs text-gray mt-1">Currently connected and processing emails</p>
                     </div>
                   </div>
-                  <div className="text-xs text-jade font-medium bg-jade/10 px-2 py-1 rounded">
-                    Active
-                  </div>
+                  <div className="text-xs text-jade font-medium bg-jade/10 px-2 py-1 rounded">Active</div>
                 </div>
               </div>
 
@@ -259,19 +250,11 @@ function SettingsDashboard() {
                       <Plus className="h-4 w-4 text-gray-600" />
                     </div>
                     <div>
-                      <h3 className="text-base font-medium text-thunder">
-                        Add Second Account
-                      </h3>
-                      <p className="text-sm text-gray">
-                        Connect your work or secondary Gmail account
-                      </p>
+                      <h3 className="text-base font-medium text-thunder">Add Second Account</h3>
+                      <p className="text-sm text-gray">Connect your work or secondary Gmail account</p>
                     </div>
                   </div>
-                  <Button
-                    onClick={() => setShowMultiAccountDialog(true)}
-                    variant="outline"
-                    size="sm"
-                  >
+                  <Button onClick={() => setShowMultiAccountDialog(true)} variant="outline" size="sm">
                     <Plus className="h-4 w-4 mr-2" />
                     Connect
                   </Button>
@@ -284,13 +267,11 @@ function SettingsDashboard() {
                 <Info className="h-8 w-8 text-thunder" />
                 <div>
                   <p className="text-sm text-thunder">
-                    <strong>Multi-account support is coming soon!</strong>{" "}
-                    You'll be able to connect up to 2 Gmail accounts and view
-                    unified insights across both personal and work emails.
+                    <strong>Multi-account support is coming soon!</strong> You'll be able to connect up to 2 Gmail
+                    accounts and view unified insights across both personal and work emails.
                   </p>
                   <p className="text-xs text-thunder mt-4">
-                    This feature will be available in the next update with the
-                    same affordable pricing.
+                    This feature will be available in the next update with the same affordable pricing.
                   </p>
                 </div>
               </div>
@@ -307,36 +288,23 @@ function SettingsDashboard() {
                 <Settings className="h-5 w-5 text-jade" />
               </div>
               <div>
-                <h2 className="text-xl font-semibold text-thunder">
-                  Account Information
-                </h2>
-                <p className="text-sm text-gray mt-1">
-                  Your current subscription and usage details
-                </p>
+                <h2 className="text-xl font-semibold text-thunder">Account Information</h2>
+                <p className="text-sm text-gray mt-1">Your current subscription and usage details</p>
               </div>
             </div>
 
             <div className="space-y-4">
               <div className="py-4 bg-gray-50 rounded-lg">
-                <h3 className="text-sm font-medium text-thunder mb-1">
-                  Subscription Plan
-                </h3>
-                <p className="text-lg font-semibold text-jade">
-                  Free Beta Access
-                </p>
+                <h3 className="text-sm font-medium text-thunder mb-1">Subscription Plan</h3>
+                <p className="text-lg font-semibold text-jade">Free Beta Access</p>
                 <p className="text-xs text-gray">
-                  We're completely free to use while in beta • No credit card
-                  required
+                  We're completely free to use while in beta • No credit card required
                 </p>
               </div>
               <div className="py-4 bg-gray-50 rounded-lg">
-                <h3 className="text-sm font-medium text-thunder mb-1">
-                  Emails Processed
-                </h3>
+                <h3 className="text-sm font-medium text-thunder mb-1">Emails Processed</h3>
                 <p className="text-lg font-semibold text-jade">1,247</p>
-                <p className="text-xs text-gray">
-                  This month • Unlimited processing
-                </p>
+                <p className="text-xs text-gray">This month • Unlimited processing</p>
               </div>
             </div>
           </div>
@@ -401,10 +369,7 @@ function SettingsDashboard() {
       </div>
 
       {/* Multi-Account Connection Dialog */}
-      <Dialog
-        open={showMultiAccountDialog}
-        onOpenChange={setShowMultiAccountDialog}
-      >
+      <Dialog open={showMultiAccountDialog} onOpenChange={setShowMultiAccountDialog}>
         <DialogContent className="sm:max-w-md">
           <DialogHeader>
             <DialogTitle className="flex items-center space-x-2">
@@ -412,17 +377,14 @@ function SettingsDashboard() {
               <span>Connect Second Account</span>
             </DialogTitle>
             <DialogDescription>
-              Add your work or secondary Gmail account to get unified insights
-              across both accounts.
+              Add your work or secondary Gmail account to get unified insights across both accounts.
             </DialogDescription>
           </DialogHeader>
 
           <div className="py-4">
             <div className="space-y-4">
               <div className="p-4 bg-blue-50 border border-blue-200 rounded-lg">
-                <h4 className="text-sm font-medium text-blue-900 mb-2">
-                  What you'll get:
-                </h4>
+                <h4 className="text-sm font-medium text-blue-900 mb-2">What you'll get:</h4>
                 <ul className="text-sm text-blue-800 space-y-1">
                   <li className="flex items-center space-x-2">
                     <Check className="h-3 w-3 text-blue-600" />
@@ -443,8 +405,7 @@ function SettingsDashboard() {
                 <div className="flex items-center space-x-2">
                   <AlertCircle className="h-4 w-4 text-amber-600" />
                   <p className="text-sm text-amber-800">
-                    This feature is currently in development and will be
-                    available soon.
+                    This feature is currently in development and will be available soon.
                   </p>
                 </div>
               </div>
@@ -452,17 +413,10 @@ function SettingsDashboard() {
           </div>
 
           <DialogFooter>
-            <Button
-              variant="outline"
-              onClick={() => setShowMultiAccountDialog(false)}
-            >
+            <Button variant="outline" onClick={() => setShowMultiAccountDialog(false)}>
               Close
             </Button>
-            <Button
-              onClick={handleMultiAccountConnect}
-              loading={isConnectingAccount}
-              disabled
-            >
+            <Button onClick={handleMultiAccountConnect} loading={isConnectingAccount} disabled>
               <Plus className="h-4 w-4 mr-2" />
               Connect Account
             </Button>

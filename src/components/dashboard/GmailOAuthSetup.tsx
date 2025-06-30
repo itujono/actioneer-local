@@ -1,14 +1,4 @@
-import {
-  CheckCircle,
-  RefreshCw,
-  AlertCircle,
-  Mail,
-  Zap,
-  Check,
-  Shield,
-  Clock,
-  X,
-} from "lucide-react";
+import { CheckCircle, RefreshCw, AlertCircle, Mail, Zap, Shield, Clock, X } from "lucide-react";
 import { useState, useEffect } from "react";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { supabase } from "../../supabase/client";
@@ -30,9 +20,7 @@ interface GmailSetupStatus {
   error?: string;
 }
 
-export default function GmailOAuthSetup({
-  className = "",
-}: GmailOAuthSetupProps) {
+export default function GmailOAuthSetup({ className = "" }: GmailOAuthSetupProps) {
   const { user } = useAuth();
   const queryClient = useQueryClient();
   const [isRefreshing, setIsRefreshing] = useState(false);
@@ -40,12 +28,10 @@ export default function GmailOAuthSetup({
   // Check localStorage for banner dismissal state (per user)
   const getBannerDismissalKey = () => `gmail-banner-dismissed-${user?.id}`;
 
-  const [isSuccessBannerDismissed, setIsSuccessBannerDismissed] = useState(
-    () => {
-      if (!user?.id) return false;
-      return localStorage.getItem(getBannerDismissalKey()) === "true";
-    }
-  );
+  const [isSuccessBannerDismissed, setIsSuccessBannerDismissed] = useState(() => {
+    if (!user?.id) return false;
+    return localStorage.getItem(getBannerDismissalKey()) === "true";
+  });
 
   // Update dismissal state when user changes
   useEffect(() => {
@@ -54,8 +40,7 @@ export default function GmailOAuthSetup({
       return;
     }
 
-    const isDismissed =
-      localStorage.getItem(getBannerDismissalKey()) === "true";
+    const isDismissed = localStorage.getItem(getBannerDismissalKey()) === "true";
     setIsSuccessBannerDismissed(isDismissed);
   }, [user?.id]);
 
@@ -78,11 +63,7 @@ export default function GmailOAuthSetup({
       }
 
       // Use centralized token manager for consistent logic
-      return await GmailTokenManager.getSetupStatus(
-        user.id,
-        user.email!,
-        queryClient
-      );
+      return await GmailTokenManager.getSetupStatus(user.id, user.email!, queryClient);
     },
     enabled: !!user,
     refetchInterval: false, // Disable automatic refetching to prevent conflicts
@@ -97,17 +78,14 @@ export default function GmailOAuthSetup({
       if (!user) throw new Error("User not authenticated");
 
       // Step 1: Get fresh OAuth tokens via Supabase Auth
-      const { data: session, error: sessionError } =
-        await supabase.auth.getSession();
+      const { data: session, error: sessionError } = await supabase.auth.getSession();
 
       if (sessionError || !session.session) {
         throw new Error("Please sign in again to set up Gmail access");
       }
 
       // Check if we have provider tokens from the current session
-      const hasProviderTokens =
-        session.session.provider_token &&
-        session.session.provider_refresh_token;
+      const hasProviderTokens = session.session.provider_token && session.session.provider_refresh_token;
 
       if (!hasProviderTokens) {
         // Clear any existing invalid tokens first
@@ -120,8 +98,7 @@ export default function GmailOAuthSetup({
         const { error } = await supabase.auth.signInWithOAuth({
           provider: "google",
           options: {
-            scopes:
-              "email profile https://www.googleapis.com/auth/gmail.readonly",
+            scopes: "email profile https://www.googleapis.com/auth/gmail.readonly",
             redirectTo: redirectUrl,
             queryParams: {
               access_type: "offline",
@@ -138,23 +115,20 @@ export default function GmailOAuthSetup({
       }
 
       // Step 2: Call our setup function with the OAuth tokens
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/setup-gmail-watch`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${session.session.access_token}`,
-            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-          },
-          body: JSON.stringify({
-            userEmail: user.email,
-            accessToken: session.session.provider_token, // This is the Google OAuth token
-            refreshToken: session.session.provider_refresh_token,
-            expiresAt: new Date(Date.now() + 3600 * 1000).toISOString(), // 1 hour
-          }),
-        }
-      );
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/setup-gmail-watch`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${session.session.access_token}`,
+          apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+        },
+        body: JSON.stringify({
+          userEmail: user.email,
+          accessToken: session.session.provider_token, // This is the Google OAuth token
+          refreshToken: session.session.provider_refresh_token,
+          expiresAt: new Date(Date.now() + 3600 * 1000).toISOString(), // 1 hour
+        }),
+      });
 
       if (!response.ok) {
         const errorData = await response.json();
@@ -174,9 +148,7 @@ export default function GmailOAuthSetup({
       }
 
       console.log("✅ Gmail setup successful:", result);
-      toast.success(
-        "Gmail access configured! Your emails will now be processed automatically."
-      );
+      toast.success("Gmail access configured! Your emails will now be processed automatically.");
 
       // Refresh the status
       queryClient.invalidateQueries({ queryKey: ["gmail-oauth-status"] });
@@ -185,9 +157,7 @@ export default function GmailOAuthSetup({
       console.error("❌ Gmail setup failed:", error);
 
       if (error.message.includes("sign in again")) {
-        toast.error(
-          "Please sign out and sign in again to grant Gmail permissions."
-        );
+        toast.error("Please sign out and sign in again to grant Gmail permissions.");
       } else {
         toast.error(`Gmail setup failed: ${error.message}`);
       }
@@ -236,21 +206,16 @@ export default function GmailOAuthSetup({
   // If Gmail is already setup, show success state (unless dismissed)
   if (gmailOAuthStatus?.isSetup && !isSuccessBannerDismissed) {
     return (
-      <div
-        className={`bg-jade border-2 border-jade rounded-lg p-4 ${className}`}
-      >
+      <div className={`bg-jade border-2 border-jade rounded-lg p-4 ${className}`}>
         <div className="flex items-center space-x-3">
           <CheckCircle className="w-6 h-6 text-lime" />
           <div className="flex-1">
-            <h3 className="font-semibold text-lime">
-              Gmail access configured!
-            </h3>
+            <h3 className="font-semibold text-lime">Gmail access configured!</h3>
             <p className="text-sm text-white">
               Your emails are being processed automatically
               {gmailOAuthStatus.lastSetupAt && (
                 <span className="ml-2">
-                  • Last updated{" "}
-                  {new Date(gmailOAuthStatus.lastSetupAt).toLocaleDateString()}
+                  • Last updated {new Date(gmailOAuthStatus.lastSetupAt).toLocaleDateString()}
                 </span>
               )}
             </p>
@@ -280,9 +245,7 @@ export default function GmailOAuthSetup({
   // Loading state
   if (isLoading || isRefreshing) {
     return (
-      <div
-        className={`bg-gray-50 border-2 border-gray-200 rounded-lg p-6 ${className}`}
-      >
+      <div className={`bg-gray-50 border-2 border-gray-200 rounded-lg p-6 ${className}`}>
         <div className="flex items-center space-x-3">
           <RefreshCw className="w-5 h-5 animate-spin text-gray-500" />
           <span className="text-gray-600">Checking Gmail setup status...</span>
@@ -294,26 +257,18 @@ export default function GmailOAuthSetup({
   // Error state
   if (error || gmailOAuthStatus?.error) {
     return (
-      <div
-        className={`bg-red-50 border-2 border-red-200 rounded-lg p-6 ${className}`}
-      >
+      <div className={`bg-red-50 border-2 border-red-200 rounded-lg p-6 ${className}`}>
         <div className="flex items-start space-x-4">
           <AlertCircle className="w-6 h-6 text-red-600 flex-shrink-0" />
           <div className="flex-1">
-            <h3 className="text-lg font-semibold text-red-800 mb-2">
-              Unable to Check Gmail Status
-            </h3>
-            <p className="text-red-700 mb-3">
-              We couldn't verify your Gmail setup. Please try refreshing.
-            </p>
+            <h3 className="text-lg font-semibold text-red-800 mb-2">Unable to Check Gmail Status</h3>
+            <p className="text-red-700 mb-3">We couldn't verify your Gmail setup. Please try refreshing.</p>
             <button
               onClick={handleRefreshStatus}
               disabled={isRefreshing}
               className="flex items-center space-x-2 px-4 py-2 bg-red-600 text-white rounded-lg hover:bg-red-700 disabled:opacity-50"
             >
-              <RefreshCw
-                className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`}
-              />
+              <RefreshCw className={`w-4 h-4 ${isRefreshing ? "animate-spin" : ""}`} />
               <span>Retry</span>
             </button>
           </div>
@@ -324,9 +279,7 @@ export default function GmailOAuthSetup({
 
   // Main setup flow
   return (
-    <div
-      className={`bg-daisy border-2 border-daisy rounded-xl p-6 relative overflow-hidden ${className}`}
-    >
+    <div className={`bg-daisy border-2 border-daisy rounded-xl p-6 relative overflow-hidden ${className}`}>
       <div className="absolute -bottom-40 -right-64 z-0">
         <Fling className="w-[32rem] h-[32rem] text-lavender stroke-[70px]" />
       </div>
@@ -337,9 +290,7 @@ export default function GmailOAuthSetup({
           </div>
           <h3 className="text-xl font-bold text-white">Gmail Access Setup</h3>
         </div>
-        <p className="text-white/90 text-sm">
-          Enable automatic email processing with one simple step
-        </p>
+        <p className="text-white/90 text-sm">Enable automatic email processing with one simple step</p>
       </div>
 
       <div className="space-y-6 relative z-10">
@@ -356,9 +307,8 @@ export default function GmailOAuthSetup({
                 Enable Gmail Processing
               </h4> */}
               <p className="text-sm text-concrete mb-4">
-                We'll securely connect to your Gmail account to automatically
-                process receipts, travel promotional emails, and job
-                applications as they arrive.
+                We'll securely connect to your Gmail account to automatically process receipts, travel promotional
+                emails, and job applications as they arrive.
               </p>
 
               {/* Privacy info with new styling */}
@@ -366,17 +316,10 @@ export default function GmailOAuthSetup({
                 <div className="flex items-start space-x-3">
                   <Shield className="w-5 h-5 text-lavender flex-shrink-0 mt-0.5" />
                   <div className="text-sm text-concrete">
-                    <p className="font-semibold mb-2 text-lavender">
-                      Privacy & Security
-                    </p>
+                    <p className="font-semibold mb-2 text-lavender">Privacy & Security</p>
                     <ul className="text-xs space-y-1 text-concrete">
-                      <li>
-                        • We only read emails relevant to supported categories
-                      </li>
-                      <li>
-                        • No personal conversations or sensitive emails are
-                        accessed
-                      </li>
+                      <li>• We only read emails relevant to supported categories</li>
+                      <li>• No personal conversations or sensitive emails are accessed</li>
                       <li>• Your data is encrypted and stored securely</li>
                     </ul>
                   </div>
@@ -384,10 +327,7 @@ export default function GmailOAuthSetup({
               </div>
 
               {/* Enhanced button */}
-              <Button
-                onClick={handleSetupGmail}
-                disabled={setupGmailMutation.isPending}
-              >
+              <Button onClick={handleSetupGmail} disabled={setupGmailMutation.isPending}>
                 {setupGmailMutation.isPending ? (
                   <>
                     <RefreshCw className="w-4 h-4 animate-spin mr-2" />
@@ -408,13 +348,11 @@ export default function GmailOAuthSetup({
           <div className="mt-3 p-4 bg-red-50 border border-red-200 rounded-lg">
             <div className="text-sm text-red-600 mb-3">
               <AlertCircle className="w-4 h-4 inline mr-1" />
-              {setupGmailMutation.error?.message ||
-                "Setup failed. Please try again."}
+              {setupGmailMutation.error?.message || "Setup failed. Please try again."}
             </div>
 
             <div className="text-xs text-red-500 mb-3">
-              If you keep seeing this setup screen, your Gmail permissions may
-              need to be refreshed:
+              If you keep seeing this setup screen, your Gmail permissions may need to be refreshed:
             </div>
 
             <button
@@ -432,8 +370,7 @@ export default function GmailOAuthSetup({
           <div className="mt-3 p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
             <div className="text-sm text-yellow-800 mb-2">
               <AlertCircle className="w-4 h-4 inline mr-1" />
-              Your Gmail tokens keep expiring. This usually means they need to
-              be refreshed.
+              Your Gmail tokens keep expiring. This usually means they need to be refreshed.
             </div>
             <button
               onClick={handleForceReauth}
@@ -453,10 +390,8 @@ export default function GmailOAuthSetup({
           <div className="text-sm text-white/90">
             <p className="font-semibold mb-1 text-white">What happens next?</p>
             <p>
-              Once enabled, we'll start processing your incoming emails
-              automatically. You'll see receipts, travel promotional emails, and
-              job applications appear in your dashboard within seconds of
-              receiving them.
+              Once enabled, we'll start processing your incoming emails automatically. You'll see receipts, travel
+              promotional emails, and job applications appear in your dashboard within seconds of receiving them.
             </p>
           </div>
         </div>

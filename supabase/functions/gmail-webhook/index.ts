@@ -94,10 +94,7 @@ async function handleGmailPushNotification(req: Request) {
     try {
       const decodedMessage = atob(messageData);
       gmailNotification = JSON.parse(decodedMessage);
-      console.log(
-        "📧 Gmail notification:",
-        JSON.stringify(gmailNotification, null, 2)
-      );
+      console.log("📧 Gmail notification:", JSON.stringify(gmailNotification, null, 2));
     } catch (decodeError) {
       console.error("Failed to decode Gmail notification:", decodeError);
       return new Response("OK", { headers: corsHeaders });
@@ -144,11 +141,7 @@ async function handleGmailPushNotification(req: Request) {
   }
 }
 
-async function logEmailNotification(
-  userId: string,
-  emailAddress: string,
-  notification: any
-) {
+async function logEmailNotification(userId: string, emailAddress: string, notification: any) {
   try {
     // Store notification for potential future processing
     const { error } = await supabase.from("email_notifications").insert({
@@ -169,26 +162,19 @@ async function logEmailNotification(
   }
 }
 
-async function processNewEmailsForUser(
-  user: any,
-  emailAddress: string,
-  historyId?: string
-) {
+async function processNewEmailsForUser(user: any, emailAddress: string, historyId?: string) {
   try {
     console.log("📨 Starting direct email processing for:", emailAddress);
 
     // Get valid access token
     const accessToken = await getValidAccessToken(user, emailAddress);
     if (!accessToken) {
-      console.log(
-        "❌ No valid access token available - user needs to re-authorize via web OAuth"
-      );
+      console.log("❌ No valid access token available - user needs to re-authorize via web OAuth");
       await updateNotificationResult(user, emailAddress, {
         success: false,
         error: "Token refresh failed - re-authentication required",
         requiresReauth: true,
-        instructions:
-          "Please sign in again at actioneer.online to refresh your OAuth connection",
+        instructions: "Please sign in again at actioneer.online to refresh your OAuth connection",
         method: "token_refresh_failed",
       });
       return;
@@ -198,12 +184,7 @@ async function processNewEmailsForUser(
 
     // Fetch recent emails from Gmail
     console.log("📮 Fetching recent emails from Gmail API...");
-    const emailRefs = await fetchRecentEmails(
-      accessToken,
-      historyId,
-      user,
-      emailAddress
-    );
+    const emailRefs = await fetchRecentEmails(accessToken, historyId, user, emailAddress);
 
     console.log(`📬 Found ${emailRefs.length} recent emails to process`);
     if (emailRefs.length === 0) {
@@ -242,9 +223,7 @@ async function processNewEmailsForUser(
           .limit(1);
 
         if (existingEmails && existingEmails.length > 0 && !existingError) {
-          console.log(
-            `⏭️ Email already processed (message_id: ${emailRef.id}), skipping`
-          );
+          console.log(`⏭️ Email already processed (message_id: ${emailRef.id}), skipping`);
           continue;
         }
 
@@ -261,10 +240,29 @@ async function processNewEmailsForUser(
 
         // Early exit for "other" category - we don't store irrelevant emails
         if (classification.type === "other") {
-          console.log(
-            "🚫 Email classified as 'other' - skipping storage (not relevant to Actioneer)"
-          );
+          console.log("🚫 Email classified as 'other' - skipping storage (not relevant to Actioneer)");
           continue;
+        }
+
+        // Check user category settings - skip if category is disabled
+        const { data: userSettings, error: settingsError } = await supabase.rpc("get_user_category_settings", {
+          p_user_id: user.id,
+        });
+
+        if (settingsError) {
+          console.error("Error getting user settings:", settingsError);
+          // Default to allowing all categories if we can't get settings
+        } else if (userSettings) {
+          const isEnabled = userSettings[classification.type] === true;
+
+          if (!isEnabled) {
+            console.log(
+              `🚫 Category '${classification.type}' is disabled for user ${user.email} - skipping processing`
+            );
+            continue;
+          }
+
+          console.log(`✅ Category '${classification.type}' is enabled for user ${user.email}`);
         }
 
         // Store only relevant emails in database

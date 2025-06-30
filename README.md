@@ -244,7 +244,9 @@ If you prefer to see real-world processing:
 
 ### 📧 **Sample Test Email Templates**
 
-While you definitely can make your own made-up emails to test, but to make it easier, you can copy and paste these into Gmail to send yourself test emails:
+While you can definitely create your own test emails, we've made it even easier by providing ready-to-use templates below that you can copy and paste into Gmail.
+
+**Pro tip**: You'll also find convenient test email buttons on each category page within the app when you're getting started.
 
 **Receipt Email:**
 
@@ -418,6 +420,10 @@ We only access emails relevant to supported categories and never read personal c
 We don't track anything. No analytics, no pageviews, no behavioral data collection. Your privacy is paramount - we only process what's necessary to provide the email intelligence you signed up for.
 
 ## Support & Community
+
+As we're just getting started on this exciting journey, your feedback is worth its weight in gold! We're constantly improving Actioneer and your insights help us build exactly what you need. Whether you've spotted a bug, have a brilliant feature idea, or just want to share your experience, we'd love to hear from you.
+
+**Share Your Thoughts**: Visit our dedicated [feedback page](/feedback) to report issues, suggest improvements, or tell us what's working well. Every piece of feedback helps us make Actioneer better for everyone.
 
 Have questions or need help? We're here to support you:
 
