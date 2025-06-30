@@ -443,7 +443,9 @@ function JobsDashboard() {
         </>
       }
     >
-      <JobsStats jobApplications={jobApplications} isLoading={isLoading} />
+      {!isLoading && jobApplications && jobApplications.length > 0 && (
+        <JobsStats jobApplications={jobApplications} isLoading={isLoading} />
+      )}
 
       {/* Check if we have any job applications at all */}
       {!isLoading && (!jobApplications || jobApplications.length === 0) ? (

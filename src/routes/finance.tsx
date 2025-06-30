@@ -6,12 +6,7 @@ import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../supabase/client";
 import { currencyManager } from "../utils/currency";
 import { Button } from "../components/ui/button";
-import {
-  FinanceControls,
-  FinanceMetrics,
-  CurrencyBreakdown,
-  TransactionsList,
-} from "../components/finance";
+import { FinanceControls, FinanceMetrics, CurrencyBreakdown, TransactionsList } from "../components/finance";
 import { DashboardContainer } from "../components/dashboard";
 
 export const financeRoute = createRoute({
@@ -22,9 +17,7 @@ export const financeRoute = createRoute({
 
 function FinancialDashboard() {
   const [timeframe, setTimeframe] = useState("month");
-  const [viewMode, setViewMode] = useState<"all" | "expenses" | "revenue">(
-    "all"
-  );
+  const [viewMode, setViewMode] = useState<"all" | "expenses" | "revenue">("all");
   const [displayMode, setDisplayMode] = useState<"cards" | "list">("cards");
   const [baseCurrency, setBaseCurrency] = useState("USD");
   const [showCurrencyBreakdown, setShowCurrencyBreakdown] = useState(false);
@@ -68,9 +61,7 @@ function FinancialDashboard() {
         query = query.gte("date", startDate.toISOString());
       }
 
-      query = query
-        .order("date", { ascending: false })
-        .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
+      query = query.order("date", { ascending: false }).range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
 
       const { data, error } = await query;
 
@@ -83,10 +74,7 @@ function FinancialDashboard() {
       return { data: data || [], pageParam };
     },
     initialPageParam: 0,
-    getNextPageParam: (
-      lastPage: { data: any[]; pageParam: number },
-      pages: any[]
-    ) => {
+    getNextPageParam: (lastPage: { data: any[]; pageParam: number }, pages: any[]) => {
       if (lastPage.data.length < PAGE_SIZE) {
         return undefined;
       }
@@ -97,9 +85,7 @@ function FinancialDashboard() {
 
   // Flatten receipts from all pages
   const receipts = useMemo(() => {
-    return (
-      receiptsPages?.pages.flatMap((page: { data: any[] }) => page.data) || []
-    );
+    return receiptsPages?.pages.flatMap((page: { data: any[] }) => page.data) || [];
   }, [receiptsPages]);
 
   // Fetch revenue with infinite query
@@ -139,9 +125,7 @@ function FinancialDashboard() {
         query = query.gte("date", startDate.toISOString());
       }
 
-      query = query
-        .order("date", { ascending: false })
-        .range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
+      query = query.order("date", { ascending: false }).range(pageParam * PAGE_SIZE, (pageParam + 1) * PAGE_SIZE - 1);
 
       const { data, error } = await query;
 
@@ -154,10 +138,7 @@ function FinancialDashboard() {
       return { data: data || [], pageParam };
     },
     initialPageParam: 0,
-    getNextPageParam: (
-      lastPage: { data: any[]; pageParam: number },
-      pages: any[]
-    ) => {
+    getNextPageParam: (lastPage: { data: any[]; pageParam: number }, pages: any[]) => {
       if (lastPage.data.length < PAGE_SIZE) {
         return undefined;
       }
@@ -168,9 +149,7 @@ function FinancialDashboard() {
 
   // Flatten revenue from all pages
   const revenue = useMemo(() => {
-    return (
-      revenuePages?.pages.flatMap((page: { data: any[] }) => page.data) || []
-    );
+    return revenuePages?.pages.flatMap((page: { data: any[] }) => page.data) || [];
   }, [revenuePages]);
 
   // Calculate comprehensive financial metrics with multi-currency support
@@ -187,48 +166,30 @@ function FinancialDashboard() {
       thisMonthNet: 0,
       lastMonthNet: 0,
       trend: 0,
-      currencyBreakdown: {} as Record<
-        string,
-        { revenue: number; expenses: number; net: number }
-      >,
+      currencyBreakdown: {} as Record<string, { revenue: number; expenses: number; net: number }>,
       uniqueCurrencies: [] as string[],
     };
 
     if (!receipts && !revenue) return defaultMetrics;
 
     const now = new Date();
-    const startOfWeek = new Date(
-      now.getFullYear(),
-      now.getMonth(),
-      now.getDate() - 7
-    );
+    const startOfWeek = new Date(now.getFullYear(), now.getMonth(), now.getDate() - 7);
     const startOfMonth = new Date(now.getFullYear(), now.getMonth(), 1);
     const startOfLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
     const endOfLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
 
     // Get all unique currencies
-    const allTransactions = [
-      ...(Array.isArray(revenue) ? revenue : []),
-      ...(Array.isArray(receipts) ? receipts : []),
-    ];
-    const uniqueCurrencies =
-      currencyManager.getUniqueCurrencies(allTransactions);
+    const allTransactions = [...(Array.isArray(revenue) ? revenue : []), ...(Array.isArray(receipts) ? receipts : [])];
+    const uniqueCurrencies = currencyManager.getUniqueCurrencies(allTransactions);
 
     // Calculate currency breakdown
-    const currencyBreakdown: Record<
-      string,
-      { revenue: number; expenses: number; net: number }
-    > = {};
+    const currencyBreakdown: Record<string, { revenue: number; expenses: number; net: number }> = {};
     uniqueCurrencies.forEach((currency) => {
       const currencyRevenue = Array.isArray(revenue)
-        ? revenue
-            .filter((item) => item.currency === currency)
-            .reduce((sum, item) => sum + item.amount, 0)
+        ? revenue.filter((item) => item.currency === currency).reduce((sum, item) => sum + item.amount, 0)
         : 0;
       const currencyExpenses = Array.isArray(receipts)
-        ? receipts
-            .filter((receipt) => receipt.currency === currency)
-            .reduce((sum, receipt) => sum + receipt.amount, 0)
+        ? receipts.filter((receipt) => receipt.currency === currency).reduce((sum, receipt) => sum + receipt.amount, 0)
         : 0;
 
       currencyBreakdown[currency] = {
@@ -239,9 +200,7 @@ function FinancialDashboard() {
     });
 
     // Calculate revenue metrics (converted to base currency)
-    const totalRevenue = Array.isArray(revenue)
-      ? currencyManager.calculateTotal(revenue, baseCurrency)
-      : 0;
+    const totalRevenue = Array.isArray(revenue) ? currencyManager.calculateTotal(revenue, baseCurrency) : 0;
     const thisWeekRevenue = Array.isArray(revenue)
       ? currencyManager.calculateTotal(
           revenue.filter((item) => new Date(item.date) >= startOfWeek),
@@ -256,9 +215,7 @@ function FinancialDashboard() {
       : 0;
 
     // Calculate expense metrics (converted to base currency)
-    const totalExpenses = Array.isArray(receipts)
-      ? currencyManager.calculateTotal(receipts, baseCurrency)
-      : 0;
+    const totalExpenses = Array.isArray(receipts) ? currencyManager.calculateTotal(receipts, baseCurrency) : 0;
     const thisWeekExpenses = Array.isArray(receipts)
       ? currencyManager.calculateTotal(
           receipts.filter((receipt) => new Date(receipt.date) >= startOfWeek),
@@ -287,9 +244,7 @@ function FinancialDashboard() {
       ? currencyManager.calculateTotal(
           receipts.filter((receipt) => {
             const receiptDate = new Date(receipt.date);
-            return (
-              receiptDate >= startOfLastMonth && receiptDate <= endOfLastMonth
-            );
+            return receiptDate >= startOfLastMonth && receiptDate <= endOfLastMonth;
           }),
           baseCurrency
         )
@@ -318,10 +273,7 @@ function FinancialDashboard() {
 
   // Auto-select the first available currency when data loads
   useEffect(() => {
-    if (
-      metrics.uniqueCurrencies.length > 0 &&
-      !metrics.uniqueCurrencies.includes(baseCurrency)
-    ) {
+    if (metrics.uniqueCurrencies.length > 0 && !metrics.uniqueCurrencies.includes(baseCurrency)) {
       setBaseCurrency(metrics.uniqueCurrencies[0]);
     }
   }, [metrics.uniqueCurrencies, baseCurrency]);
@@ -331,9 +283,7 @@ function FinancialDashboard() {
     if (!receipts && !revenue) return {};
 
     const allTransactions = [
-      ...(Array.isArray(receipts)
-        ? receipts.map((receipt) => ({ ...receipt, type: "expense" }))
-        : []),
+      ...(Array.isArray(receipts) ? receipts.map((receipt) => ({ ...receipt, type: "expense" })) : []),
       ...(Array.isArray(revenue)
         ? revenue.map((rev) => ({
             ...rev,
@@ -369,9 +319,7 @@ function FinancialDashboard() {
         <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
           <div className="py-12 text-center">
             <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-heliotrope"></div>
-            <p className="mt-2 text-sm text-black">
-              Checking authentication...
-            </p>
+            <p className="mt-2 text-sm text-black">Checking authentication...</p>
           </div>
         </div>
       </div>
@@ -398,13 +346,9 @@ function FinancialDashboard() {
           <div className="bg-bittersweet/10 border border-bittersweet rounded-lg p-6">
             <div className="flex">
               <div className="ml-3">
-                <h3 className="text-sm font-medium text-bittersweet">
-                  Error loading financial data
-                </h3>
+                <h3 className="text-sm font-medium text-bittersweet">Error loading financial data</h3>
                 <p className="mt-1 text-sm text-bittersweet">
-                  {receiptsError?.message ||
-                    revenueError?.message ||
-                    "An unexpected error occurred"}
+                  {receiptsError?.message || revenueError?.message || "An unexpected error occurred"}
                 </p>
                 <div className="mt-2 text-xs text-bittersweet">
                   User ID: {user?.id || "Not authenticated"}
@@ -434,38 +378,43 @@ function FinancialDashboard() {
 
   const isLoading = receiptsLoading || revenueLoading;
 
+  // Check if we have any financial data at all
+  const hasAnyData = (receipts && receipts.length > 0) || (revenue && revenue.length > 0);
+
   return (
     <DashboardContainer
       title="Financial Dashboard"
       description="Track your expenses and income across all currencies"
       className="min-h-screen bg-concrete/10 pb-12"
     >
-      <div className="flex flex-col space-y-6">
-        <FinanceControls
-          viewMode={viewMode}
-          setViewMode={setViewMode}
-          timeframe={timeframe}
-          setTimeframe={setTimeframe}
-          displayMode={displayMode}
-          setDisplayMode={setDisplayMode}
-          baseCurrency={baseCurrency}
-          setBaseCurrency={setBaseCurrency}
-          showCurrencyBreakdown={showCurrencyBreakdown}
-          setShowCurrencyBreakdown={setShowCurrencyBreakdown}
-          uniqueCurrencies={metrics.uniqueCurrencies}
-        />
-      </div>
-      <FinanceMetrics
-        metrics={metrics}
-        baseCurrency={baseCurrency}
-        timeframe={timeframe}
-      />
-      <CurrencyBreakdown
-        showCurrencyBreakdown={showCurrencyBreakdown}
-        uniqueCurrencies={metrics.uniqueCurrencies}
-        currencyBreakdown={metrics.currencyBreakdown}
-        baseCurrency={baseCurrency}
-      />
+      {/* Only show controls and metrics when there's data */}
+      {hasAnyData && (
+        <>
+          <div className="flex flex-col space-y-6">
+            <FinanceControls
+              viewMode={viewMode}
+              setViewMode={setViewMode}
+              timeframe={timeframe}
+              setTimeframe={setTimeframe}
+              displayMode={displayMode}
+              setDisplayMode={setDisplayMode}
+              baseCurrency={baseCurrency}
+              setBaseCurrency={setBaseCurrency}
+              showCurrencyBreakdown={showCurrencyBreakdown}
+              setShowCurrencyBreakdown={setShowCurrencyBreakdown}
+              uniqueCurrencies={metrics.uniqueCurrencies}
+            />
+          </div>
+          <FinanceMetrics metrics={metrics} baseCurrency={baseCurrency} timeframe={timeframe} />
+          <CurrencyBreakdown
+            showCurrencyBreakdown={showCurrencyBreakdown}
+            uniqueCurrencies={metrics.uniqueCurrencies}
+            currencyBreakdown={metrics.currencyBreakdown}
+            baseCurrency={baseCurrency}
+          />
+        </>
+      )}
+
       <TransactionsList
         isLoading={isLoading}
         groupedTransactions={groupedTransactions}
