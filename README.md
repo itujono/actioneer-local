@@ -249,39 +249,132 @@ While you definitely can make your own made-up emails to test, but to make it ea
 **Receipt Email:**
 
 ```
-Subject: Your purchase receipt - $45.67
-From: orders@teststore.com
+Subject: Your Amazon Order Confirmation #123-4567890-1234567
+From: auto-confirm@amazon.com
 
-Thank you for your purchase!
-Order #: 12345
-Date: [Today's date]
-Total: $45.67
-Items: Coffee beans, Notebook
+Thank you for your Amazon order!
+
+Order Details:
+- Order #: 123-4567890-1234567
+- Order Date: [Today's date]
+- Total: $89.99
+
+Items Ordered:
+• Wireless Bluetooth Headphones - $79.99
+• USB-C Cable (3ft) - $9.99
+• Shipping: FREE
+
+Your order will be delivered by [Date in 2 days].
+
+Track your package: https://amazon.com/track
+
+Thanks for shopping with Amazon!
+The Amazon Team
 ```
 
 **Travel Email:**
 
 ```
-Subject: Amazing Travel Deal - 50% off Hotels in Miami
+Subject: 🌴 Amazing Travel Deal: 60% Off Miami Beach Hotels This Weekend!
 From: deals@traveldeals.com
 
-Don't miss out on this incredible offer!
-Miami Beach hotels starting at just $89/night
-Valid for travel: [Next month dates]
-Book by: [This weekend]
-Destinations: South Beach, Downtown Miami
+Don't miss this incredible travel opportunity!
+
+FLASH SALE: Miami Beach Getaway
+🏖️ Up to 60% off luxury hotels
+📅 Valid for travel: [Next week dates] - [Two weeks from now]
+⏰ Book by: [Three days from now] (Limited time!)
+
+Featured Destinations:
+• South Beach - Starting at $129/night (was $320)
+• Downtown Miami - Starting at $89/night (was $220)
+• Coral Gables - Starting at $159/night (was $380)
+
+What's Included:
+- Oceanview rooms with balcony
+- Complimentary breakfast
+- Pool and beach access
+- Free WiFi
+
+✈️ BONUS: Book now and get 25% off flights to Miami!
+Flight deals from major cities starting at $199 roundtrip.
+
+Ready for some sun and sand? This deal won't last long!
+
+Book now: https://traveldeals.com/miami-flash-sale
+Use code: MIAMI60
+
+Happy travels!
+The TravelDeals Team
+deals@traveldeals.com
 ```
 
 **Job Application Email:**
 
 ```
-Subject: Application Received - Marketing Manager
-From: hr@innovatetech.com
+Subject: Application Received: Senior Software Engineer - TechCorp
+From: careers@techcorp.com
 
-Thank you for applying to InnovateTech!
-Position: Marketing Manager
-Application ID: APP-789
-We'll review your application and get back to you soon.
+Dear Candidate,
+
+Thank you for applying to the Senior Software Engineer position at TechCorp!
+
+Application Details:
+• Position: Senior Software Engineer
+• Department: Engineering
+• Location: San Francisco, CA / Remote
+• Application ID: TC-2024-ENG-001
+• Submitted: [Today's date]
+
+Next Steps:
+Our recruiting team will review your application and reach out within 5-7 business days if your background aligns with our current needs.
+
+In the meantime, feel free to explore our engineering blog at techcorp.com/blog to learn more about our technical culture and recent projects.
+
+We appreciate your interest in joining our team!
+
+Best regards,
+Sarah Johnson
+Senior Talent Acquisition Manager
+TechCorp
+careers@techcorp.com
+```
+
+**Revenue/Payment Email:**
+
+```
+Subject: Payment Received: Freelance Project Invoice #INV-2024-001
+From: payments@startupx.com
+
+Payment Confirmation
+
+Dear Freelancer,
+
+We're pleased to confirm that your payment has been processed successfully.
+
+Payment Details:
+• Invoice #: INV-2024-001
+• Project: Website Development for StartupX
+• Amount: $2,500.00
+• Payment Date: [Today's date]
+• Payment Method: Bank Transfer
+• Reference: PAY-[6-digit number]
+
+This payment covers:
+- Frontend development (React/TypeScript)
+- Backend API integration
+- Mobile responsive design
+- 2 rounds of revisions
+
+The funds have been transferred to your account ending in ***1234 and should appear within 1-2 business days.
+
+Thank you for your excellent work on this project! We look forward to collaborating again soon.
+
+Best regards,
+Alex Chen
+Project Manager
+StartupX Inc.
+payments@startupx.com
 ```
 
 ### ⚡ **What to Expect**
