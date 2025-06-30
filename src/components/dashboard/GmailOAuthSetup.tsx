@@ -62,8 +62,22 @@ export default function GmailOAuthSetup({ className = "" }: GmailOAuthSetupProps
         throw new Error("User not authenticated");
       }
 
-      // Use centralized token manager for consistent logic
-      return await GmailTokenManager.getSetupStatus(user.id, user.email!, queryClient);
+      // Add detailed logging for debugging
+      console.log("🔍 About to call GmailTokenManager.getSetupStatus with:", {
+        userId: user.id,
+        userEmail: user.email,
+        userObject: user,
+      });
+
+      try {
+        // Use centralized token manager for consistent logic
+        const result = await GmailTokenManager.getSetupStatus(user.id, user.email!, queryClient);
+        console.log("📊 GmailTokenManager.getSetupStatus result:", result);
+        return result;
+      } catch (error) {
+        console.error("💥 Error in GmailTokenManager.getSetupStatus:", error);
+        throw error;
+      }
     },
     enabled: !!user,
     refetchInterval: false, // Disable automatic refetching to prevent conflicts
@@ -77,8 +91,18 @@ export default function GmailOAuthSetup({ className = "" }: GmailOAuthSetupProps
     mutationFn: async () => {
       if (!user) throw new Error("User not authenticated");
 
+      console.log("🚀 Setup Gmail mutation started");
+
       // Step 1: Get fresh OAuth tokens via Supabase Auth
       const { data: session, error: sessionError } = await supabase.auth.getSession();
+
+      console.log("📊 Current session data:", {
+        hasSession: !!session.session,
+        hasProviderToken: !!session.session?.provider_token,
+        hasProviderRefreshToken: !!session.session?.provider_refresh_token,
+        provider: session.session?.user?.app_metadata?.provider,
+        sessionError,
+      });
 
       if (sessionError || !session.session) {
         throw new Error("Please sign in again to set up Gmail access");
@@ -87,7 +111,15 @@ export default function GmailOAuthSetup({ className = "" }: GmailOAuthSetupProps
       // Check if we have provider tokens from the current session
       const hasProviderTokens = session.session.provider_token && session.session.provider_refresh_token;
 
+      console.log("🔍 Provider token analysis:", {
+        hasProviderTokens,
+        providerTokenLength: session.session.provider_token?.length || 0,
+        providerRefreshTokenLength: session.session.provider_refresh_token?.length || 0,
+      });
+
       if (!hasProviderTokens) {
+        console.log("❌ No provider tokens found - redirecting to OAuth");
+
         // Clear any existing invalid tokens first
         console.log("🧹 Clearing existing tokens before re-auth");
         await supabase.from("user_auth_tokens").delete().eq("user_id", user.id);
@@ -114,6 +146,8 @@ export default function GmailOAuthSetup({ className = "" }: GmailOAuthSetupProps
         return { redirecting: true };
       }
 
+      console.log("✅ Provider tokens found - proceeding with setup");
+
       // Step 2: Call our setup function with the OAuth tokens
       const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/setup-gmail-watch`, {
         method: "POST",
@@ -128,6 +162,12 @@ export default function GmailOAuthSetup({ className = "" }: GmailOAuthSetupProps
           refreshToken: session.session.provider_refresh_token,
           expiresAt: new Date(Date.now() + 3600 * 1000).toISOString(), // 1 hour
         }),
+      });
+
+      console.log("📡 Setup Gmail Watch response:", {
+        ok: response.ok,
+        status: response.status,
+        statusText: response.statusText,
       });
 
       if (!response.ok) {

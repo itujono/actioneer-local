@@ -1,14 +1,10 @@
-import { Edit, Trash2 } from "lucide-react";
+import { Pencil, Trash2 } from "lucide-react";
 import type { CustomFieldDefinition } from "../../../supabase/types";
 
 interface CustomFieldItemProps {
   field: CustomFieldDefinition;
   onEdit: (field: CustomFieldDefinition) => void;
-  onDelete: (
-    fieldId: string,
-    fieldName: string,
-    fieldLabel: string
-  ) => Promise<void>;
+  onDelete: (fieldId: string, fieldName: string, fieldLabel: string) => Promise<void>;
   isUpdating?: boolean;
   isDeleting?: boolean;
 }
@@ -47,7 +43,7 @@ export function CustomFieldItem({
           disabled={isUpdating}
           title="Edit field"
         >
-          <Edit className="h-4 w-4" />
+          <Pencil className="h-4 w-4" />
         </button>
         <button
           onClick={handleDelete}

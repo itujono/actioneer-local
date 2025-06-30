@@ -67,16 +67,11 @@ export function useAuth(): UseAuthReturn {
           const fiveMinutes = 5 * 60 * 1000; // Reduced from 10 minutes
 
           if (timeUntilExpiry < fiveMinutes && timeUntilExpiry > 0) {
-            console.log(
-              "🔄 Proactively refreshing auth session (expires in < 5 minutes)"
-            );
+            console.log("🔄 Proactively refreshing auth session (expires in < 5 minutes)");
             try {
               await supabase.auth.refreshSession();
             } catch (refreshError) {
-              console.warn(
-                "⚠️ Proactive auth session refresh failed:",
-                refreshError
-              );
+              console.warn("⚠️ Proactive auth session refresh failed:", refreshError);
               // Don't throw - let the current session continue
             }
           }

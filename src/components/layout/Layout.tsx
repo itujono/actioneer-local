@@ -2,16 +2,7 @@ import React from "react";
 import { Link, useLocation } from "@tanstack/react-router";
 import { supabase } from "../../supabase/client";
 import { toast } from "sonner";
-import {
-  LayoutDashboard,
-  Receipt,
-  Plane,
-  Briefcase,
-  LogOut,
-  Menu,
-  X,
-  MessageSquare,
-} from "lucide-react";
+import { LayoutDashboard, Receipt, Plane, Briefcase, LogOut, Menu, X } from "lucide-react";
 
 interface LayoutProps {
   children: React.ReactNode;
@@ -52,11 +43,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
   return (
     <div className="min-h-screen bg-concrete/20">
       {/* Mobile sidebar */}
-      <div
-        className={`fixed inset-0 flex z-40 md:hidden ${
-          sidebarOpen ? "" : "hidden"
-        }`}
-      >
+      <div className={`fixed inset-0 flex z-40 md:hidden ${sidebarOpen ? "" : "hidden"}`}>
         {/* Backdrop */}
         <div
           className="fixed inset-0 bg-thunder bg-opacity-75"
@@ -80,9 +67,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
           <div className="flex-1 h-0 pt-5 pb-4 overflow-y-auto">
             <div className="flex-shrink-0 flex items-center px-4">
               <img src="/logo.png" alt="Actioneer" className="h-8 w-8" />
-              <span className="ml-2 text-xl font-bold text-thunder">
-                actioneer
-              </span>
+              <span className="ml-2 text-xl font-bold text-thunder">actioneer</span>
             </div>
             <nav className="mt-5 px-2 space-y-1">
               <Link
@@ -159,15 +144,10 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
           </div>
 
           <div className="flex-shrink-0 flex border-t border-concrete p-4">
-            <button
-              onClick={handleSignOut}
-              className="flex-shrink-0 group block w-full"
-            >
+            <button onClick={handleSignOut} className="flex-shrink-0 group block w-full">
               <div className="flex items-center">
                 <div className="ml-3">
-                  <p className="text-base font-medium text-thunder group-hover:text-thunder">
-                    Sign out
-                  </p>
+                  <p className="text-base font-medium text-thunder group-hover:text-thunder">Sign out</p>
                 </div>
               </div>
             </button>
@@ -181,9 +161,7 @@ export default function Layout({ children, isAuthenticated }: LayoutProps) {
           <section className="flex-1 flex flex-col pt-5 pb-4 overflow-y-auto">
             <div className="flex items-center flex-shrink-0 px-4">
               <img src="/logo.png" alt="actioneer" className="h-8 w-8" />
-              <span className="ml-2 text-xl font-bold text-black">
-                actioneer
-              </span>
+              <span className="ml-2 text-xl font-bold text-black">actioneer</span>
             </div>
             <nav className="mt-5 flex-1 px-2 bg-concrete/40 space-y-1">
               <Link

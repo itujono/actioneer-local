@@ -1,18 +1,8 @@
-import {
-  Calendar,
-  Trash2,
-  ChevronDown,
-  ChevronRight,
-  Users,
-} from "lucide-react";
+import { Calendar, Trash2, ChevronDown, ChevronRight, Users, Mail } from "lucide-react";
 import { formatDistanceToNow } from "date-fns";
 import { EditableCustomFieldCell } from "./custom-fields/CustomFieldInput";
-import {
-  getFlagEmoji,
-  getStatusIcon,
-  getStatusBadgeColor,
-  GmailButton,
-} from "./constants";
+import { getFlagEmoji, getStatusIcon, getStatusBadgeColor } from "./constants";
+import { EmailContentDialog } from "./EmailContentDialog";
 import {
   AlertDialog,
   AlertDialogAction,
@@ -24,9 +14,15 @@ import {
   AlertDialogTitle,
   AlertDialogTrigger,
   Button,
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
 } from "../ui";
 import type { JobTableRowProps, JobApplicationGroup } from "./types";
 import React from "react";
+
+// EmailContentDialog moved to separate file: ./EmailContentDialog.tsx
 
 // New props for grouped row
 export interface GroupedJobTableRowProps {
@@ -48,6 +44,7 @@ export function GroupedJobTableRow({
   onDeleteApplication,
 }: GroupedJobTableRowProps) {
   const [isExpanded, setIsExpanded] = React.useState(false);
+  const [emailDialogOpen, setEmailDialogOpen] = React.useState(false);
   const latestApplication = group.applications[0];
 
   // Helper function to update custom field for all applications in the group
@@ -72,9 +69,7 @@ export function GroupedJobTableRow({
   // Main grouped row
   const renderGroupRow = () => (
     <tr
-      className={`hover:bg-concrete/20 ${
-        group.isGrouped ? "cursor-pointer" : ""
-      }`}
+      className={`hover:bg-concrete/20 ${group.isGrouped ? "cursor-pointer" : ""}`}
       onClick={group.isGrouped ? () => setIsExpanded(!isExpanded) : undefined}
     >
       {/* Tree connector column */}
@@ -114,9 +109,7 @@ export function GroupedJobTableRow({
                   <div className="text-sm font-medium text-thunder flex items-center">
                     {latestApplication.company}
                     {getFlagEmoji(latestApplication.country_code) && (
-                      <span className="ml-2 text-base">
-                        {getFlagEmoji(latestApplication.country_code)}
-                      </span>
+                      <span className="ml-2 text-base">{getFlagEmoji(latestApplication.country_code)}</span>
                     )}
                     {group.isGrouped && (
                       <span className="ml-2 inline-flex items-center px-2 py-1 text-xs font-medium bg-heliotrope/10 text-heliotrope rounded-full">
@@ -132,9 +125,7 @@ export function GroupedJobTableRow({
           case "position":
             return (
               <td key={cellKey} className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-thunder">
-                  {latestApplication.position}
-                </div>
+                <div className="text-sm text-thunder">{latestApplication.position}</div>
               </td>
             );
 
@@ -150,12 +141,9 @@ export function GroupedJobTableRow({
                   >
                     {latestApplication.status === "next_step"
                       ? "Next Step"
-                      : latestApplication.status.charAt(0).toUpperCase() +
-                        latestApplication.status.slice(1)}
+                      : latestApplication.status.charAt(0).toUpperCase() + latestApplication.status.slice(1)}
                   </span>
-                  {group.isGrouped && (
-                    <span className="ml-2 text-xs text-thunder/60">Latest</span>
-                  )}
+                  {group.isGrouped && <span className="ml-2 text-xs text-thunder/60">Latest</span>}
                 </div>
               </td>
             );
@@ -164,8 +152,7 @@ export function GroupedJobTableRow({
             return (
               <td key={cellKey} className="px-6 py-4 whitespace-nowrap">
                 <div className="text-sm text-thunder">
-                  {latestApplication.website &&
-                  latestApplication.website !== "-" ? (
+                  {latestApplication.website && latestApplication.website !== "-" ? (
                     <a
                       href={"https://" + latestApplication.website}
                       target="_blank"
@@ -184,15 +171,10 @@ export function GroupedJobTableRow({
 
           case "applied_date":
             return (
-              <td
-                key={cellKey}
-                className="px-6 py-4 whitespace-nowrap text-sm text-thunder"
-              >
+              <td key={cellKey} className="px-6 py-4 whitespace-nowrap text-sm text-thunder">
                 <div className="flex items-center">
                   <Calendar className="h-4 w-4 text-gray mr-2" />
-                  {new Date(
-                    latestApplication.applied_date
-                  ).toLocaleDateString()}
+                  {new Date(latestApplication.applied_date).toLocaleDateString()}
                   {/* {group.isGrouped && (
                     <span className="ml-2 text-xs text-thunder/60">
                       (Latest)
@@ -204,10 +186,7 @@ export function GroupedJobTableRow({
 
           case "created_at":
             return (
-              <td
-                key={cellKey}
-                className="px-6 py-4 whitespace-nowrap text-sm text-thunder"
-              >
+              <td key={cellKey} className="px-6 py-4 whitespace-nowrap text-sm text-thunder">
                 {formatDistanceToNow(new Date(latestApplication.created_at))}
               </td>
             );
@@ -221,10 +200,26 @@ export function GroupedJobTableRow({
               >
                 <div className="flex items-center justify-end space-x-2">
                   {group.isGrouped && (
-                    <span className="text-xs text-thunder/60 mr-2">
-                      {group.applications.length} entries
-                    </span>
+                    <span className="text-xs text-thunder/60 mr-2">{group.applications.length} entries</span>
                   )}
+
+                  {/* See Email Content button */}
+                  <Tooltip delayDuration={300}>
+                    <TooltipTrigger asChild>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => setEmailDialogOpen(true)}
+                        className="text-heliotrope hover:text-heliotrope/80"
+                      >
+                        <Mail className="h-4 w-4" />
+                      </Button>
+                    </TooltipTrigger>
+                    <TooltipContent side="top" align="center">
+                      <p>View original email content</p>
+                    </TooltipContent>
+                  </Tooltip>
+
                   {/* Show delete only for single applications */}
                   {!group.isGrouped && onDeleteApplication && (
                     <AlertDialog>
@@ -240,25 +235,20 @@ export function GroupedJobTableRow({
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            Delete Job Application
-                          </AlertDialogTitle>
+                          <AlertDialogTitle>Delete Job Application</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Are you sure you want to delete the job application
-                            for <strong>{latestApplication.position}</strong> at{" "}
+                            Are you sure you want to delete the job application for{" "}
+                            <strong>{latestApplication.position}</strong> at{" "}
                             <strong>{latestApplication.company}</strong>?
                             <br />
                             <br />
-                            This action cannot be undone and will permanently
-                            remove the application from your records.
+                            This action cannot be undone and will permanently remove the application from your records.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
                           <AlertDialogCancel>Cancel</AlertDialogCancel>
                           <AlertDialogAction
-                            onClick={() =>
-                              onDeleteApplication(latestApplication.id)
-                            }
+                            onClick={() => onDeleteApplication(latestApplication.id)}
                             className="bg-bittersweet hover:bg-bittersweet/80"
                           >
                             Delete Application
@@ -279,21 +269,12 @@ export function GroupedJobTableRow({
 
               if (field) {
                 return (
-                  <td
-                    key={cellKey}
-                    className="px-6 py-4 whitespace-nowrap text-sm text-thunder"
-                  >
+                  <td key={cellKey} className="px-6 py-4 whitespace-nowrap text-sm text-thunder">
                     <EditableCustomFieldCell
                       field={field}
-                      value={getCustomFieldValue(
-                        latestApplication.details,
-                        field.field_name
-                      )}
+                      value={getCustomFieldValue(latestApplication.details, field.field_name)}
                       onSave={async (newValue) => {
-                        await updateGroupCustomField(
-                          field.field_name,
-                          newValue
-                        );
+                        await updateGroupCustomField(field.field_name, newValue);
                       }}
                       disabled={updateJobApplicationMutation.isPending}
                       isGrouped={group.isGrouped}
@@ -305,10 +286,7 @@ export function GroupedJobTableRow({
             }
 
             return (
-              <td
-                key={cellKey}
-                className="px-6 py-4 whitespace-nowrap text-sm text-thunder"
-              >
+              <td key={cellKey} className="px-6 py-4 whitespace-nowrap text-sm text-thunder">
                 —
               </td>
             );
@@ -331,8 +309,7 @@ export function GroupedJobTableRow({
               className="absolute left-1/2 w-0.5 bg-thunder"
               style={{
                 top: index === 0 ? "0px" : "-100%",
-                height:
-                  index === group.applications.length - 1 ? "50%" : "200%",
+                height: index === group.applications.length - 1 ? "50%" : "200%",
                 transform: "translateX(-50%)",
               }}
             ></div>
@@ -364,9 +341,7 @@ export function GroupedJobTableRow({
             case "position":
               return (
                 <td key={cellKey} className="px-6 py-2 whitespace-nowrap">
-                  <div className="text-xs text-thunder/70">
-                    {application.position}
-                  </div>
+                  <div className="text-xs text-thunder/70">{application.position}</div>
                 </td>
               );
 
@@ -382,8 +357,7 @@ export function GroupedJobTableRow({
                     >
                       {application.status === "next_step"
                         ? "Next Step"
-                        : application.status.charAt(0).toUpperCase() +
-                          application.status.slice(1)}
+                        : application.status.charAt(0).toUpperCase() + application.status.slice(1)}
                     </span>
                   </div>
                 </td>
@@ -391,10 +365,7 @@ export function GroupedJobTableRow({
 
             case "applied_date":
               return (
-                <td
-                  key={cellKey}
-                  className="px-6 py-2 whitespace-nowrap text-xs text-thunder/70"
-                >
+                <td key={cellKey} className="px-6 py-2 whitespace-nowrap text-xs text-thunder/70">
                   <div className="flex items-center">
                     <Calendar className="h-3 w-3 text-gray mr-1" />
                     {new Date(application.applied_date).toLocaleDateString()}
@@ -404,10 +375,7 @@ export function GroupedJobTableRow({
 
             case "created_at":
               return (
-                <td
-                  key={cellKey}
-                  className="px-6 py-2 whitespace-nowrap text-xs text-thunder/70"
-                >
+                <td key={cellKey} className="px-6 py-2 whitespace-nowrap text-xs text-thunder/70">
                   {formatDistanceToNow(new Date(application.created_at))}
                 </td>
               );
@@ -433,18 +401,13 @@ export function GroupedJobTableRow({
                       </AlertDialogTrigger>
                       <AlertDialogContent>
                         <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            Delete Job Application
-                          </AlertDialogTitle>
+                          <AlertDialogTitle>Delete Job Application</AlertDialogTitle>
                           <AlertDialogDescription>
-                            Are you sure you want to delete this specific job
-                            application for{" "}
-                            <strong>{application.position}</strong> at{" "}
-                            <strong>{application.company}</strong>?
+                            Are you sure you want to delete this specific job application for{" "}
+                            <strong>{application.position}</strong> at <strong>{application.company}</strong>?
                             <br />
                             <br />
-                            This action cannot be undone and will permanently
-                            remove this application from your records.
+                            This action cannot be undone and will permanently remove this application from your records.
                           </AlertDialogDescription>
                         </AlertDialogHeader>
                         <AlertDialogFooter>
@@ -470,21 +433,12 @@ export function GroupedJobTableRow({
 
                 if (field) {
                   return (
-                    <td
-                      key={cellKey}
-                      className="px-6 py-2 whitespace-nowrap text-xs text-thunder"
-                    >
+                    <td key={cellKey} className="px-6 py-2 whitespace-nowrap text-xs text-thunder">
                       <EditableCustomFieldCell
                         field={field}
-                        value={getCustomFieldValue(
-                          application.details,
-                          field.field_name
-                        )}
+                        value={getCustomFieldValue(application.details, field.field_name)}
                         onSave={async (newValue) => {
-                          await updateGroupCustomField(
-                            field.field_name,
-                            newValue
-                          );
+                          await updateGroupCustomField(field.field_name, newValue);
                         }}
                         disabled={updateJobApplicationMutation.isPending}
                         isGrouped={group.isGrouped}
@@ -496,10 +450,7 @@ export function GroupedJobTableRow({
               }
 
               return (
-                <td
-                  key={cellKey}
-                  className="px-6 py-2 whitespace-nowrap text-xs text-thunder/70"
-                >
+                <td key={cellKey} className="px-6 py-2 whitespace-nowrap text-xs text-thunder/70">
                   —
                 </td>
               );
@@ -510,10 +461,19 @@ export function GroupedJobTableRow({
   };
 
   return (
-    <>
+    <TooltipProvider>
       {renderGroupRow()}
       {renderExpandedRows()}
-    </>
+
+      {/* Email Content Dialog */}
+      <EmailContentDialog
+        emailId={latestApplication.email_id}
+        isOpen={emailDialogOpen}
+        onClose={() => setEmailDialogOpen(false)}
+        company={latestApplication.company}
+        position={latestApplication.position}
+      />
+    </TooltipProvider>
   );
 }
 
@@ -526,198 +486,202 @@ export function JobTableRow({
   updateJobApplicationMutation,
   onDeleteApplication,
 }: JobTableRowProps) {
-  return (
-    <tr className="hover:bg-concrete/20">
-      {/* Empty tree connector column for alignment */}
-      <td className="w-8 border-b border-concrete/20"></td>
-      {columnOrder.map((column) => {
-        const cellKey = `${application.id}-${column.id}`;
+  const [emailDialogOpen, setEmailDialogOpen] = React.useState(false);
 
-        // Render different cell types based on column
-        switch (column.id) {
-          case "company":
-            return (
-              <td key={cellKey} className="px-6 py-4 whitespace-nowrap">
-                <div className="flex">
-                  <div className="text-sm font-medium text-thunder flex items-center">
-                    {application.company}
-                    {getFlagEmoji(application.country_code) && (
-                      <span className="ml-2 text-base">
-                        {getFlagEmoji(application.country_code)}
-                      </span>
+  return (
+    <TooltipProvider>
+      <tr className="hover:bg-concrete/20">
+        {/* Empty tree connector column for alignment */}
+        <td className="w-8 border-b border-concrete/20"></td>
+        {columnOrder.map((column) => {
+          const cellKey = `${application.id}-${column.id}`;
+
+          // Render different cell types based on column
+          switch (column.id) {
+            case "company":
+              return (
+                <td key={cellKey} className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex">
+                    <div className="text-sm font-medium text-thunder flex items-center">
+                      {application.company}
+                      {getFlagEmoji(application.country_code) && (
+                        <span className="ml-2 text-base">{getFlagEmoji(application.country_code)}</span>
+                      )}
+                    </div>
+                  </div>
+                </td>
+              );
+
+            case "position":
+              return (
+                <td key={cellKey} className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-thunder">{application.position}</div>
+                </td>
+              );
+
+            case "status":
+              return (
+                <td key={cellKey} className="px-6 py-4 whitespace-nowrap">
+                  <div className="flex items-center">
+                    {getStatusIcon(application.status)}
+                    <span
+                      className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(
+                        application.status
+                      )}`}
+                    >
+                      {application.status === "next_step"
+                        ? "Next Step"
+                        : application.status.charAt(0).toUpperCase() + application.status.slice(1)}
+                    </span>
+                  </div>
+                </td>
+              );
+
+            case "website":
+              return (
+                <td key={cellKey} className="px-6 py-4 whitespace-nowrap">
+                  <div className="text-sm text-thunder">
+                    {application.website && application.website !== "-" ? (
+                      <a
+                        href={"https://" + application.website}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="hover:text-heliotrope underline"
+                        title={`Visit ${application.company} website`}
+                      >
+                        {application.website}
+                      </a>
+                    ) : (
+                      <span className="text-concrete">—</span>
                     )}
                   </div>
-                </div>
-              </td>
-            );
+                </td>
+              );
 
-          case "position":
-            return (
-              <td key={cellKey} className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-thunder">
-                  {application.position}
-                </div>
-              </td>
-            );
+            case "applied_date":
+              return (
+                <td key={cellKey} className="px-6 py-4 whitespace-nowrap text-sm text-thunder">
+                  <div className="flex items-center">
+                    <Calendar className="h-4 w-4 text-gray mr-2" />
+                    {new Date(application.applied_date).toLocaleDateString()}
+                  </div>
+                </td>
+              );
 
-          case "status":
-            return (
-              <td key={cellKey} className="px-6 py-4 whitespace-nowrap">
-                <div className="flex items-center">
-                  {getStatusIcon(application.status)}
-                  <span
-                    className={`ml-2 inline-flex px-2 py-1 text-xs font-semibold rounded-full ${getStatusBadgeColor(
-                      application.status
-                    )}`}
-                  >
-                    {application.status === "next_step"
-                      ? "Next Step"
-                      : application.status.charAt(0).toUpperCase() +
-                        application.status.slice(1)}
-                  </span>
-                </div>
-              </td>
-            );
+            case "created_at":
+              return (
+                <td key={cellKey} className="px-6 py-4 whitespace-nowrap text-sm text-thunder">
+                  {formatDistanceToNow(new Date(application.created_at))}
+                </td>
+              );
 
-          case "website":
-            return (
-              <td key={cellKey} className="px-6 py-4 whitespace-nowrap">
-                <div className="text-sm text-thunder">
-                  {application.website && application.website !== "-" ? (
-                    <a
-                      href={"https://" + application.website}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="hover:text-heliotrope underline"
-                      title={`Visit ${application.company} website`}
-                    >
-                      {application.website}
-                    </a>
-                  ) : (
-                    <span className="text-concrete">—</span>
-                  )}
-                </div>
-              </td>
-            );
-
-          case "applied_date":
-            return (
-              <td
-                key={cellKey}
-                className="px-6 py-4 whitespace-nowrap text-sm text-thunder"
-              >
-                <div className="flex items-center">
-                  <Calendar className="h-4 w-4 text-gray mr-2" />
-                  {new Date(application.applied_date).toLocaleDateString()}
-                </div>
-              </td>
-            );
-
-          case "created_at":
-            return (
-              <td
-                key={cellKey}
-                className="px-6 py-4 whitespace-nowrap text-sm text-thunder"
-              >
-                {formatDistanceToNow(new Date(application.created_at))}
-              </td>
-            );
-
-          case "actions":
-            return (
-              <td
-                key={cellKey}
-                className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium"
-              >
-                <div className="flex items-center justify-end space-x-2">
-                  {onDeleteApplication && (
-                    <AlertDialog>
-                      <AlertDialogTrigger asChild>
+            case "actions":
+              return (
+                <td key={cellKey} className="px-6 py-4 whitespace-nowrap text-right text-sm font-medium">
+                  <div className="flex items-center justify-end space-x-2">
+                    {/* See Email Content button */}
+                    <Tooltip delayDuration={300}>
+                      <TooltipTrigger asChild>
                         <Button
                           variant="ghost"
                           size="sm"
-                          className="text-bittersweet hover:text-bittersweet/80"
-                          title="Delete job application"
+                          onClick={() => setEmailDialogOpen(true)}
+                          className="text-heliotrope hover:text-heliotrope/80"
                         >
-                          <Trash2 className="h-4 w-4" />
+                          <Mail className="h-4 w-4" />
                         </Button>
-                      </AlertDialogTrigger>
-                      <AlertDialogContent>
-                        <AlertDialogHeader>
-                          <AlertDialogTitle>
-                            Delete Job Application
-                          </AlertDialogTitle>
-                          <AlertDialogDescription>
-                            Are you sure you want to delete the job application
-                            for <strong>{application.position}</strong> at{" "}
-                            <strong>{application.company}</strong>?
-                            <br />
-                            <br />
-                            This action cannot be undone and will permanently
-                            remove the application from your records.
-                          </AlertDialogDescription>
-                        </AlertDialogHeader>
-                        <AlertDialogFooter>
-                          <AlertDialogCancel>Cancel</AlertDialogCancel>
-                          <AlertDialogAction
-                            onClick={() => onDeleteApplication(application.id)}
-                            className="bg-red-600 hover:bg-red-700"
+                      </TooltipTrigger>
+                      <TooltipContent side="top" align="center">
+                        <p>View original email content</p>
+                      </TooltipContent>
+                    </Tooltip>
+
+                    {onDeleteApplication && (
+                      <AlertDialog>
+                        <AlertDialogTrigger asChild>
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="text-bittersweet hover:text-bittersweet/80"
+                            title="Delete job application"
                           >
-                            Delete Application
-                          </AlertDialogAction>
-                        </AlertDialogFooter>
-                      </AlertDialogContent>
-                    </AlertDialog>
-                  )}
-                </div>
-              </td>
-            );
+                            <Trash2 className="h-4 w-4" />
+                          </Button>
+                        </AlertDialogTrigger>
+                        <AlertDialogContent>
+                          <AlertDialogHeader>
+                            <AlertDialogTitle>Delete Job Application</AlertDialogTitle>
+                            <AlertDialogDescription>
+                              Are you sure you want to delete the job application for{" "}
+                              <strong>{application.position}</strong> at <strong>{application.company}</strong>?
+                              <br />
+                              <br />
+                              This action cannot be undone and will permanently remove the application from your
+                              records.
+                            </AlertDialogDescription>
+                          </AlertDialogHeader>
+                          <AlertDialogFooter>
+                            <AlertDialogCancel>Cancel</AlertDialogCancel>
+                            <AlertDialogAction
+                              onClick={() => onDeleteApplication(application.id)}
+                              className="bg-red-600 hover:bg-red-700"
+                            >
+                              Delete Application
+                            </AlertDialogAction>
+                          </AlertDialogFooter>
+                        </AlertDialogContent>
+                      </AlertDialog>
+                    )}
+                  </div>
+                </td>
+              );
 
-          default:
-            // Handle custom fields
-            if (column.id.startsWith("custom-")) {
-              const fieldId = column.id.replace("custom-", "");
-              const field = customFields.find((f) => f.id === fieldId);
+            default:
+              // Handle custom fields
+              if (column.id.startsWith("custom-")) {
+                const fieldId = column.id.replace("custom-", "");
+                const field = customFields.find((f) => f.id === fieldId);
 
-              if (field) {
-                return (
-                  <td
-                    key={cellKey}
-                    className="px-6 py-4 whitespace-nowrap text-sm text-thunder"
-                  >
-                    <EditableCustomFieldCell
-                      field={field}
-                      value={getCustomFieldValue(
-                        application.details,
-                        field.field_name
-                      )}
-                      onSave={async (newValue) => {
-                        await updateJobApplicationMutation.mutateAsync({
-                          jobId: application.id,
-                          fieldName: field.field_name,
-                          newValue,
-                        });
-                      }}
-                      disabled={updateJobApplicationMutation.isPending}
-                      isGrouped={false}
-                      groupCount={0}
-                    />
-                  </td>
-                );
+                if (field) {
+                  return (
+                    <td key={cellKey} className="px-6 py-4 whitespace-nowrap text-sm text-thunder">
+                      <EditableCustomFieldCell
+                        field={field}
+                        value={getCustomFieldValue(application.details, field.field_name)}
+                        onSave={async (newValue) => {
+                          await updateJobApplicationMutation.mutateAsync({
+                            jobId: application.id,
+                            fieldName: field.field_name,
+                            newValue,
+                          });
+                        }}
+                        disabled={updateJobApplicationMutation.isPending}
+                        isGrouped={false}
+                        groupCount={0}
+                      />
+                    </td>
+                  );
+                }
               }
-            }
 
-            // Fallback for unknown columns
-            return (
-              <td
-                key={cellKey}
-                className="px-6 py-4 whitespace-nowrap text-sm text-thunder"
-              >
-                —
-              </td>
-            );
-        }
-      })}
-    </tr>
+              // Fallback for unknown columns
+              return (
+                <td key={cellKey} className="px-6 py-4 whitespace-nowrap text-sm text-thunder">
+                  —
+                </td>
+              );
+          }
+        })}
+      </tr>
+
+      {/* Email Content Dialog */}
+      <EmailContentDialog
+        emailId={application.email_id}
+        isOpen={emailDialogOpen}
+        onClose={() => setEmailDialogOpen(false)}
+        company={application.company}
+        position={application.position}
+      />
+    </TooltipProvider>
   );
 }

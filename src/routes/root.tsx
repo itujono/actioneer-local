@@ -1,35 +1,11 @@
 import { createRootRoute, Outlet } from "@tanstack/react-router";
 import { TanStackRouterDevtools } from "@tanstack/router-devtools";
-import { useEffect, useState } from "react";
-import { supabase } from "../supabase/client";
 import Layout from "../components/layout/Layout";
+import { useAuth } from "../hooks/useAuth";
 
 function RootComponent() {
-  const [isLoading, setIsLoading] = useState(true);
-  const [isAuthenticated, setIsAuthenticated] = useState(false);
-
-  useEffect(() => {
-    // Check if user is authenticated
-    const checkAuth = async () => {
-      const { data } = await supabase.auth.getSession();
-      setIsAuthenticated(!!data.session);
-      setIsLoading(false);
-    };
-
-    // Listen for auth state changes
-    const {
-      data: { subscription },
-    } = supabase.auth.onAuthStateChange((_event, session) => {
-      setIsAuthenticated(!!session);
-    });
-
-    checkAuth();
-
-    // Cleanup subscription
-    return () => {
-      subscription.unsubscribe();
-    };
-  }, []);
+  // Use the existing useAuth hook instead of managing auth state separately
+  const { isAuthenticated, isLoading } = useAuth();
 
   if (isLoading) {
     return (

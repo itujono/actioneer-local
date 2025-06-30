@@ -29,13 +29,27 @@ export class GmailTokenManager {
    * Check the current status of Gmail tokens for a user
    */
   static async checkTokenStatus(userId: string): Promise<TokenStatus> {
+    console.log("🔍 GmailTokenManager.checkTokenStatus called for userId:", userId);
+
     const { data: tokens, error } = await supabase
       .from("user_auth_tokens")
       .select("gmail_access_token, gmail_refresh_token, token_expires_at")
       .eq("user_id", userId)
       .single();
 
+    console.log("📊 Token query result:", {
+      tokens: tokens
+        ? {
+            hasAccessToken: !!tokens.gmail_access_token,
+            hasRefreshToken: !!tokens.gmail_refresh_token,
+            expiresAt: tokens.token_expires_at,
+          }
+        : null,
+      error: error,
+    });
+
     if (error && error.code !== "PGRST116") {
+      console.error("❌ Database error in checkTokenStatus:", error);
       throw error;
     }
 
@@ -43,7 +57,14 @@ export class GmailTokenManager {
     const hasRefreshToken = !!tokens?.gmail_refresh_token;
     const expiresAt = tokens?.token_expires_at;
 
+    console.log("🔍 Token analysis:", {
+      hasTokens,
+      hasRefreshToken,
+      expiresAt,
+    });
+
     if (!hasTokens) {
+      console.log("❌ No access tokens found - needs reauth");
       return {
         isValid: false,
         hasTokens: false,
@@ -53,6 +74,7 @@ export class GmailTokenManager {
     }
 
     if (!expiresAt) {
+      console.log("⚠️ No expiry date found - needs reauth");
       return {
         isValid: false,
         hasTokens: true,
@@ -66,31 +88,31 @@ export class GmailTokenManager {
     const bufferTime = this.TOKEN_BUFFER_MINUTES * 60 * 1000;
     const isValid = expiry.getTime() > now.getTime() + bufferTime;
 
-    const minutesUntilExpiry = Math.floor(
-      (expiry.getTime() - now.getTime()) / (1000 * 60)
-    );
+    const minutesUntilExpiry = Math.floor((expiry.getTime() - now.getTime()) / (1000 * 60));
 
-    const expiredMinutesAgo =
-      minutesUntilExpiry < 0 ? Math.abs(minutesUntilExpiry) : 0;
-    const isLegacyToken = tokens.gmail_refresh_token?.startsWith(
-      "apps_script_managed_"
-    );
+    const expiredMinutesAgo = minutesUntilExpiry < 0 ? Math.abs(minutesUntilExpiry) : 0;
+    const isLegacyToken = tokens.gmail_refresh_token?.startsWith("apps_script_managed_");
 
-    return {
+    console.log("⏰ Token validation:", {
+      now: now.toISOString(),
+      expiry: expiry.toISOString(),
+      isValid,
+      minutesUntilExpiry,
+      expiredMinutesAgo,
+      isLegacyToken,
+    });
+
+    const result = {
       isValid,
       hasTokens,
       expiresAt,
       minutesUntilExpiry,
-      needsRefresh:
-        !isValid &&
-        hasRefreshToken &&
-        !isLegacyToken &&
-        expiredMinutesAgo <= this.MAX_EXPIRED_MINUTES,
-      needsReauth:
-        !hasRefreshToken ||
-        isLegacyToken ||
-        expiredMinutesAgo > this.MAX_EXPIRED_MINUTES,
+      needsRefresh: !isValid && hasRefreshToken && !isLegacyToken && expiredMinutesAgo <= this.MAX_EXPIRED_MINUTES,
+      needsReauth: !hasRefreshToken || isLegacyToken || expiredMinutesAgo > this.MAX_EXPIRED_MINUTES,
     };
+
+    console.log("✅ Final token status result:", result);
+    return result;
   }
 
   /**
@@ -100,36 +122,25 @@ export class GmailTokenManager {
     try {
       console.log(`🔄 Refreshing Gmail tokens for ${userEmail}`);
 
-      const response = await fetch(
-        `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/refresh-oauth-token`,
-        {
-          method: "POST",
-          headers: {
-            "Content-Type": "application/json",
-            Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
-          },
-          body: JSON.stringify({
-            userEmail,
-            forceRefresh: true,
-          }),
-          signal: AbortSignal.timeout(this.REFRESH_TIMEOUT),
-        }
-      );
+      const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/refresh-oauth-token`, {
+        method: "POST",
+        headers: {
+          "Content-Type": "application/json",
+          Authorization: `Bearer ${import.meta.env.VITE_SUPABASE_ANON_KEY}`,
+        },
+        body: JSON.stringify({
+          userEmail,
+          forceRefresh: true,
+        }),
+        signal: AbortSignal.timeout(this.REFRESH_TIMEOUT),
+      });
 
       if (!response.ok) {
-        const errorData = await response
-          .json()
-          .catch(() => ({ error: "Unknown error" }));
-        console.error(
-          "❌ Token refresh request failed:",
-          response.status,
-          errorData
-        );
+        const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
+        console.error("❌ Token refresh request failed:", response.status, errorData);
         return {
           success: false,
-          error: `Refresh request failed: ${
-            errorData.error || "Unknown error"
-          }`,
+          error: `Refresh request failed: ${errorData.error || "Unknown error"}`,
           requiresReauth: response.status === 401,
         };
       }
@@ -185,15 +196,18 @@ export class GmailTokenManager {
   /**
    * Get a comprehensive Gmail setup status for a user
    */
-  static async getSetupStatus(
-    userId: string,
-    userEmail: string,
-    queryClient: QueryClient
-  ) {
+  static async getSetupStatus(userId: string, userEmail: string, queryClient: QueryClient) {
+    console.log("🚀 GmailTokenManager.getSetupStatus started for:", {
+      userId,
+      userEmail,
+    });
+
     try {
       const tokenStatus = await this.checkTokenStatus(userId);
+      console.log("🔍 Token status from checkTokenStatus:", tokenStatus);
 
       if (tokenStatus.isValid) {
+        console.log("✅ Tokens are valid - returning setup complete");
         return {
           isSetup: true,
           hasTokens: true,
@@ -203,16 +217,19 @@ export class GmailTokenManager {
       }
 
       if (tokenStatus.needsRefresh) {
-        console.log("🔄 Attempting automatic token refresh...");
+        console.log("🔄 Tokens need refresh - attempting automatic refresh...");
 
         const refreshResult = await this.refreshTokens(userEmail);
+        console.log("🔄 Refresh result:", refreshResult);
 
         if (refreshResult.success) {
+          console.log("✅ Refresh successful - waiting for DB propagation...");
           // Wait briefly for database propagation
           await new Promise((resolve) => setTimeout(resolve, 500));
 
           // Verify the refresh worked
           const updatedStatus = await this.checkTokenStatus(userId);
+          console.log("🔍 Updated status after refresh:", updatedStatus);
 
           if (updatedStatus.isValid) {
             console.log("✅ Token refresh successful and verified");
@@ -225,30 +242,31 @@ export class GmailTokenManager {
               lastSetupAt: new Date().toISOString(),
             };
           } else {
-            console.log("⚠️ Token refresh verification failed");
+            console.log("⚠️ Token refresh verification failed - clearing tokens");
             await this.clearTokens(userId);
             this.invalidateQueries(queryClient);
           }
         } else {
-          console.log("⚠️ Token refresh failed, clearing tokens");
+          console.log("⚠️ Token refresh failed - clearing tokens");
           await this.clearTokens(userId);
           this.invalidateQueries(queryClient);
         }
       } else if (tokenStatus.needsReauth) {
-        console.log("🧹 Tokens need re-authorization, clearing old tokens");
+        console.log("🧹 Tokens need re-authorization - clearing old tokens");
         await this.clearTokens(userId);
         this.invalidateQueries(queryClient);
       }
 
-      return {
+      const finalResult = {
         isSetup: false,
         hasTokens: false,
         watchActive: false,
         lastSetupAt: undefined,
-        error: tokenStatus.needsReauth
-          ? "Please re-authorize Gmail access"
-          : "Token refresh failed",
+        error: tokenStatus.needsReauth ? "Please re-authorize Gmail access" : "Token refresh failed",
       };
+
+      console.log("❌ Setup not complete - final result:", finalResult);
+      return finalResult;
     } catch (error) {
       console.error("💥 Error getting Gmail setup status:", error);
       throw error;

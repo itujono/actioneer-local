@@ -1,15 +1,9 @@
-import { useState } from "react";
+import React, { useState } from "react";
 import { Plus } from "lucide-react";
 import { CustomFieldDefinition } from "../../../supabase/types";
 import { useCustomFields } from "../../../hooks/useCustomFields";
 import { Button } from "../../ui";
-import {
-  Dialog,
-  DialogContent,
-  DialogHeader,
-  DialogTitle,
-  DialogDescription,
-} from "../../ui/dialog";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogDescription } from "../../ui/dialog";
 import { CustomFieldForm } from "./CustomFieldForm";
 import { CustomFieldItem } from "./CustomFieldItem";
 
@@ -28,15 +22,9 @@ interface CustomFieldFormData {
   is_required: boolean;
 }
 
-export function CustomFieldsManager({
-  isOpen,
-  onClose,
-  tableName,
-  userId,
-}: CustomFieldsManagerProps) {
+export function CustomFieldsManager({ isOpen, onClose, tableName, userId }: CustomFieldsManagerProps) {
   const [showAddForm, setShowAddForm] = useState(false);
-  const [editingField, setEditingField] =
-    useState<CustomFieldDefinition | null>(null);
+  const [editingField, setEditingField] = useState<CustomFieldDefinition | null>(null);
 
   const {
     customFields,
@@ -92,11 +80,7 @@ export function CustomFieldsManager({
     setShowAddForm(false);
   };
 
-  const handleDeleteField = async (
-    fieldId: string,
-    fieldName: string,
-    fieldLabel: string
-  ) => {
+  const handleDeleteField = async (fieldId: string, fieldName: string, fieldLabel: string) => {
     await deleteFieldWithConfirmation(fieldId, fieldName, fieldLabel);
   };
 
@@ -105,15 +89,11 @@ export function CustomFieldsManager({
       <DialogContent className="max-w-4xl max-h-[90vh] overflow-hidden">
         <DialogHeader>
           <DialogTitle>
-            Manage Custom Fields for{" "}
-            {tableName
-              .replace("_", " ")
-              .replace(/\b\w/g, (l) => l.toUpperCase())}
+            Manage Custom Fields for {tableName.replace("_", " ").replace(/\b\w/g, (l) => l.toUpperCase())}
           </DialogTitle>
           <DialogDescription className="max-w-xl">
-            Custom fields are used to track additional information Actioneer
-            doesn't automatically track, such as salary range, interview date,
-            etc.
+            Custom fields are used to track additional information Actioneer doesn't automatically track, such as salary
+            range, interview date, etc.
           </DialogDescription>
         </DialogHeader>
 
@@ -121,9 +101,7 @@ export function CustomFieldsManager({
         <div className="overflow-y-auto max-h-[calc(90vh-200px)]">
           {/* Existing Fields */}
           <div className="space-y-4 mb-6">
-            <h3 className="text-lg font-medium text-thunder">
-              Current Custom Fields
-            </h3>
+            <h3 className="text-lg font-medium text-thunder">Current Custom Fields</h3>
 
             {isLoadingFields ? (
               <div className="text-center py-4">
@@ -132,9 +110,7 @@ export function CustomFieldsManager({
               </div>
             ) : customFields.length === 0 ? (
               <div className="text-center py-8 bg-concrete rounded-lg">
-                <p className="text-thunder">
-                  No custom fields yet. Add your first one below!
-                </p>
+                <p className="text-thunder">No custom fields yet. Add your first one below!</p>
               </div>
             ) : (
               <div className="space-y-2">
@@ -168,15 +144,9 @@ export function CustomFieldsManager({
           {!editingField && (
             <div className="border-t pt-6">
               <div className="flex items-center justify-between mb-4">
-                <h3 className="text-lg font-medium text-thunder">
-                  Add New Field
-                </h3>
+                <h3 className="text-lg font-medium text-thunder">Add New Field</h3>
                 {!showAddForm && (
-                  <Button
-                    onClick={() => setShowAddForm(true)}
-                    variant="primary"
-                    size="sm"
-                  >
+                  <Button onClick={() => setShowAddForm(true)} variant="primary" size="sm">
                     <Plus className="h-4 w-4 mr-2" />
                     Add Field
                   </Button>

@@ -15,6 +15,7 @@ import { DashboardContainer } from "../components/dashboard";
 import type { JobApplication, SortConfig } from "../components/jobs/types";
 import { groupJobApplications } from "../components/jobs/constants";
 import { Button, Dialog, DialogContent, DialogHeader, DialogTitle } from "../components/ui";
+import Loading from "../components/Loading";
 
 export const jobsRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -39,10 +40,13 @@ function JobsDashboard() {
 
   const { user, isLoading: authLoading } = useAuth();
 
+  // Memoize userId to prevent infinite re-renders from useCustomFields
+  const userId = useMemo(() => user?.id, [user?.id]);
+
   // Custom fields hook
   const { customFields, getCustomFieldValue, setCustomFieldValue, updateField, isUpdating } = useCustomFields({
     tableName: "job_applications",
-    userId: user?.id,
+    userId,
   });
 
   // Find the custom field being edited
@@ -73,27 +77,30 @@ function JobsDashboard() {
     setEditingCustomFieldId(null);
   };
 
-  // Define default columns configuration
-  const defaultColumns: ColumnConfig[] = [
-    { id: "company", label: "Company", key: "company", sortable: true },
-    { id: "position", label: "Position", key: "position", sortable: true },
-    { id: "status", label: "Status", key: "status", sortable: true },
-    { id: "website", label: "Website", key: "website", sortable: true },
-    // Custom fields will be added dynamically
-    {
-      id: "applied_date",
-      label: "Applied Date",
-      key: "applied_date",
-      sortable: true,
-    },
-    {
-      id: "created_at",
-      label: "Last Updated",
-      key: "created_at",
-      sortable: true,
-    },
-    { id: "actions", label: "", key: "actions", fixed: true }, // Fixed column with no header name
-  ];
+  // Define default columns configuration - memoized to prevent infinite re-renders
+  const defaultColumns: ColumnConfig[] = useMemo(
+    () => [
+      { id: "company", label: "Company", key: "company", sortable: true },
+      { id: "position", label: "Position", key: "position", sortable: true },
+      { id: "status", label: "Status", key: "status", sortable: true },
+      { id: "website", label: "Website", key: "website", sortable: true },
+      // Custom fields will be added dynamically
+      {
+        id: "applied_date",
+        label: "Applied Date",
+        key: "applied_date",
+        sortable: true,
+      },
+      {
+        id: "created_at",
+        label: "Last Updated",
+        key: "created_at",
+        sortable: true,
+      },
+      { id: "actions", label: "", key: "actions", fixed: true }, // Fixed column with no header name
+    ],
+    []
+  );
 
   // Add custom fields to columns
   const columnsWithCustomFields = React.useMemo(() => {
@@ -319,27 +326,32 @@ function JobsDashboard() {
         groups: [],
       };
     }
-  }, [
-    jobApplications,
-    searchTerm,
-    statusFilter,
-    sortConfig.key,
-    sortConfig.direction,
-    currentPage,
-    pageSize,
-    groupSimilarApplications,
-  ]);
+  }, [jobApplications, searchTerm, statusFilter, sortConfig, currentPage, pageSize, groupSimilarApplications]);
 
-  // Calculate pagination info
-  const totalPages = Math.ceil(filteredAndSortedApplications.totalCount / pageSize);
+  // Calculate pagination info - memoized to prevent infinite re-renders
+  const paginationInfo = useMemo(() => {
+    const totalPages = Math.ceil(filteredAndSortedApplications.totalCount / pageSize);
 
-  // Calculate pagination display values based on what we're actually showing
-  const actualItemsOnPage = groupSimilarApplications
-    ? filteredAndSortedApplications.groups?.length || 0
-    : filteredAndSortedApplications.data.length;
+    // Calculate pagination display values based on what we're actually showing
+    const actualItemsOnPage = groupSimilarApplications
+      ? filteredAndSortedApplications.groups?.length || 0
+      : filteredAndSortedApplications.data.length;
 
-  const startItem = filteredAndSortedApplications.totalCount > 0 ? (currentPage - 1) * pageSize + 1 : 0;
-  const endItem = Math.min((currentPage - 1) * pageSize + actualItemsOnPage, filteredAndSortedApplications.totalCount);
+    const startItem = filteredAndSortedApplications.totalCount > 0 ? (currentPage - 1) * pageSize + 1 : 0;
+    const endItem = Math.min(
+      (currentPage - 1) * pageSize + actualItemsOnPage,
+      filteredAndSortedApplications.totalCount
+    );
+
+    return {
+      totalPages,
+      actualItemsOnPage,
+      startItem,
+      endItem,
+    };
+  }, [filteredAndSortedApplications, pageSize, currentPage, groupSimilarApplications]);
+
+  const { totalPages, startItem, endItem } = paginationInfo;
 
   // Reset to first page when filters change
   React.useEffect(() => {
@@ -366,16 +378,7 @@ function JobsDashboard() {
 
   // Show auth loading state
   if (authLoading) {
-    return (
-      <div className="py-6">
-        <div className="max-w-7xl mx-auto px-4 sm:px-6 md:px-8">
-          <div className="py-12 text-center">
-            <div className="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-bittersweet"></div>
-            <p className="mt-2 text-sm text-thunder">Checking authentication...</p>
-          </div>
-        </div>
-      </div>
-    );
+    return <Loading message="Checking authentication..." />;
   }
 
   // If not authenticated, the useEffect above will redirect to /auth

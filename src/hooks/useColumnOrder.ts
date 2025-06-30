@@ -13,17 +13,28 @@ interface UseColumnOrderProps {
   storageKey: string; // For localStorage persistence
 }
 
-export function useColumnOrder({
-  defaultColumns,
-  storageKey,
-}: UseColumnOrderProps) {
-  const [columnOrder, setColumnOrder] =
-    useState<ColumnConfig[]>(defaultColumns);
+export function useColumnOrder({ defaultColumns, storageKey }: UseColumnOrderProps) {
+  const [columnOrder, setColumnOrder] = useState<ColumnConfig[]>(defaultColumns);
 
   // Load saved column order from localStorage on mount and when defaultColumns change
   useEffect(() => {
     // Only update if defaultColumns actually has content (not empty array)
     if (defaultColumns.length === 0) {
+      return;
+    }
+
+    // Check if the columns have actually changed structurally
+    const currentColumnIds = columnOrder
+      .map((col) => col.id)
+      .sort()
+      .join(",");
+    const newColumnIds = defaultColumns
+      .map((col) => col.id)
+      .sort()
+      .join(",");
+
+    // Only update if columns actually changed, not just reference
+    if (currentColumnIds === newColumnIds) {
       return;
     }
 
@@ -59,7 +70,7 @@ export function useColumnOrder({
       console.warn("Failed to load column order from localStorage:", error);
       setColumnOrder(defaultColumns);
     }
-  }, [defaultColumns, storageKey]);
+  }, [defaultColumns, storageKey, columnOrder]);
 
   // Save column order to localStorage
   const saveColumnOrder = useCallback(
