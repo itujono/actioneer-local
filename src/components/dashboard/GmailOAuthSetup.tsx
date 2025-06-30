@@ -16,6 +16,7 @@ import { toast } from "sonner";
 import { useAuth } from "../../hooks/useAuth";
 import Fling from "../illustrations/Fling";
 import { Button } from "../ui";
+import { GmailTokenManager } from "../../utils/gmailTokenManager";
 
 interface GmailOAuthSetupProps {
   className?: string;
@@ -58,7 +59,7 @@ export default function GmailOAuthSetup({
     setIsSuccessBannerDismissed(isDismissed);
   }, [user?.id]);
 
-  // Check Gmail OAuth setup status
+  // Centralized Gmail OAuth setup status check using GmailTokenManager
   const {
     data: gmailOAuthStatus,
     isLoading,
@@ -76,208 +77,18 @@ export default function GmailOAuthSetup({
         throw new Error("User not authenticated");
       }
 
-      console.log("📡 Fetching tokens from database...");
-      const { data: tokens, error: tokenError } = await supabase
-        .from("user_auth_tokens")
-        .select(
-          "gmail_access_token, gmail_refresh_token, token_expires_at, updated_at"
-        )
-        .eq("user_id", user.id)
-        .single();
-
-      console.log("📊 Database query result:", {
-        hasData: !!tokens,
-        error: tokenError?.code,
-        errorMessage: tokenError?.message,
-      });
-
-      if (tokenError && tokenError.code !== "PGRST116") {
-        throw tokenError;
-      }
-
-      const hasTokens = !!tokens?.gmail_access_token;
-      const hasRefreshToken = !!tokens?.gmail_refresh_token;
-      const isTokenValid =
-        hasTokens && tokens.token_expires_at
-          ? new Date(tokens.token_expires_at) > new Date()
-          : false;
-
-      console.log("🔍 Token status check:", {
-        hasTokens,
-        hasRefreshToken,
-        isTokenValid,
-        expiresAt: tokens?.token_expires_at,
-        minutesUntilExpiry: tokens?.token_expires_at
-          ? Math.floor(
-              (new Date(tokens.token_expires_at).getTime() -
-                new Date().getTime()) /
-                (1000 * 60)
-            )
-          : null,
-      });
-
-      // If tokens exist but are expired, check how long they've been expired
-      if (hasTokens && !isTokenValid && tokens?.token_expires_at) {
-        const expiredMinutesAgo = Math.floor(
-          (new Date().getTime() - new Date(tokens.token_expires_at).getTime()) /
-            (1000 * 60)
-        );
-        console.log(`⏰ Token expired ${expiredMinutesAgo} minutes ago`);
-
-        // If token has been expired for more than 10 minutes, assume refresh is broken
-        if (expiredMinutesAgo > 10) {
-          console.log("🧹 Token expired too long ago, clearing for fresh auth");
-
-          try {
-            await supabase
-              .from("user_auth_tokens")
-              .delete()
-              .eq("user_id", user.id);
-            console.log("✅ Cleared expired tokens");
-          } catch (deleteError) {
-            console.error("❌ Failed to clear expired tokens:", deleteError);
-          }
-
-          return {
-            isSetup: false,
-            hasTokens: false,
-            watchActive: false,
-            lastSetupAt: undefined,
-            error: "Tokens expired - please re-authorize",
-          };
-        }
-
-        // For recently expired tokens, try refresh once
-        if (
-          hasRefreshToken &&
-          !tokens.gmail_refresh_token?.startsWith("apps_script_managed_")
-        ) {
-          console.log(
-            "🔄 Attempting token refresh for recently expired token..."
-          );
-
-          try {
-            const response = await fetch(
-              `${
-                import.meta.env.VITE_SUPABASE_URL
-              }/functions/v1/refresh-oauth-token`,
-              {
-                method: "POST",
-                headers: {
-                  "Content-Type": "application/json",
-                  Authorization: `Bearer ${
-                    import.meta.env.VITE_SUPABASE_ANON_KEY
-                  }`,
-                },
-                body: JSON.stringify({
-                  userEmail: user.email,
-                  forceRefresh: true,
-                }),
-                signal: AbortSignal.timeout(10000), // 10 second timeout
-              }
-            );
-
-            if (response.ok) {
-              const refreshResult = await response.json();
-              console.log("🔍 Refresh result:", refreshResult);
-
-              if (refreshResult.success) {
-                console.log("✅ Token refreshed successfully");
-
-                // Verify the refresh actually worked
-                const { data: updatedTokens } = await supabase
-                  .from("user_auth_tokens")
-                  .select("gmail_access_token, token_expires_at")
-                  .eq("user_id", user.id)
-                  .single();
-
-                if (
-                  updatedTokens?.gmail_access_token &&
-                  updatedTokens.gmail_access_token !== tokens.gmail_access_token
-                ) {
-                  console.log("✅ Verified token was actually updated");
-                  return {
-                    isSetup: true,
-                    hasTokens: true,
-                    watchActive: false,
-                    lastSetupAt: new Date().toISOString(),
-                  };
-                } else {
-                  console.log(
-                    "⚠️ Token refresh claimed success but token wasn't updated"
-                  );
-                  throw new Error("Token refresh verification failed");
-                }
-              } else {
-                console.log("⚠️ Refresh failed:", refreshResult.error);
-                throw new Error(refreshResult.error || "Refresh failed");
-              }
-            } else {
-              const errorData = await response.json();
-              console.log(
-                "⚠️ Refresh request failed:",
-                response.status,
-                errorData
-              );
-              throw new Error(
-                `Refresh request failed: ${errorData.error || "Unknown error"}`
-              );
-            }
-          } catch (error) {
-            console.log("⚠️ Token refresh failed:", error);
-
-            // Clear invalid tokens and force re-auth
-            console.log("🧹 Clearing invalid tokens to force clean setup");
-            try {
-              await supabase
-                .from("user_auth_tokens")
-                .delete()
-                .eq("user_id", user.id);
-              console.log("✅ Invalid tokens cleared");
-            } catch (deleteError) {
-              console.error("❌ Failed to clear invalid tokens:", deleteError);
-            }
-
-            return {
-              isSetup: false,
-              hasTokens: false,
-              watchActive: false,
-              lastSetupAt: undefined,
-              error: "Token refresh failed - please re-authorize",
-            };
-          }
-        } else {
-          // No refresh token or legacy token - clear and require re-auth
-          console.log("🧹 No valid refresh token, clearing tokens");
-          try {
-            await supabase
-              .from("user_auth_tokens")
-              .delete()
-              .eq("user_id", user.id);
-          } catch (deleteError) {
-            console.error("❌ Failed to clear tokens:", deleteError);
-          }
-
-          return {
-            isSetup: false,
-            hasTokens: false,
-            watchActive: false,
-            lastSetupAt: undefined,
-            error: "Please re-authorize Gmail access",
-          };
-        }
-      }
-
-      return {
-        isSetup: hasTokens && isTokenValid,
-        hasTokens,
-        watchActive: false,
-        lastSetupAt: tokens?.updated_at,
-      };
+      // Use centralized token manager for consistent logic
+      return await GmailTokenManager.getSetupStatus(
+        user.id,
+        user.email!,
+        queryClient
+      );
     },
     enabled: !!user,
-    refetchInterval: false,
+    refetchInterval: false, // Disable automatic refetching to prevent conflicts
     retry: false, // Don't retry on failure to avoid loops
+    staleTime: 2 * 60 * 1000, // Consider data stale after 2 minutes
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes
   });
 
   // Mutation to setup Gmail watch

@@ -23,6 +23,7 @@ import { formatDistanceToNow } from "date-fns";
 import { useState, useEffect } from "react";
 import Nothing from "../components/illustrations/Nothing";
 import { currencyManager, formatCurrency } from "../utils/currency";
+import { GmailTokenManager } from "../utils/gmailTokenManager";
 
 export const dashboardRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -85,31 +86,28 @@ function Dashboard() {
     enabled: !!user,
   });
 
-  // Check Gmail OAuth setup status
+  // Check Gmail OAuth setup status using centralized token manager
   const { data: gmailOAuthStatus, isLoading: gmailOAuthLoading } = useQuery({
     queryKey: ["gmail-oauth-status", user?.id],
     queryFn: async () => {
       if (!user) throw new Error("User not authenticated");
 
-      const { data: tokens, error: tokenError } = await supabase
-        .from("user_auth_tokens")
-        .select("gmail_access_token, token_expires_at")
-        .eq("user_id", user.id)
-        .single();
-
-      if (tokenError && tokenError.code !== "PGRST116") {
-        throw tokenError;
-      }
-
-      const hasTokens = !!tokens?.gmail_access_token;
-      const isTokenValid =
-        hasTokens && tokens.token_expires_at
-          ? new Date(tokens.token_expires_at) > new Date()
-          : false;
-
-      return { isSetup: hasTokens && isTokenValid };
+      // Use centralized token manager for consistent logic
+      const status = await GmailTokenManager.getSetupStatus(
+        user.id,
+        user.email!,
+        queryClient
+      );
+      return {
+        isSetup: status.isSetup,
+        hasTokens: status.hasTokens,
+        lastSetupAt: status.lastSetupAt,
+      };
     },
     enabled: !!user,
+    staleTime: 2 * 60 * 1000, // Consider data stale after 2 minutes (matching GmailOAuthSetup)
+    gcTime: 5 * 60 * 1000, // Keep in cache for 5 minutes (matching GmailOAuthSetup)
+    refetchInterval: false, // Disable automatic refetching to prevent conflicts
   });
 
   // Check if Gmail processing is enabled (OAuth only)

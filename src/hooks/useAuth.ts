@@ -59,21 +59,24 @@ export function useAuth(): UseAuthReturn {
 
         const user = session?.user || null;
 
-        // Proactive token refresh: if token expires in < 10 minutes, refresh it
+        // More conservative proactive token refresh: only if expires in < 5 minutes
         if (session?.expires_at) {
           const expiresAt = session.expires_at * 1000; // Convert to milliseconds
           const now = Date.now();
           const timeUntilExpiry = expiresAt - now;
-          const tenMinutes = 10 * 60 * 1000;
+          const fiveMinutes = 5 * 60 * 1000; // Reduced from 10 minutes
 
-          if (timeUntilExpiry < tenMinutes && timeUntilExpiry > 0) {
+          if (timeUntilExpiry < fiveMinutes && timeUntilExpiry > 0) {
             console.log(
-              "🔄 Proactively refreshing token (expires in < 10 minutes)"
+              "🔄 Proactively refreshing auth session (expires in < 5 minutes)"
             );
             try {
               await supabase.auth.refreshSession();
             } catch (refreshError) {
-              console.warn("⚠️ Proactive token refresh failed:", refreshError);
+              console.warn(
+                "⚠️ Proactive auth session refresh failed:",
+                refreshError
+              );
               // Don't throw - let the current session continue
             }
           }
@@ -88,7 +91,7 @@ export function useAuth(): UseAuthReturn {
     retry: 1,
     staleTime: 5 * 60 * 1000, // 5 minutes - don't refetch too often
     gcTime: 10 * 60 * 1000, // 10 minutes - keep in cache longer
-    refetchInterval: 15 * 60 * 1000, // Check every 15 minutes for proactive refresh
+    refetchInterval: 30 * 60 * 1000, // Reduced frequency: Check every 30 minutes instead of 15
   });
 
   // Set up auth state change listener

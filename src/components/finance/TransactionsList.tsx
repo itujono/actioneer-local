@@ -75,7 +75,7 @@ export function TransactionsList({
 
   if (Object.keys(groupedTransactions).length === 0) {
     return (
-      <div className="bg-white rounded-xl shadow-lg border border-heliotrope/30 p-12 text-center mt-12">
+      <div className="bg-white rounded-xl border border-heliotrope/30 p-12 text-center mt-12">
         <PiggyBank className="h-16 w-16 text-gray-light mx-auto mb-4" />
         <h3 className="text-xl font-medium text-black mb-2">
           No financial transactions found
@@ -157,7 +157,7 @@ export function TransactionsList({
                 </div>
               ) : (
                 /* Transaction List View */
-                <div className="bg-white rounded-xl shadow-md border border-heliotrope/30 overflow-hidden">
+                <div className="bg-white rounded-xl border border-heliotrope/30 overflow-hidden">
                   <div className="divide-y divide-thunder/30">
                     {transactionsForDay.map((transaction: any) => (
                       <TransactionListItem
