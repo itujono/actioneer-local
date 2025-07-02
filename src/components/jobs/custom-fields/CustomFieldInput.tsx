@@ -10,13 +10,7 @@ interface CustomFieldInputProps {
   disabled?: boolean;
 }
 
-export function CustomFieldInput({
-  field,
-  value,
-  onChange,
-  error,
-  disabled,
-}: CustomFieldInputProps) {
+export function CustomFieldInput({ field, value, onChange, error, disabled }: CustomFieldInputProps) {
   const handleChange = (newValue: any) => {
     onChange(newValue);
   };
@@ -43,9 +37,7 @@ export function CustomFieldInput({
             label={field.field_label}
             type="number"
             value={value || ""}
-            onChange={(e) =>
-              handleChange(e.target.value ? Number(e.target.value) : null)
-            }
+            onChange={(e) => handleChange(e.target.value ? Number(e.target.value) : null)}
             min={field.field_options.min}
             max={field.field_options.max}
             disabled={disabled}
@@ -60,9 +52,7 @@ export function CustomFieldInput({
             label={field.field_label}
             type="number"
             value={value || ""}
-            onChange={(e) =>
-              handleChange(e.target.value ? Number(e.target.value) : null)
-            }
+            onChange={(e) => handleChange(e.target.value ? Number(e.target.value) : null)}
             min={field.field_options.min || 0}
             max={field.field_options.max}
             step="0.01"
@@ -92,9 +82,7 @@ export function CustomFieldInput({
           <div className="space-y-1">
             <label className="block text-sm font-medium text-thunder">
               {field.field_label}
-              {field.is_required && (
-                <span className="text-bittersweet ml-1">*</span>
-              )}
+              {field.is_required && <span className="text-bittersweet ml-1">*</span>}
             </label>
             <Select
               value={value || ""}
@@ -206,9 +194,7 @@ export function EditableCustomFieldCell({
   const [editValue, setEditValue] = React.useState(value);
   const [error, setError] = React.useState<string | null>(null);
   const [isSaving, setIsSaving] = React.useState(false);
-  const [containerWidth, setContainerWidth] = React.useState<number | null>(
-    null
-  );
+  const [containerWidth, setContainerWidth] = React.useState<number | null>(null);
   const inputRef = React.useRef<HTMLInputElement | HTMLSelectElement>(null);
   const displayContainerRef = React.useRef<HTMLDivElement>(null);
 
@@ -217,11 +203,13 @@ export function EditableCustomFieldCell({
     setEditValue(value);
   }, [value]);
 
-  // Focus input when entering edit mode
+  // Focus input when entering edit mode and auto-select content
   React.useEffect(() => {
     if (isEditing && inputRef.current) {
       inputRef.current.focus();
-      if (inputRef.current.type === "text") {
+
+      // Auto-select content for better UX
+      if (inputRef.current.type === "text" || inputRef.current.type === "number" || inputRef.current.type === "date") {
         inputRef.current.select();
       }
     }
@@ -326,6 +314,7 @@ export function EditableCustomFieldCell({
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={handleSave}
+            onFocus={(e) => e.target.select()}
             placeholder={field.field_options.placeholder}
             className={inputClasses}
           />
@@ -337,11 +326,10 @@ export function EditableCustomFieldCell({
             ref={inputRef as React.RefObject<HTMLInputElement>}
             type="number"
             value={editValue || ""}
-            onChange={(e) =>
-              setEditValue(e.target.value ? Number(e.target.value) : null)
-            }
+            onChange={(e) => setEditValue(e.target.value ? Number(e.target.value) : null)}
             onKeyDown={handleKeyDown}
             onBlur={handleSave}
+            onFocus={(e) => e.target.select()}
             min={field.field_options.min}
             max={field.field_options.max}
             className={inputClasses}
@@ -352,19 +340,16 @@ export function EditableCustomFieldCell({
         return (
           <div className="relative w-full min-w-0 max-w-40">
             <div className="absolute inset-y-0 left-0 flex items-center pl-3">
-              <span className="text-thunder text-sm font-medium">
-                {field.field_options.currency || "$"}
-              </span>
+              <span className="text-thunder text-sm font-medium">{field.field_options.currency || "$"}</span>
             </div>
             <input
               ref={inputRef as React.RefObject<HTMLInputElement>}
               type="number"
               value={editValue || ""}
-              onChange={(e) =>
-                setEditValue(e.target.value ? Number(e.target.value) : null)
-              }
+              onChange={(e) => setEditValue(e.target.value ? Number(e.target.value) : null)}
               onKeyDown={handleKeyDown}
               onBlur={handleSave}
+              onFocus={(e) => e.target.select()}
               min={field.field_options.min || 0}
               max={field.field_options.max}
               step="0.01"
@@ -383,6 +368,7 @@ export function EditableCustomFieldCell({
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={handleSave}
+            onFocus={(e) => e.target.select()}
             className={inputClasses}
           />
         );
@@ -410,18 +396,8 @@ export function EditableCustomFieldCell({
         return (
           <select
             ref={inputRef as React.RefObject<HTMLSelectElement>}
-            value={
-              editValue === true ? "true" : editValue === false ? "false" : ""
-            }
-            onChange={(e) =>
-              setEditValue(
-                e.target.value === "true"
-                  ? true
-                  : e.target.value === "false"
-                  ? false
-                  : null
-              )
-            }
+            value={editValue === true ? "true" : editValue === false ? "false" : ""}
+            onChange={(e) => setEditValue(e.target.value === "true" ? true : e.target.value === "false" ? false : null)}
             onKeyDown={handleKeyDown}
             onBlur={handleSave}
             className={inputClasses}
@@ -441,6 +417,7 @@ export function EditableCustomFieldCell({
             onChange={(e) => setEditValue(e.target.value)}
             onKeyDown={handleKeyDown}
             onBlur={handleSave}
+            onFocus={(e) => e.target.select()}
             className={inputClasses}
           />
         );
@@ -449,100 +426,29 @@ export function EditableCustomFieldCell({
 
   return (
     <div
-      className={`${containerBaseClasses} ${
-        disabled || isSaving ? "" : "cursor-pointer rounded px-1"
-      } ${isSaving ? "opacity-75" : ""}`}
+      className={`${containerBaseClasses} ${disabled || isSaving ? "" : "cursor-pointer rounded px-1"} ${
+        isSaving ? "opacity-75" : ""
+      }`}
       onClick={handleEdit}
       ref={displayContainerRef}
-      style={
-        isEditing && containerWidth
-          ? { width: `${containerWidth}px` }
-          : undefined
-      }
+      style={isEditing && containerWidth ? { width: `${containerWidth}px` } : undefined}
     >
       {isEditing ? (
-        // Edit mode - maintain exact same width as display mode
-        <>
-          <div className="flex-1">{renderEditInput()}</div>
-          {/* Show group indicator when saving */}
-          {isSaving && isGrouped && groupCount > 1 ? (
-            <div className="h-3 w-3 flex-shrink-0 flex items-center justify-center">
-              <div className="w-2 h-2 bg-heliotrope rounded-full animate-pulse"></div>
-            </div>
-          ) : (
-            /* Invisible spacer to maintain consistent layout - matches icon width */
-            <div className="h-3 w-3 flex-shrink-0 opacity-0">
-              <svg className="h-3 w-3" viewBox="0 0 24 24">
-                <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-            </div>
-          )}
-        </>
+        <div className="flex-1">{renderEditInput()}</div>
       ) : (
-        // Display mode - natural width that gets measured
-        <>
-          <div
-            className={`${cellBaseClasses} ${
-              disabled || isSaving ? "" : "hover:border-concrete"
-            } min-w-0 max-w-40 flex-1 ${isGrouped && groupCount > 1 ? "" : ""}`}
-          >
-            <span className="text-sm text-thunder truncate">
-              {formatDisplayValue()}
-            </span>
-          </div>
-          {!disabled && !isSaving && (
-            <svg
-              className="h-3 w-3 text-concrete opacity-0 group-hover:opacity-100 transition-opacity flex-shrink-0"
-              fill="none"
-              stroke="currentColor"
-              viewBox="0 0 24 24"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"
-              />
-            </svg>
-          )}
-          {/* Show group indicator for grouped fields */}
-          {isGrouped && groupCount > 1 && !isSaving && (
-            <div
-              className="h-3 w-3 flex-shrink-0 flex items-center justify-center opacity-0 group-hover:opacity-100 transition-opacity"
-              title={`Updates all ${groupCount} applications`}
-            >
-              <svg
-                className="h-3 w-3 text-heliotrope"
-                fill="none"
-                stroke="currentColor"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M17 20h5v-2a3 3 0 00-5.356-1.857M17 20H7m10 0v-2c0-.656-.126-1.283-.356-1.857M7 20H2v-2a3 3 0 015.356-1.857M7 20v-2c0-.656.126-1.283.356-1.857m0 0a5.002 5.002 0 019.288 0M15 7a3 3 0 11-6 0 3 3 0 016 0z"
-                />
-              </svg>
-            </div>
-          )}
-          {/* Render invisible icon for disabled state or single items to maintain consistent spacing */}
-          {(disabled || !isGrouped || groupCount === 1) && !isSaving && (
-            <div className="h-3 w-3 flex-shrink-0 opacity-0">
-              <svg className="h-3 w-3" viewBox="0 0 24 24">
-                <path d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
-              </svg>
-            </div>
-          )}
-        </>
+        <div
+          className={`${cellBaseClasses} ${
+            disabled || isSaving ? "" : "hover:border-concrete"
+          } min-w-0 max-w-40 flex-1 ${isGrouped && groupCount > 1 ? "" : ""}`}
+        >
+          <span className="text-sm text-thunder truncate">{formatDisplayValue()}</span>
+        </div>
       )}
 
       {/* Error display - positioned outside to avoid layout shifts */}
       {error && isEditing && (
         <div className="absolute top-full left-0 mt-1 z-20">
-          <p className="text-xs text-red-600 bg-white px-1 py-0.5 rounded shadow-sm border">
-            {error}
-          </p>
+          <p className="text-xs text-red-600 bg-white px-1 py-0.5 rounded shadow-sm border">{error}</p>
         </div>
       )}
 

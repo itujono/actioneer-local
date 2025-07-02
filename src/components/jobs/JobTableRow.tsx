@@ -78,12 +78,12 @@ export function GroupedJobTableRow({
           <div className="flex items-center justify-center h-full relative">
             {/* Vertical line going down to sub-rows */}
             <div
-              className="absolute left-1/2 bottom-0 w-0.5 h-1/2 bg-thunder"
+              className="absolute left-1/2 bottom-0 w-0.5 h-1/2 bg-gray"
               style={{ transform: "translateX(-50%)" }}
             ></div>
             {/* Root indicator */}
             <div
-              className="absolute top-1/2 left-1/2 w-2 h-2 bg-thunder rounded-full"
+              className="absolute top-1/2 left-1/2 w-2 h-2 bg-gray rounded-full"
               style={{ transform: "translate(-50%, -50%)" }}
             ></div>
           </div>
@@ -269,7 +269,11 @@ export function GroupedJobTableRow({
 
               if (field) {
                 return (
-                  <td key={cellKey} className="px-6 py-4 whitespace-nowrap text-sm text-thunder">
+                  <td
+                    key={cellKey}
+                    className="px-6 py-4 whitespace-nowrap text-sm text-thunder"
+                    onClick={(e) => e.stopPropagation()}
+                  >
                     <EditableCustomFieldCell
                       field={field}
                       value={getCustomFieldValue(latestApplication.details, field.field_name)}
@@ -306,7 +310,7 @@ export function GroupedJobTableRow({
           <div className="flex items-center justify-center h-full relative">
             {/* Vertical line from main row */}
             <div
-              className="absolute left-1/2 w-0.5 bg-thunder"
+              className="absolute left-1/2 w-0.5 bg-gray"
               style={{
                 top: index === 0 ? "0px" : "-100%",
                 height: index === group.applications.length - 1 ? "50%" : "200%",
@@ -315,12 +319,12 @@ export function GroupedJobTableRow({
             ></div>
             {/* Horizontal branch pointing to this row */}
             <div
-              className="absolute top-1/2 left-1/2 w-4 h-0.5 bg-thunder"
+              className="absolute top-1/2 left-1/2 w-4 h-0.5 bg-gray"
               style={{ transform: "translateY(-50%)" }}
             ></div>
             {/* Small circle at the end of branch */}
             <div
-              className="absolute top-1/2 right-0 w-1.5 h-1.5 bg-thunder rounded-full"
+              className="absolute top-1/2 right-0 w-1.5 h-1.5 bg-gray rounded-full"
               style={{ transform: "translateY(-50%)" }}
             ></div>
           </div>
@@ -433,7 +437,11 @@ export function GroupedJobTableRow({
 
                 if (field) {
                   return (
-                    <td key={cellKey} className="px-6 py-2 whitespace-nowrap text-xs text-thunder">
+                    <td
+                      key={cellKey}
+                      className="px-6 py-2 whitespace-nowrap text-xs text-thunder"
+                      onClick={(e) => e.stopPropagation()}
+                    >
                       <EditableCustomFieldCell
                         field={field}
                         value={getCustomFieldValue(application.details, field.field_name)}
