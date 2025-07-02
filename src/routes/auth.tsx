@@ -4,14 +4,9 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "../supabase/client";
 import { toast } from "sonner";
-import {
-  Bubble,
-  Fling,
-  Heart,
-  Spiral,
-  ThreeSplashes,
-} from "../components/illustrations";
+import { Bubble, Fling, Heart, Spiral, ThreeSplashes } from "../components/illustrations";
 import { cn } from "../utils/cn";
+import { WaitlistForm } from "../components/auth";
 
 export const authRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -33,26 +28,21 @@ const createPublicUserRecord = async (session: any) => {
   console.log("📝 Creating public user record for:", session.user?.email);
   console.log("🔐 Session access token exists:", !!session.access_token);
 
-  const response = await fetch(
-    `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auth/oauth-signin`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json",
-        Authorization: `Bearer ${session.access_token}`,
-        apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-      },
-    }
-  );
+  const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auth/oauth-signin`, {
+    method: "POST",
+    headers: {
+      "Content-Type": "application/json",
+      Authorization: `Bearer ${session.access_token}`,
+      apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+    },
+  });
 
   console.log("🌐 Auth endpoint response status:", response.status);
 
   if (!response.ok) {
     const errorText = await response.text();
     console.error("❌ Auth endpoint error:", errorText);
-    throw new Error(
-      `HTTP error! status: ${response.status}, details: ${errorText}`
-    );
+    throw new Error(`HTTP error! status: ${response.status}, details: ${errorText}`);
   }
 
   const result = await response.json();
@@ -86,6 +76,7 @@ const initiateGoogleOAuth = async () => {
 function Auth() {
   const navigate = useNavigate();
   const [authListenerSetup, setAuthListenerSetup] = useState(false);
+  const [showLogin, setShowLogin] = useState(false);
 
   // CSS animation for cards
   const cardStyle = `
@@ -136,9 +127,7 @@ function Auth() {
     onError: (error) => {
       console.error("❌ Failed to create user record:", error);
       console.error("❌ Full error details:", JSON.stringify(error, null, 2));
-      toast.error(
-        "Failed to set up your account. Please try signing in again."
-      );
+      toast.error("Failed to set up your account. Please try signing in again.");
       // DON'T navigate to dashboard on error - stay on auth page for retry
     },
     retry: 2, // Retry failed requests up to 2 times
@@ -176,10 +165,7 @@ function Auth() {
         data: { session },
       } = await supabase.auth.getSession();
       if (session?.user) {
-        console.log(
-          "🔐 Existing session found on page load:",
-          session.user.email
-        );
+        console.log("🔐 Existing session found on page load:", session.user.email);
         // Use the mutation to create public user record
         createUserMutation.mutate(session);
       }
@@ -222,12 +208,7 @@ function Auth() {
       <div className="min-h-screen flex justify-center items-center bg-concrete">
         <div className="text-center">
           <div className="text-red-500 mb-4">
-            <svg
-              className="h-8 w-8 mx-auto"
-              fill="none"
-              viewBox="0 0 24 24"
-              stroke="currentColor"
-            >
+            <svg className="h-8 w-8 mx-auto" fill="none" viewBox="0 0 24 24" stroke="currentColor">
               <path
                 strokeLinecap="round"
                 strokeLinejoin="round"
@@ -236,9 +217,7 @@ function Auth() {
               />
             </svg>
           </div>
-          <p className="text-sm text-thunder">
-            Error checking authentication. Please refresh the page.
-          </p>
+          <p className="text-sm text-thunder">Error checking authentication. Please refresh the page.</p>
         </div>
       </div>
     );
@@ -250,153 +229,122 @@ function Auth() {
         {/* Left Column - Login Form */}
         <div className="flex flex-col justify-center py-12 px-6 lg:px-8">
           <div className="mx-auto w-full max-w-md lg:order-1">
-            <div className="text-center">
-              <img
-                src="/logo.png"
-                alt="Actioneer Logo"
-                className="h-12 w-12 mx-auto"
-              />
-              <h2 className="mt-6 text-3xl font-extrabold text-thunder">
-                Sign in to Actioneer
-              </h2>
-              <p className="mt-2 text-sm text-thunder">
-                Transform your emails into actionable insights
-              </p>
-            </div>
-
-            <div className="mt-8">
-              <div className="space-y-6">
-                <div>
-                  <button
-                    type="button"
-                    onClick={handleGoogleSignIn}
-                    disabled={
-                      googleSignInMutation.isPending ||
-                      createUserMutation.isPending
-                    }
-                    className={cn(
-                      "w-full flex justify-center items-center px-4 py-3",
-                      "border border-concrete rounded-md shadow-sm bg-thunder",
-                      "text-sm font-medium text-white",
-                      "hover:bg-thunder/80",
-                      "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-heliotrope",
-                      "disabled:opacity-50 disabled:cursor-not-allowed",
-                      "transition-colors duration-200"
-                    )}
-                  >
-                    {googleSignInMutation.isPending ||
-                    createUserMutation.isPending ? (
-                      <span className="flex items-center">
-                        <svg
-                          className="animate-spin -ml-1 mr-3 h-5 w-5 text-thunder"
-                          xmlns="http://www.w3.org/2000/svg"
-                          fill="none"
-                          viewBox="0 0 24 24"
-                        >
-                          <circle
-                            className="opacity-25"
-                            cx="12"
-                            cy="12"
-                            r="10"
-                            stroke="currentColor"
-                            strokeWidth="4"
-                          ></circle>
-                          <path
-                            className="opacity-75"
-                            fill="currentColor"
-                            d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-                          ></path>
-                        </svg>
-                        {createUserMutation.isPending
-                          ? "Setting up account..."
-                          : "Signing in..."}
-                      </span>
-                    ) : (
-                      <>
-                        <svg
-                          width="20px"
-                          height="20px"
-                          viewBox="-3 0 262 262"
-                          xmlns="http://www.w3.org/2000/svg"
-                          preserveAspectRatio="xMidYMid"
-                          className="mr-3"
-                        >
-                          <path
-                            d="M255.878 133.451c0-10.734-.871-18.567-2.756-26.69H130.55v48.448h71.947c-1.45 12.04-9.283 30.172-26.69 42.356l-.244 1.622 38.755 30.023 2.685.268c24.659-22.774 38.875-56.282 38.875-96.027"
-                            fill="#4285F4"
-                          />
-                          <path
-                            d="M130.55 261.1c35.248 0 64.839-11.605 86.453-31.622l-41.196-31.913c-11.024 7.688-25.82 13.055-45.257 13.055-34.523 0-63.824-22.773-74.269-54.25l-1.531.13-40.298 31.187-.527 1.465C35.393 231.798 79.49 261.1 130.55 261.1"
-                            fill="#34A853"
-                          />
-                          <path
-                            d="M56.281 156.37c-2.756-8.123-4.351-16.827-4.351-25.82 0-8.994 1.595-17.697 4.206-25.82l-.073-1.73L15.26 71.312l-1.335.635C5.077 89.644 0 109.517 0 130.55s5.077 40.905 13.925 58.602l42.356-32.782"
-                            fill="#FBBC05"
-                          />
-                          <path
-                            d="M130.55 50.479c24.514 0 41.05 10.589 50.479 19.438l36.844-35.974C195.245 12.91 165.798 0 130.55 0 79.49 0 35.393 29.301 13.925 71.947l42.211 32.783c10.59-31.477 39.891-54.251 74.414-54.251"
-                            fill="#EB4335"
-                          />
-                        </svg>
-                        Continue with Google
-                      </>
-                    )}
-                  </button>
-                </div>
-
-                <div className="mt-6">
-                  <div className="relative">
-                    <div className="absolute inset-0 flex items-center">
-                      <div className="w-full border-t border-concrete"></div>
-                    </div>
-                    <div className="relative flex justify-center text-sm">
-                      <span className="px-2 bg-concrete text-thunder">
-                        Secure authentication powered by Google
-                      </span>
-                    </div>
-                  </div>
-                </div>
-
+            {!showLogin ? (
+              <WaitlistForm onSwitchToLogin={() => setShowLogin(true)} />
+            ) : (
+              <div>
                 <div className="text-center">
-                  <p className="text-xs text-thunder">
-                    By signing in, you agree to our{" "}
-                    <Link
-                      to="/privacy"
-                      className="font-medium text-heliotrope hover:text-heliotrope/80"
-                    >
-                      Privacy Policy
-                    </Link>
-                  </p>
+                  <img src="/logo.png" alt="Actioneer Logo" className="h-12 w-12 mx-auto" />
+                  <h2 className="mt-6 text-3xl font-extrabold text-thunder">Sign in to Actioneer</h2>
+                  <p className="mt-2 text-sm text-thunder">Transform your emails into actionable insights</p>
                 </div>
-              </div>
 
-              {/* <div className="mt-8">
-                <div className="bg-heliotrope/10 border border-heliotrope/20 rounded-md p-4">
-                  <div className="flex">
-                    <div className="flex-shrink-0">
-                      <Mail className="h-5 w-5 text-heliotrope" />
+                <div className="mt-8">
+                  <div className="space-y-6">
+                    <div>
+                      <button
+                        type="button"
+                        onClick={handleGoogleSignIn}
+                        disabled={googleSignInMutation.isPending || createUserMutation.isPending}
+                        className={cn(
+                          "w-full flex justify-center items-center px-4 py-3",
+                          "border border-concrete rounded-md shadow-sm bg-thunder",
+                          "text-sm font-medium text-white",
+                          "hover:bg-thunder/80",
+                          "focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-heliotrope",
+                          "disabled:opacity-50 disabled:cursor-not-allowed",
+                          "transition-colors duration-200"
+                        )}
+                      >
+                        {googleSignInMutation.isPending || createUserMutation.isPending ? (
+                          <span className="flex items-center">
+                            <svg
+                              className="animate-spin -ml-1 mr-3 h-5 w-5 text-thunder"
+                              xmlns="http://www.w3.org/2000/svg"
+                              fill="none"
+                              viewBox="0 0 24 24"
+                            >
+                              <circle
+                                className="opacity-25"
+                                cx="12"
+                                cy="12"
+                                r="10"
+                                stroke="currentColor"
+                                strokeWidth="4"
+                              ></circle>
+                              <path
+                                className="opacity-75"
+                                fill="currentColor"
+                                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+                              ></path>
+                            </svg>
+                            {createUserMutation.isPending ? "Setting up account..." : "Signing in..."}
+                          </span>
+                        ) : (
+                          <>
+                            <svg
+                              width="20px"
+                              height="20px"
+                              viewBox="-3 0 262 262"
+                              xmlns="http://www.w3.org/2000/svg"
+                              preserveAspectRatio="xMidYMid"
+                              className="mr-3"
+                            >
+                              <path
+                                d="M255.878 133.451c0-10.734-.871-18.567-2.756-26.69H130.55v48.448h71.947c-1.45 12.04-9.283 30.172-26.90 42.356l-.244 1.622 38.755 30.023 2.685.268c24.659-22.774 38.875-56.282 38.875-96.027"
+                                fill="#4285F4"
+                              />
+                              <path
+                                d="M130.55 261.1c35.248 0 64.839-11.605 86.453-31.622l-41.196-31.913c-11.024 7.688-25.82 13.055-45.257 13.055-34.523 0-63.824-22.773-74.269-54.25l-1.531.13-40.298 31.187-.527 1.465C35.393 231.798 79.49 261.1 130.55 261.1"
+                                fill="#34A853"
+                              />
+                              <path
+                                d="M56.281 156.37c-2.756-8.123-4.351-16.827-4.351-25.82 0-8.994 1.595-17.697 4.206-25.82l-.073-1.73L15.26 71.312l-1.335.635C5.077 89.644 0 109.517 0 130.55s5.077 40.905 13.925 58.602l42.356-32.782"
+                                fill="#FBBC05"
+                              />
+                              <path
+                                d="M130.55 50.479c24.514 0 41.05 10.589 50.479 19.438l36.844-35.974C195.245 12.91 165.798 0 130.55 0 79.49 0 35.393 29.301 13.925 71.947l42.211 32.783c10.59-31.477 39.891-54.251 74.414-54.251"
+                                fill="#EB4335"
+                              />
+                            </svg>
+                            Continue with Google
+                          </>
+                        )}
+                      </button>
                     </div>
-                    <div className="ml-3">
-                      <h3 className="text-sm font-medium text-heliotrope">
-                        What happens next?
-                      </h3>
-                      <div className="mt-2 text-sm text-heliotrope/80">
-                        <p>
-                          After signing in, Actioneer will analyze your emails
-                          to help you:
-                        </p>
-                        <ul className="mt-2 list-disc list-inside space-y-1">
-                          <li>Track expenses from receipts</li>
-                          <li>Manage travel promotional emails</li>
-                          <li>Monitor job applications</li>
-                          <li>Take smart actions on your emails</li>
-                        </ul>
+
+                    <div className="mt-6">
+                      <div className="relative">
+                        <div className="absolute inset-0 flex items-center">
+                          <div className="w-full border-t border-concrete"></div>
+                        </div>
+                        <div className="relative flex justify-center text-sm">
+                          <span className="px-2 bg-concrete text-thunder">Secure authentication powered by Google</span>
+                        </div>
                       </div>
                     </div>
+
+                    <div className="text-center">
+                      <p className="text-xs text-thunder">
+                        By signing in, you agree to our{" "}
+                        <Link to="/privacy" className="font-medium text-heliotrope hover:text-heliotrope/80">
+                          Privacy Policy
+                        </Link>
+                      </p>
+                    </div>
+
+                    <div className="text-center">
+                      <button
+                        onClick={() => setShowLogin(false)}
+                        className="text-sm text-thunder/60 hover:text-thunder font-medium"
+                      >
+                        ← Back to waitlist
+                      </button>
+                    </div>
                   </div>
                 </div>
-              </div> */}
-            </div>
+              </div>
+            )}
           </div>
         </div>
 
@@ -485,9 +433,7 @@ function Auth() {
               }}
             >
               <div className="flex justify-center items-center h-full">
-                <h3 className="text-bittersweet text-xs sm:text-base lg:text-lg font-bold">
-                  actioneer
-                </h3>
+                <h3 className="text-bittersweet text-xs sm:text-base lg:text-lg font-bold">actioneer</h3>
               </div>
             </div>
             <div
@@ -505,27 +451,13 @@ function Auth() {
               }}
             >
               <div className="flex flex-col gap-0 items-center justify-center h-full overflow-hidden">
-                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">
-                  actioneer
-                </div>
-                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">
-                  actioneer
-                </div>
-                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">
-                  actioneer
-                </div>
-                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">
-                  actioneer
-                </div>
-                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">
-                  actioneer
-                </div>
-                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">
-                  actioneer
-                </div>
-                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">
-                  actioneer
-                </div>
+                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">actioneer</div>
+                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">actioneer</div>
+                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">actioneer</div>
+                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">actioneer</div>
+                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">actioneer</div>
+                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">actioneer</div>
+                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">actioneer</div>
               </div>
             </div>
 

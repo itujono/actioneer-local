@@ -1,0 +1,18 @@
+name: Waitlist Reminder Notifications
+
+on:
+  schedule:
+    # Run every 5 minutes (this will catch users at 1h and 1h45m windows)
+    - cron: "*/5 * * * *"
+  workflow_dispatch: # Allow manual triggering
+
+jobs:
+  send-waitlist-reminders:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send Waitlist Reminders
+        run: |
+          curl -X POST 'https://whnvhuusxtnuvkhgfxnu.supabase.co/functions/v1/waitlist-reminder' \
+            -H 'Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}' \
+            -H 'Content-Type: application/json' \
+            -d '{}'

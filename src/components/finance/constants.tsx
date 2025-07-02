@@ -57,7 +57,7 @@ export const revenueIcons: Record<string, React.ReactElement> = {
 export const categoryColors: Record<string, string> = {
   // Expense colors using our vibrant palette
   software: "bg-heliotrope text-white",
-  office_supplies: "bg-jade text-jade",
+  office_supplies: "bg-jade text-white",
   utilities: "bg-gold text-thunder",
   travel: "bg-lavender text-lavender",
   entertainment: "bg-bittersweet text-white",

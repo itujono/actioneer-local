@@ -1,14 +1,7 @@
 import { createRoute, Link } from "@tanstack/react-router";
 import { rootRoute } from "./root";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
-import {
-  ReceiptIcon,
-  PlaneIcon,
-  BriefcaseIcon,
-  Calendar,
-  DollarSign,
-  Mail,
-} from "lucide-react";
+import { ReceiptIcon, PlaneIcon, BriefcaseIcon, Calendar, DollarSign, Mail } from "lucide-react";
 import { supabase } from "../supabase/client";
 import { useAuth } from "../hooks/useAuth";
 import {
@@ -32,15 +25,9 @@ export const dashboardRoute = createRoute({
   path: "/dashboard",
   component: Dashboard,
   notFoundComponent: () => (
-    <DashboardContainer
-      title="Are you lost?"
-      description="The page you are looking for does not exist."
-    >
+    <DashboardContainer title="Are you lost?" description="The page you are looking for does not exist.">
       <div className="mt-4">
-        <Link
-          to="/"
-          className="text-sm text-heliotrope hover:text-heliotrope/80 underline"
-        >
+        <Link to="/" className="text-sm text-heliotrope hover:text-heliotrope/80 underline">
           Go back to the home page
         </Link>
       </div>
@@ -95,11 +82,7 @@ function Dashboard() {
       if (!user) throw new Error("User not authenticated");
 
       // Use centralized token manager for consistent logic
-      const status = await GmailTokenManager.getSetupStatus(
-        user.id,
-        user.email!,
-        queryClient
-      );
+      const status = await GmailTokenManager.getSetupStatus(user.id, user.email!, queryClient);
       return {
         isSetup: status.isSetup,
         hasTokens: status.hasTokens,
@@ -127,12 +110,7 @@ function Dashboard() {
       const { data, error } = await supabase
         .from("emails")
         .select("*")
-        .in("classification", [
-          "receipt",
-          "revenue",
-          "travel",
-          "job_application",
-        ])
+        .in("classification", ["receipt", "revenue", "travel", "job_application"])
         .order("created_at", { ascending: false })
         .limit(5);
 
@@ -150,30 +128,19 @@ function Dashboard() {
         throw new Error("User not authenticated");
       }
 
-      const { data, error } = await supabase
-        .from("receipts")
-        .select("*")
-        .order("date", { ascending: false })
-        .limit(5);
+      const { data, error } = await supabase.from("receipts").select("*").order("date", { ascending: false }).limit(5);
 
       if (error) throw error;
 
       // Get unique currencies and calculate multi-currency breakdown
       const uniqueCurrencies = currencyManager.getUniqueCurrencies(data);
-      const baseCurrency =
-        uniqueCurrencies.length > 0 ? uniqueCurrencies[0] : "USD";
+      const baseCurrency = uniqueCurrencies.length > 0 ? uniqueCurrencies[0] : "USD";
 
       // Calculate total in base currency for primary display
-      const totalInBaseCurrency = currencyManager.calculateTotal(
-        data,
-        baseCurrency
-      );
+      const totalInBaseCurrency = currencyManager.calculateTotal(data, baseCurrency);
 
       // Calculate currency breakdown for multi-currency display
-      const currencyBreakdown: Record<
-        string,
-        { amount: number; count: number }
-      > = {};
+      const currencyBreakdown: Record<string, { amount: number; count: number }> = {};
       data.forEach((receipt) => {
         const currency = receipt.currency || "USD";
         if (!currencyBreakdown[currency]) {
@@ -213,9 +180,7 @@ function Dashboard() {
 
       // Find upcoming trips
       const now = new Date();
-      const upcomingTrips = data.filter(
-        (trip) => new Date(trip.start_date) > now
-      );
+      const upcomingTrips = data.filter((trip) => new Date(trip.start_date) > now);
 
       return {
         upcomingTrips,
@@ -250,11 +215,7 @@ function Dashboard() {
   });
 
   // Determine if user should see welcome onboarding
-  const shouldShowOnboarding =
-    !statsLoading &&
-    userStats &&
-    !userStats.hasSeenOnboarding &&
-    !onboardingCompleted;
+  const shouldShowOnboarding = !statsLoading && userStats && !userStats.hasSeenOnboarding && !onboardingCompleted;
 
   // Handle showing onboarding with useEffect to avoid race conditions
   useEffect(() => {
@@ -293,16 +254,10 @@ function Dashboard() {
             .insert({
               id: user.id, // Use Supabase Auth user ID
               email: user.email!,
-              api_key: `api_${Math.random()
-                .toString(36)
-                .substring(2, 15)}${Math.random()
+              api_key: `api_${Math.random().toString(36).substring(2, 15)}${Math.random()
                 .toString(36)
                 .substring(2, 15)}`,
-              name:
-                user.user_metadata?.full_name ||
-                user.user_metadata?.name ||
-                user.email?.split("@")[0] ||
-                null,
+              name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || null,
               source: "web_oauth",
               is_active: true,
               onboarding_completed: true,
@@ -323,10 +278,7 @@ function Dashboard() {
         console.log("Database update successful. Updated rows:", data);
 
         if (!data || data.length === 0) {
-          console.error(
-            "No rows were updated. User ID might not exist:",
-            user.id
-          );
+          console.error("No rows were updated. User ID might not exist:", user.id);
           return;
         }
       }
@@ -356,9 +308,7 @@ function Dashboard() {
       }
 
       // User is authenticated but we need to check/create the public user record
-      console.log(
-        "🔧 User authenticated, ensuring public user record exists..."
-      );
+      console.log("🔧 User authenticated, ensuring public user record exists...");
 
       try {
         // First try to get the user from our users table
@@ -386,17 +336,14 @@ function Dashboard() {
           return;
         }
 
-        const response = await fetch(
-          `${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auth/oauth-signin`,
-          {
-            method: "POST",
-            headers: {
-              "Content-Type": "application/json",
-              Authorization: `Bearer ${session.session.access_token}`,
-              apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
-            },
-          }
-        );
+        const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auth/oauth-signin`, {
+          method: "POST",
+          headers: {
+            "Content-Type": "application/json",
+            Authorization: `Bearer ${session.session.access_token}`,
+            apikey: import.meta.env.VITE_SUPABASE_ANON_KEY,
+          },
+        });
 
         if (!response.ok) {
           console.error("❌ Auth endpoint failed, using local fallback");
@@ -410,16 +357,10 @@ function Dashboard() {
             .insert({
               id: user.id, // Use Supabase Auth user ID - must match auth.uid()
               email: user.email!, // Must match JWT email
-              api_key: `api_${Math.random()
-                .toString(36)
-                .substring(2, 15)}${Math.random()
+              api_key: `api_${Math.random().toString(36).substring(2, 15)}${Math.random()
                 .toString(36)
                 .substring(2, 15)}`,
-              name:
-                user.user_metadata?.full_name ||
-                user.user_metadata?.name ||
-                user.email?.split("@")[0] ||
-                null,
+              name: user.user_metadata?.full_name || user.user_metadata?.name || user.email?.split("@")[0] || null,
               source: "web_oauth",
               is_active: true,
               onboarding_completed: false,
@@ -429,10 +370,7 @@ function Dashboard() {
 
           if (error) {
             console.error("❌ Error creating fallback user record:", error);
-            console.error(
-              "❌ Full error details:",
-              JSON.stringify(error, null, 2)
-            );
+            console.error("❌ Full error details:", JSON.stringify(error, null, 2));
             console.log("🔍 Current user ID:", user.id);
             console.log("🔍 Current user email:", user.email);
             console.log("🔍 Current JWT token exists:", !!user);
@@ -473,10 +411,7 @@ function Dashboard() {
   }
 
   // Show appropriate skeleton based on Gmail processing status
-  if (
-    gmailOAuthStatus?.isSetup &&
-    (receiptsLoading || emailsLoading || travelLoading || jobsLoading)
-  ) {
+  if (gmailOAuthStatus?.isSetup && (receiptsLoading || emailsLoading || travelLoading || jobsLoading)) {
     return (
       <DashboardContainer title="Dashboard">
         <DashboardSkeleton />
@@ -487,10 +422,7 @@ function Dashboard() {
   return (
     <DashboardContainer title="Dashboard">
       {/* Welcome Onboarding Dialog */}
-      <WelcomeOnboarding
-        open={showWelcomeOnboarding}
-        onComplete={handleOnboardingComplete}
-      />
+      <WelcomeOnboarding open={showWelcomeOnboarding} onComplete={handleOnboardingComplete} />
 
       {/* Welcome Banner */}
       <div className="rounded-lg shadow-md overflow-hidden mt-6">
@@ -498,10 +430,7 @@ function Dashboard() {
           <div className="flex items-center justify-between">
             <div>
               <h2 className="text-xl font-bold text-white">
-                Welcome back,{" "}
-                <span className="text-lavender">
-                  {user?.email?.split("@")[0] || "User"}
-                </span>
+                Welcome back, <span className="text-lavender">{user?.email?.split("@")[0] || "User"}</span>
               </h2>
               <p className="mt-1 text-sm text-white/80">
                 {isGmailProcessingEnabled
@@ -534,14 +463,8 @@ function Dashboard() {
                 receiptsLoading
                   ? "..."
                   : receiptsSummary?.hasMultipleCurrencies
-                  ? `${formatCurrency(
-                      receiptsSummary.total,
-                      receiptsSummary.baseCurrency
-                    )}`
-                  : `${formatCurrency(
-                      receiptsSummary?.total || 0,
-                      receiptsSummary?.baseCurrency || "USD"
-                    )}`
+                  ? `${formatCurrency(receiptsSummary.total, receiptsSummary.baseCurrency)}`
+                  : `${formatCurrency(receiptsSummary?.total || 0, receiptsSummary?.baseCurrency || "USD")}`
               }
               description={
                 receiptsLoading
@@ -562,23 +485,16 @@ function Dashboard() {
                         .sort(([, a], [, b]) => b.amount - a.amount)
                         .slice(0, 3) // Show top 3 currencies
                         .map(([currency, breakdown]) => (
-                          <div
-                            key={currency}
-                            className="flex justify-between items-center"
-                          >
+                          <div key={currency} className="flex justify-between items-center">
                             <span className="text-thunder">
-                              {currency} ({breakdown.count}{" "}
-                              {breakdown.count === 1 ? "receipt" : "receipts"})
+                              {currency} ({breakdown.count} {breakdown.count === 1 ? "receipt" : "receipts"})
                             </span>
-                            <span className="font-medium">
-                              {formatCurrency(breakdown.amount, currency)}
-                            </span>
+                            <span className="font-medium">{formatCurrency(breakdown.amount, currency)}</span>
                           </div>
                         ))}
                       {receiptsSummary.uniqueCurrencies.length > 3 && (
                         <div className="text-thunder italic">
-                          +{receiptsSummary.uniqueCurrencies.length - 3} more
-                          currencies
+                          +{receiptsSummary.uniqueCurrencies.length - 3} more currencies
                         </div>
                       )}
                     </div>
@@ -588,11 +504,7 @@ function Dashboard() {
             />
             <DashboardCard
               title="Travel Plans"
-              value={
-                travelLoading
-                  ? "..."
-                  : travelData?.upcomingTrips.length.toString() || "0"
-              }
+              value={travelLoading ? "..." : travelData?.upcomingTrips.length.toString() || "0"}
               description="Upcoming trips"
               icon={<PlaneIcon className="h-6 w-6" />}
               iconBackground="bg-jade/15"
@@ -600,11 +512,7 @@ function Dashboard() {
             />
             <DashboardCard
               title="Job Applications"
-              value={
-                jobsLoading
-                  ? "..."
-                  : jobsData?.totalApplications.toString() || "0"
-              }
+              value={jobsLoading ? "..." : jobsData?.totalApplications.toString() || "0"}
               description="Active applications"
               icon={<BriefcaseIcon className="h-6 w-6" />}
               iconBackground="bg-heliotrope/15"
@@ -613,15 +521,11 @@ function Dashboard() {
           </div>
 
           {/* Recent Actionable Insights */}
-          <h2 className="text-lg font-medium text-black mt-8">
-            Recent Actionable Insights
-          </h2>
+          <h2 className="text-lg font-medium text-black mt-8">Recent Actionable Insights</h2>
           <div className="mt-2 overflow-hidden border-2 border-gray-light sm:rounded-lg">
             <div className="bg-white">
               {emailsLoading ? (
-                <div className="py-12 text-center text-concrete">
-                  Loading actionable insights...
-                </div>
+                <div className="py-12 text-center text-concrete">Loading actionable insights...</div>
               ) : recentEmails?.length ? (
                 <ul className="divide-y divide-concrete">
                   {recentEmails.map((email) => (
@@ -637,42 +541,20 @@ function Dashboard() {
                   ))}
                 </ul>
               ) : (
-                <div className="bg-white rounded-lg p-8 text-center border-2 border-concrete">
-                  <Mail className="h-12 w-12 text-heliotrope mx-auto mb-4" />
-                  <h3 className="text-lg font-semibold text-black mb-2">
-                    Your Insights Dashboard Awaits! 📊
-                  </h3>
-                  <p className="text-thunder text-sm max-w-md mx-auto leading-relaxed mb-6">
-                    Once your email is connected, we'll automatically surface
-                    actionable insights from your receipts, travel plans, job
-                    applications, and revenue notifications.
-                    <span className="font-medium text-heliotrope">
-                      {" "}
-                      The magic happens behind the scenes!
-                    </span>
+                <div className="bg-daisy rounded-lg p-8 text-center">
+                  <Mail className="h-12 w-12 text-lavender mx-auto mb-4" />
+                  <h3 className="text-lg font-semibold text-white mb-2">Your Insights Dashboard Awaits!</h3>
+                  <p className="text-white text-sm max-w-md mx-auto leading-relaxed mb-6">
+                    Once your email is connected, we'll automatically surface actionable insights from your receipts,
+                    travel plans, job applications, and revenue notifications.
+                    <span className="font-medium text-lavender"> The magic happens behind the scenes!</span>
                   </p>
 
                   <div className="flex flex-wrap gap-2 justify-center">
-                    <TestEmailButton
-                      category="receipt"
-                      variant="outline"
-                      size="sm"
-                    />
-                    <TestEmailButton
-                      category="travel"
-                      variant="outline"
-                      size="sm"
-                    />
-                    <TestEmailButton
-                      category="job"
-                      variant="outline"
-                      size="sm"
-                    />
-                    <TestEmailButton
-                      category="revenue"
-                      variant="outline"
-                      size="sm"
-                    />
+                    <TestEmailButton category="receipt" variant="outline" size="sm" />
+                    <TestEmailButton category="travel" variant="outline" size="sm" />
+                    <TestEmailButton category="job" variant="outline" size="sm" />
+                    <TestEmailButton category="revenue" variant="outline" size="sm" />
                   </div>
                 </div>
               )}
@@ -684,16 +566,12 @@ function Dashboard() {
             {/* Upcoming Events */}
             <div className="bg-white overflow-hidden rounded-lg border-2 border-gray-light">
               <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
-                <h3 className="text-lg font-medium text-black">
-                  Upcoming Events
-                </h3>
+                <h3 className="text-lg font-medium text-black">Upcoming Events</h3>
                 <Calendar className="h-5 w-5 text-gray-light" />
               </div>
               <div className="border-t border-concrete px-4 py-5 sm:p-6">
                 {travelLoading ? (
-                  <div className="py-8 text-center text-concrete">
-                    Loading events...
-                  </div>
+                  <div className="py-8 text-center text-concrete">Loading events...</div>
                 ) : travelData?.upcomingTrips.length ? (
                   <ul className="divide-y divide-concrete">
                     {travelData.upcomingTrips.map((trip) => (
@@ -734,16 +612,12 @@ function Dashboard() {
             {/* Recent Expenses */}
             <div className="bg-white overflow-hidden rounded-lg border-2 border-gray-light">
               <div className="px-4 py-5 sm:px-6 flex justify-between items-center">
-                <h3 className="text-lg font-medium text-black">
-                  Recent Expenses
-                </h3>
+                <h3 className="text-lg font-medium text-black">Recent Expenses</h3>
                 <DollarSign className="h-5 w-5 text-gray-light" />
               </div>
               <div className="border-t border-concrete px-4 py-5 sm:p-6">
                 {receiptsLoading ? (
-                  <div className="py-8 text-center text-concrete">
-                    Loading expenses...
-                  </div>
+                  <div className="py-8 text-center text-concrete">Loading expenses...</div>
                 ) : receiptsSummary?.recentReceipts.length ? (
                   <ul className="divide-y divide-concrete">
                     {receiptsSummary.recentReceipts.map((receipt) => (
@@ -755,12 +629,9 @@ function Dashboard() {
                             </div>
                           </div>
                           <div className="flex-1 min-w-0">
-                            <p className="text-sm font-medium text-black truncate">
-                              {receipt.merchant}
-                            </p>
+                            <p className="text-sm font-medium text-black truncate">{receipt.merchant}</p>
                             <p className="text-sm text-black truncate">
-                              {receipt.category} •{" "}
-                              {new Date(receipt.date).toLocaleDateString()}
+                              {receipt.category} • {new Date(receipt.date).toLocaleDateString()}
                             </p>
                           </div>
                           <div className="text-sm font-medium text-thunder">

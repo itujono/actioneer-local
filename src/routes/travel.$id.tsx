@@ -1,9 +1,8 @@
 import { createRoute } from "@tanstack/react-router";
 import { rootRoute } from "./root";
 import { useQuery } from "@tanstack/react-query";
-import { MapPin, Camera, Hotel, Loader2, AlertCircle, ArrowLeft } from "lucide-react";
+import { Camera, Hotel, Loader2, AlertCircle } from "lucide-react";
 import { DashboardContainer } from "../components/dashboard";
-import { Button } from "../components/ui/button";
 import { useAuth } from "../hooks/useAuth";
 import { supabase } from "../supabase/client";
 
