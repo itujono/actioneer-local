@@ -2,8 +2,8 @@ name: Waitlist Reminder Notifications
 
 on:
   schedule:
-    # Run every 5 minutes (this will catch users at 1h and 1h45m windows)
-    - cron: "*/5 * * * *"
+    # Run every 10 minutes (more efficient, still catches all users reliably)
+    - cron: "*/10 * * * *"
   workflow_dispatch: # Allow manual triggering
 
 jobs:

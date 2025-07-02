@@ -222,30 +222,32 @@ Deno.serve(async (req) => {
 
     console.log("🕐 Checking for waitlist reminders...");
     console.log("Current time:", now.toISOString());
-    console.log("1 hour ago:", oneHourAgo.toISOString());
-    console.log("1h45m ago:", oneHour45MinAgo.toISOString());
+    console.log("1-hour reminder window: 1h to 1h30m ago");
+    console.log("Urgent reminder window: 1h30m to 2h ago");
 
-    // Find users who joined exactly around 1 hour ago (±5 minutes window)
-    const oneHourWindow = new Date(now.getTime() - 65 * 60 * 1000); // 1h5m ago
+    // Find users who have been pending for 1+ hours but less than 1h30m
+    // This ensures we catch everyone in the 1-hour reminder window
+    const oneHourMax = new Date(now.getTime() - 90 * 60 * 1000); // 1h30m ago
     const { data: oneHourUsers, error: oneHourError } = await supabaseClient
       .from("waitlist")
       .select("*")
       .eq("status", "pending")
-      .gte("created_at", oneHourWindow.toISOString())
+      .gte("created_at", oneHourMax.toISOString())
       .lte("created_at", oneHourAgo.toISOString());
 
     if (oneHourError) {
       console.error("Error fetching 1-hour users:", oneHourError);
     }
 
-    // Find users who joined around 1h45m ago (±5 minutes window) - approaching 2 hours
-    const urgentWindow = new Date(now.getTime() - 110 * 60 * 1000); // 1h50m ago
+    // Find users who have been pending for 1h30m+ but less than 2 hours - approaching deadline
+    const urgentMin = new Date(now.getTime() - 120 * 60 * 1000); // 2 hours ago
+    const urgentMax = new Date(now.getTime() - 90 * 60 * 1000); // 1h30m ago
     const { data: urgentUsers, error: urgentError } = await supabaseClient
       .from("waitlist")
       .select("*")
       .eq("status", "pending")
-      .gte("created_at", urgentWindow.toISOString())
-      .lte("created_at", oneHour45MinAgo.toISOString());
+      .gte("created_at", urgentMin.toISOString())
+      .lte("created_at", urgentMax.toISOString());
 
     if (urgentError) {
       console.error("Error fetching urgent users:", urgentError);
@@ -265,7 +267,7 @@ Deno.serve(async (req) => {
       if (emailSent) emailsSent++;
     }
 
-    // Send urgent 1h45m reminder (15 minutes before 2-hour mark)
+    // Send urgent reminder for users approaching 2-hour mark
     if (urgentUsers && urgentUsers.length > 0) {
       console.log(`🚨 Sending urgent reminder for ${urgentUsers.length} users`);
       const subject = `🚨 URGENT: Waitlist 2-Hour Deadline Approaching (${urgentUsers.length} user${

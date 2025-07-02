@@ -125,6 +125,40 @@ export const REVENUE_PATTERNS = {
     /(?:awaiting|waiting\s+for).*(?:approval|confirmation)/i,
   ],
 
+  // NEW: Promotional/Marketing/Incentive exclusion patterns
+  promotional_offers: [
+    // General promotional language
+    /(?:earn|win|get|claim|receive).*(?:bonus|reward|prize|gift|cashback|points)/i,
+    /(?:bonus|reward|prize|gift|cashback|points).*(?:up\s+to|worth|valued\s+at)/i,
+    /(?:special|limited|exclusive).*(?:offer|deal|promotion|bonus)/i,
+    /(?:sign\s+up|register|join).*(?:bonus|reward|gift)/i,
+    /(?:first|new).*(?:user|customer|account).*(?:bonus|reward|gift)/i,
+    /(?:referral|refer\s+a\s+friend).*(?:bonus|reward)/i,
+    /(?:deposit|trade|swap|invest).*(?:and\s+get|to\s+receive|for\s+a).*(?:bonus|reward)/i,
+
+    // Indonesian promotional patterns
+    /(?:dapatkan|menangkan|klaim|ambil).*(?:bonus|hadiah|reward|cashback|poin)/i,
+    /(?:bonus|hadiah|reward|cashback|poin).*(?:senilai|hingga|sampai)/i,
+    /(?:promosi|promo|penawaran).*(?:khusus|terbatas|eksklusif)/i,
+    /(?:daftar|bergabung|buat\s+akun).*(?:bonus|hadiah|reward)/i,
+    /(?:pengguna\s+baru|akun\s+baru|first\s+time).*(?:bonus|hadiah|reward)/i,
+    /(?:swap|deposit|trading).*(?:pertama\s+kali|first\s+time).*(?:bonus|hadiah|reward)/i,
+    /(?:mulai\s+sekarang|start\s+now).*(?:bonus|hadiah|reward)/i,
+
+    // Marketing call-to-action patterns
+    /(?:claim\s+now|get\s+started|start\s+now|join\s+now|sign\s+up\s+now)/i,
+    /(?:limited\s+time|act\s+fast|don't\s+miss|hurry)/i,
+    /(?:terms\s+and\s+conditions|t&c|syarat\s+dan\s+ketentuan)/i,
+    /(?:valid\s+until|expires\s+on|berlaku\s+hingga)/i,
+    /(?:minimum\s+(?:deposit|trade|swap)|syarat\s+minimum)/i,
+
+    // Crypto promotional patterns
+    /(?:airdrop|mining|staking).*(?:reward|bonus|earn)/i,
+    /(?:new\s+token|token\s+launch).*(?:bonus|reward)/i,
+    /(?:trading\s+competition|contest).*(?:prize|reward)/i,
+    /(?:liquidity\s+mining|yield\s+farming).*(?:reward|apy)/i,
+  ],
+
   // Enhanced cryptocurrency and withdrawal patterns
   crypto_withdrawals: [
     /withdrawal\s+(?:successful|completed|processed|confirmed)/i,
@@ -288,11 +322,18 @@ export function buildRevenuePrompt(emailData: EmailData): string {
     - Pending transactions ("processing", "in progress", "pending approval")
     - Failed or declined transactions
     - Payment due reminders or invoices
-    - Marketing emails about potential earnings
+    - Marketing emails about potential earnings or promotional offers
     - Investment loss notifications
     - Account maintenance fees
     - Outgoing payment confirmations
     - Any email talking about FUTURE income
+    - PROMOTIONAL/MARKETING OFFERS: Bonuses, rewards, incentives, contests, airdrops
+    - Emails offering potential earnings ("earn up to", "get bonus", "claim reward")
+    - Sign-up bonuses or referral rewards (not actual received money)
+    - Trading competitions or contests (prizes not yet received)
+    - Crypto airdrops or staking rewards (announcements, not actual distributions)
+    - "First time user" bonuses or promotional campaigns
+    - ANY email with call-to-action buttons like "Claim Now", "Get Started", "Join Now"
     
     TEMPORAL INDICATORS TO CHECK:
     - Past tense: "received", "deposited", "completed", "credited", "transferred", "paid"
@@ -322,7 +363,17 @@ export function classifyRevenue(emailData: EmailData): Classification | null {
     return null;
   }
 
-  // SECOND: Check for strong revenue signals first - these are high confidence
+  // SECOND: Check for promotional/marketing patterns - EXCLUDE these immediately
+  const isPromotionalOffer = REVENUE_PATTERNS.promotional_offers.some(
+    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
+  );
+
+  if (isPromotionalOffer) {
+    console.log("🚫 Revenue: Excluded as promotional/marketing offer");
+    return null;
+  }
+
+  // THIRD: Check for strong revenue signals first - these are high confidence
   const hasStrongRevenueSignal = REVENUE_PATTERNS.strong_revenue_signals.some(
     (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
   );

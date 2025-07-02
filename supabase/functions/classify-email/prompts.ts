@@ -10,23 +10,32 @@ export function buildClassificationPrompt(emailData: EmailData): string {
     - job_application (ONLY for emails directly related to actual job applications you submitted)
     - other (for emails that don't fit the above categories)
     
-    CRITERIA for revenue classification:
-    Revenue emails include:
-    - Payment received confirmations (PayPal, Stripe, bank transfers)
-    - Refunds from merchants or service providers
-    - Cryptocurrency withdrawal confirmations to bank accounts
-    - Business income (invoices paid, freelance payments)
-    - Investment income (dividends, interest, trading profits)
-    - Government payments (tax refunds, benefits)
-    - Digital platform income (sales, marketplace earnings)
-    - Insurance payouts and settlements
+    ⚠️ CRITICAL: REVENUE vs PROMOTIONAL OFFERS - This is the most important distinction!
     
-    DO NOT classify as revenue:
-    - Payment requests or invoices due
-    - Account maintenance fees
-    - Failed payment notifications
-    - Marketing emails about earning potential
-    - Investment loss notifications
+    REVENUE (money ALREADY received/deposited):
+    - Payment received confirmations (PayPal, Stripe, bank transfers) - money already arrived
+    - Refunds from merchants or service providers - money already returned
+    - Cryptocurrency withdrawal confirmations to bank accounts - money already transferred
+    - Business income (invoices paid, freelance payments) - client already paid you
+    - Investment income (dividends, interest, trading profits) - already credited
+    - Government payments (tax refunds, benefits) - funds already deposited
+    - Digital platform income (sales, marketplace earnings) - payment already received
+    - Insurance payouts and settlements - claim already paid
+    
+    PROMOTIONAL OFFERS (classify as "other" - these are marketing, not actual money):
+    - "Get bonus worth $X" - offering potential money
+    - "Earn rewards up to $X" - promising potential earnings  
+    - "Claim your prize" - invitation to claim, not actual receipt
+    - "Dapatkan hadiah" (Indonesian: "Get reward") - offering reward
+    - "Bonus senilai" (Indonesian: "Bonus worth") - promotional offer
+    - "First time bonus" - promotional incentive
+    - "Sign up and get" - registration incentive
+    - "Trade and earn" - conditional earning opportunity
+    - "Swap crypto and receive" - activity-based reward offer
+    - Any email with call-to-action buttons like "Claim Now", "Get Started", "Join Now"
+    - Any email with terms like "minimum deposit", "requirements", "valid until"
+    
+    KEY DETECTION: Is this about money ALREADY received vs money OFFERED conditionally?
     
     STRICT CRITERIA for job_application classification:
     The email MUST be:

@@ -307,8 +307,8 @@ export async function classifyEmailWithEnhancedAI(
   });
 
   try {
-    // Use AI for ALL classification - no pattern fallbacks
-    console.log("🧠 Using AI classification...");
+    // Use AI for ALL classification with enhanced prompts
+    console.log("🧠 Using enhanced AI classification...");
     const prompt = buildAdvancedClassificationPrompt(subject, from, emailBody);
 
     // Use the existing OpenAI instance from the top of the file
@@ -365,498 +365,61 @@ CATEGORIES:
 4. "job_application" - Job applications, career opportunities, employment
 5. "other" - Everything else
 
-CRITICAL DISTINCTION - Receipt vs Revenue:
-- RECEIPT: "Thank you for your purchase", "Your subscription was charged", "Order confirmation", "Bill paid"
-- REVENUE: "Payment received", "Money deposited", "Refund issued", "You earned", "Funds added to your account"
+⚠️ CRITICAL: REVENUE vs PROMOTIONAL OFFERS - This is the most important distinction!
+
+REVENUE (money already in your account):
+- "Payment received" - money already arrived
+- "Refund processed" - money already returned
+- "Funds deposited to your account" - money already there
+- "Your earnings have been processed" - money already credited
+- "Withdrawal successful" - money already transferred to bank
+- "Invoice paid" - client already paid you
+- "Commission earned" - you already earned commission
+
+PROMOTIONAL OFFERS (classify as "other" - these are marketing, not actual money):
+- "Get bonus worth $X" - offering potential money
+- "Earn rewards up to $X" - promising potential earnings
+- "Claim your prize" - invitation to claim, not actual receipt
+- "Dapatkan hadiah" (Indonesian: "Get reward") - offering reward
+- "Bonus senilai" (Indonesian: "Bonus worth") - promotional offer
+- "First time bonus" - promotional incentive
+- "Sign up and get" - registration incentive
+- "Trade and earn" - conditional earning opportunity
+- "Swap crypto and receive" - activity-based reward offer
+- ANY email with call-to-action buttons like "Claim Now", "Get Started", "Join Now"
+- ANY email with terms like "minimum deposit", "requirements", "valid until"
+
+🔍 KEY DETECTION PATTERNS FOR PROMOTIONAL OFFERS:
+- Future conditional language: "IF you do X, THEN you get Y"
+- Action required: "Click here", "Sign up", "Complete your first trade"
+- Conditional rewards: "When you deposit", "After you swap", "Once you complete"
+- Marketing language: "Limited time", "Special offer", "Exclusive deal"
+- Indonesian promotional terms: "dapatkan", "klaim", "hadiah", "bonus", "promosi"
 
 Email to classify:
 Subject: ${subject}
 From: ${from}
 Content: ${emailBody}
 
-INSTRUCTIONS:
-1. Focus on WHO is receiving money vs WHO is spending money
-2. Look for directional language: "to you" = revenue, "from you" = receipt
-3. Past tense completion language: "received", "deposited", "earned" = revenue
-4. Payment confirmations for services YOU provided = revenue
-5. Purchase confirmations for things YOU bought = receipt
+DECISION FRAMEWORK:
+1. Is this about money ALREADY received/deposited? → "revenue"
+2. Is this about money ALREADY spent/charged? → "receipt" 
+3. Is this offering/promising money IF you do something? → "other" (promotional)
+4. Is this about travel bookings/deals? → "travel"
+5. Is this about job applications/employment? → "job_application"
+6. Everything else → "other"
+
+EXAMPLES TO HELP YOU:
+❌ WRONG: "Earn SOL worth $50 when you trade" → This is promotional (offering conditional reward)
+✅ CORRECT: "Your SOL reward has been deposited" → This would be revenue (already received)
+
+❌ WRONG: "Get bonus Rp50,000 for first swap" → This is promotional (conditional offer)
+✅ CORRECT: "Bonus Rp50,000 credited to your account" → This would be revenue (already received)
 
 Return ONLY a JSON object with:
 {
   "type": "receipt|revenue|travel|job_application|other",
   "confidence": 0.0-1.0,
-  "reasoning": "Detailed explanation of why this classification was chosen, including specific words/phrases that led to this decision"
+  "reasoning": "Detailed explanation focusing on whether this is actual money movement vs promotional offer"
 }`;
-}
-
-/**
- * Direct classification using patterns (no external API calls)
- */
-function classifyEmailDirect(subject: string, from: string, emailBody: string): ClassificationResult | null {
-  const subjectLower = subject.toLowerCase();
-  const fromLower = from.toLowerCase();
-  const bodyLower = emailBody.toLowerCase();
-
-  // Travel patterns
-  const TRAVEL_PATTERNS = {
-    flights: [
-      /flight\s+(?:confirmation|booking|itinerary|ticket|receipt)/i,
-      /boarding\s+pass/i,
-      /e-ticket/i,
-      /airline\s+(?:confirmation|booking)/i,
-      /check-in\s+(?:reminder|now\s+available|opens)/i,
-    ],
-    hotels: [
-      /hotel\s+(?:confirmation|booking|reservation|receipt)/i,
-      /accommodation\s+(?:confirmation|booking)/i,
-      /room\s+(?:confirmation|booking|reservation)/i,
-      /booking\.com/i,
-      /hotels\.com/i,
-      /expedia/i,
-      /airbnb/i,
-    ],
-    destinations: [
-      /(?:trip|travel|adventure|vacation|holiday|getaway)\s+to\s+[\w\s]+/i,
-      /(?:time\s+to|visit|explore|discover)\s+[\w\s]+[!🇹🇷🌍✈️🏖️]/i,
-      /your\s+(?:next|upcoming)\s+(?:trip|adventure|vacation|getaway)/i,
-      /🧳.*(?:adventure|trip|vacation|travel)/i,
-      /✈️.*(?:adventure|trip|vacation|travel)/i,
-      /🏨.*(?:stay|hotel|accommodation)/i,
-    ],
-    general: [
-      /travel\s+(?:itinerary|confirmation|booking|receipt)/i,
-      /trip\s+(?:confirmation|itinerary|summary)/i,
-      /vacation\s+(?:booking|confirmation)/i,
-      /travel\s+insurance/i,
-      /visa\s+(?:application|confirmation|approval)/i,
-    ],
-    domains: [
-      /booking\.com/i,
-      /expedia/i,
-      /priceline/i,
-      /kayak/i,
-      /tripadvisor/i,
-      /hotels\.com/i,
-      /airbnb/i,
-      /delta\.com/i,
-      /united\.com/i,
-      /american\.com/i,
-      // Enhanced travel sender domains
-      /trip\.com/i,
-      /agoda\.com/i,
-      /trivago/i,
-      /orbitz/i,
-      /travelocity/i,
-      /hotwire/i,
-      /momondo/i,
-      /skyscanner/i,
-      /southwest\.com/i,
-      /jetblue\.com/i,
-      /spirit\.com/i,
-      /frontier\.com/i,
-      /alaska\.com/i,
-      /hawaiian\.com/i,
-      /emirates\.com/i,
-      /lufthansa\.com/i,
-      /britishairways\.com/i,
-      /marriott\.com/i,
-      /hilton\.com/i,
-      /hyatt\.com/i,
-      /ihg\.com/i,
-      /accor\.com/i,
-    ],
-  };
-
-  // Check travel patterns
-  const hasFlightPattern = TRAVEL_PATTERNS.flights.some(
-    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
-  );
-  const hasHotelPattern = TRAVEL_PATTERNS.hotels.some(
-    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
-  );
-  const hasDestinationPattern = TRAVEL_PATTERNS.destinations.some(
-    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
-  );
-  const hasGeneralTravelPattern = TRAVEL_PATTERNS.general.some(
-    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
-  );
-  const isFromTravelDomain = TRAVEL_PATTERNS.domains.some((pattern) => pattern.test(fromLower));
-
-  // Calculate travel confidence
-  let travelConfidence = 0;
-  if (hasFlightPattern || hasHotelPattern) {
-    travelConfidence = 0.9;
-  } else if (hasGeneralTravelPattern) {
-    travelConfidence = 0.8;
-  } else if (hasDestinationPattern) {
-    travelConfidence = 0.7;
-  } else if (isFromTravelDomain && (bodyLower.includes("booking") || bodyLower.includes("travel"))) {
-    travelConfidence = 0.65;
-  }
-
-  if (travelConfidence > 0.6) {
-    console.log(`🧳 Travel email detected with confidence ${travelConfidence}`);
-    return {
-      type: "travel",
-      confidence: travelConfidence,
-      method: "pattern-based",
-    };
-  }
-
-  // Receipt patterns - only completed transactions
-  const RECEIPT_PATTERNS = [
-    /receipt.*(?:purchase|order|payment|transaction)/i,
-    /purchase\s+(?:confirmation|receipt|summary)/i,
-    /order\s+(?:confirmation|receipt|summary|complete)/i,
-    /transaction\s+(?:receipt|confirmation|summary|complete)/i,
-    /payment\s+(?:confirmation|receipt|successful|processed)/i,
-    /your\s+(?:receipt|purchase|order)/i,
-    /thank\s+you\s+for\s+your\s+(?:purchase|order)/i,
-    /invoice.*(?:payment|due|amount|billing)/i,
-    /subscription\s+(?:payment|charge)\s+(?:successful|completed|processed|confirmed)/i,
-    /billing\s+(?:statement|summary|notice)/i,
-  ];
-
-  // CRITICAL: Exclude promotional/marketing/administrative emails
-  const PROMOTIONAL_EXCLUSIONS = [
-    // Administrative and compliance exclusions
-    /\[action\s+required\]/i,
-    /(?:provide|verify|update|add|enter)\s+(?:your|tax|billing|payment)\s+(?:info|information|details|id|npwp)/i,
-    /(?:tax\s+info|tax\s+information|tax\s+id|tax\s+matters|tax\s+adviser)/i,
-    /(?:could\s+not\s+be\s+verified|verification|verify\s+your)/i,
-    /(?:government\s+records|active\/?\s*valid|compliance|regulatory)/i,
-    /(?:how\s+to\s+add|steps\s+to|in\s+order\s+for\s+you\s+to)/i,
-    /(?:sign\s+in\s+to|console|navigation|click|pencil\s+icon)/i,
-    /(?:may\s+take\s+up\s+to|can't\s+advise|consult\s+your)/i,
-    /(?:billing\s+account|payment\s+settings|account\s+settings)/i,
-    /google\s+payments.*(?:provide|verify|update|tax)/i,
-    /(?:npwp|tax\s+id).*(?:could\s+not\s+be|verification|verify)/i,
-    /(?:faktur\s+pajak|tax\s+documentation|tax\s+compliance)/i,
-    /(?:fix\s+any\s+issues|make\s+sure\s+you|ensure\s+accurate)/i,
-    // Free offers and promotions
-    /(?:free|complimentary|no\s+cost|zero\s+cost)\s+(?:for|trial|offer|access|weekend|hours?|days?)/i,
-    /(?:totally|completely|entirely)\s+free/i,
-    /free\s+(?:to\s+use|for\s+the\s+next|this\s+weekend|starting\s+now)/i,
-    /(?:is|are)\s+(?:officially\s+)?free\s+(?:for|starting|this)/i,
-    // Marketing language
-    /(?:run|hurry|limited\s+time|act\s+fast|don't\s+miss|countdown)/i,
-    /(?:promotional|marketing|campaign|announcement|newsletter)/i,
-    /(?:special\s+offer|limited\s+offer|exclusive\s+offer|weekend\s+offer)/i,
-    /(?:giveaway|contest|competition|win\s+\$|chance\s+to\s+win)/i,
-    /(?:bring\s+a\s+friend|share|tag\s+us|show\s+off)/i,
-    // Product announcements and updates
-    /(?:new\s+feature|product\s+update|announcement|launch)/i,
-    /(?:we've\s+partnered|partnership|collaboration)/i,
-    /(?:getting\s+started|walkthrough|tutorial|guide)/i,
-    /(?:community|builders|creating|building)/i,
-    // Unsubscribe and footer indicators
-    /(?:unsubscribe|opt\s+out|email\s+preferences)/i,
-  ];
-
-  // CRITICAL: Exclude future billing notifications
-  const FUTURE_BILLING_PATTERNS = [
-    /(?:will|going\s+to|about\s+to)\s+(?:renew|charge|bill|auto-renew)/i,
-    /subscription\s+(?:will|is\s+about\s+to)\s+renew/i,
-    /(?:upcoming|next|future)\s+(?:billing|payment|charge|renewal)/i,
-    /(?:reminder|notice|heads?\s*up).*(?:renewal|billing|payment)/i,
-    /(?:renew|charge|bill).*(?:soon|tomorrow|next\s+\w+|on\s+\w+\s+\d+)/i,
-    /(?:expir|renew).*(?:on|in)\s+\d+/i,
-    /payment\s+method.*(?:update|change|expires?)/i,
-    /billing\s+information.*(?:update|change|expires?)/i,
-  ];
-
-  // FIRST: Check for promotional/marketing/administrative patterns - EXCLUDE these immediately
-  const isPromotionalEmail = PROMOTIONAL_EXCLUSIONS.some(
-    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
-  );
-
-  if (isPromotionalEmail) {
-    console.log("🚫 Gmail webhook: Excluded as promotional/administrative email");
-    return null; // This is a promotional/administrative email, not a receipt
-  }
-
-  // SECOND: Check for future/reminder patterns - EXCLUDE these immediately
-  const isFutureBilling = FUTURE_BILLING_PATTERNS.some(
-    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
-  );
-
-  if (isFutureBilling) {
-    console.log("🚫 Gmail webhook: Excluded as future billing notification");
-    return null; // This is a future notification, not a receipt
-  }
-
-  // NUCLEAR OPTION: Force revenue classification for clear revenue language
-  const FORCE_REVENUE_KEYWORDS = [
-    /payment\s+deposited\s+to\s+your\s+account/i,
-    /money\s+added\s+to\s+your\s+account/i,
-    /your\s+earnings\s+id/i,
-    /project\s+earnings\s+have\s+been\s+processed/i,
-    /funds\s+are\s+now\s+available\s+in\s+your\s+bank/i,
-    /freelance\s+payment\s+has\s+been\s+successfully\s+deposited/i,
-  ];
-
-  const hasForceRevenueKeywords = FORCE_REVENUE_KEYWORDS.some(
-    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
-  );
-
-  if (hasForceRevenueKeywords) {
-    console.log("🚨 Gmail webhook: FORCE REVENUE - Nuclear option triggered by clear revenue language");
-    return {
-      type: "revenue",
-      confidence: 0.99,
-      method: "force-revenue-keywords",
-    };
-  }
-
-  // THIRD: Check for revenue patterns FIRST (higher priority than receipts)
-  const REVENUE_PATTERNS = {
-    // Payment received patterns (highest priority)
-    paymentsReceived: [
-      /payment\s+received/i,
-      /money\s+received/i,
-      /funds\s+received/i,
-      /deposit\s+successful/i,
-      /transfer\s+(?:received|completed)/i,
-      /payout\s+processed/i,
-      /freelance.*payment.*received/i,
-      /project.*payment.*received/i,
-      /payment.*freelance.*project/i,
-      /invoice.*payment.*received/i,
-      /consulting.*payment.*received/i,
-      /payment.*processed.*invoice/i,
-      /client\s+payment.*received/i,
-      // NEW: Enhanced deposited/earnings language
-      /payment\s+deposited/i,
-      /money\s+(?:added|deposited)\s+to\s+your\s+account/i,
-      /funds.*(?:added|deposited).*your\s+account/i,
-      /deposited\s+to\s+your\s+(?:bank\s+)?account/i,
-      /has\s+been\s+(?:added|deposited)\s+to/i,
-      /your\s+earnings/i,
-      /earnings.*processed/i,
-      /project\s+earnings/i,
-      /freelance.*earnings/i,
-      /successfully\s+deposited/i,
-      /payment.*deposited.*your\s+account/i,
-      /funds\s+are\s+now\s+available/i,
-      /money\s+added\s+to\s+your\s+account/i,
-    ],
-    // Indonesian refund patterns
-    indonesianRefunds: [
-      /pengembalian\s+(?:dana|uang)\s+(?:diproses|disetujui|berhasil|selesai)/i,
-      /refund\s+diproses/i,
-      /dana\s+(?:dikembalikan|ditransfer|telah\s+dikembalikan)/i,
-      /uang\s+(?:dikembalikan|ditransfer|telah\s+dikembalikan)/i,
-      /pembatalan.*(?:pengembalian|refund)/i,
-      /layanan.*dibatalkan.*pengembalian/i,
-    ],
-    // English refund patterns
-    refunds: [
-      /refund\s+(?:issued|processed|completed|successful)/i,
-      /reimbursement\s+(?:issued|processed|approved)/i,
-      /credit\s+(?:issued|applied|processed)/i,
-      /chargeback\s+(?:successful|completed)/i,
-      /return\s+(?:processed|completed|successful)/i,
-      /reversal\s+(?:completed|processed)/i,
-      /money\s+back\s+guarantee/i,
-      /cancelled\s+order.*refund/i,
-      /dispute\s+resolved.*credit/i,
-    ],
-    // Revenue-issuing domains
-    domains: [
-      /hostinger/i,
-      /coinbase/i,
-      /binance/i,
-      /paypal/i,
-      /stripe/i,
-      /square/i,
-      /namecheap/i,
-      /godaddy/i,
-      /digitalocean/i,
-    ],
-  };
-
-  // Check revenue patterns
-  const hasPaymentReceived = REVENUE_PATTERNS.paymentsReceived.some(
-    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
-  );
-  const hasIndonesianRefund = REVENUE_PATTERNS.indonesianRefunds.some(
-    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
-  );
-  const hasEnglishRefund = REVENUE_PATTERNS.refunds.some(
-    (pattern) => pattern.test(subjectLower) || pattern.test(bodyLower)
-  );
-  const isFromRevenueDomain = REVENUE_PATTERNS.domains.some((pattern) => pattern.test(fromLower));
-
-  // DEBUG: Log what we're checking
-  console.log("🔍 Gmail webhook revenue check:", {
-    subject: subjectLower,
-    hasPaymentReceived,
-    hasIndonesianRefund,
-    hasEnglishRefund,
-    isFromRevenueDomain,
-    bodySnippet: bodyLower.substring(0, 200),
-  });
-
-  // Calculate revenue confidence - LOWERED threshold for better catching
-  let revenueConfidence = 0;
-  if (hasPaymentReceived) {
-    revenueConfidence = 0.95; // Highest priority for payment received
-    console.log("💰 Gmail webhook: STRONG revenue signal detected - payment received patterns");
-  } else if (hasIndonesianRefund || hasEnglishRefund) {
-    revenueConfidence = 0.9;
-    console.log("💰 Gmail webhook: STRONG revenue signal detected - refund patterns");
-  } else if (isFromRevenueDomain && (bodyLower.includes("refund") || bodyLower.includes("pengembalian"))) {
-    revenueConfidence = 0.8;
-    console.log("💰 Gmail webhook: Medium revenue signal detected - domain + refund");
-  }
-
-  // LOWERED threshold from 0.7 to 0.5 to catch more revenue emails
-  if (revenueConfidence > 0.5) {
-    console.log(`💰 Gmail webhook: Revenue email CONFIRMED with confidence ${revenueConfidence}`);
-    return {
-      type: "revenue",
-      confidence: revenueConfidence,
-      method: "pattern-based",
-    };
-  } else {
-    console.log("🚫 Gmail webhook: No revenue patterns matched");
-  }
-
-  // FOURTH: Check for receipt patterns (only after revenue check)
-  const hasReceiptPattern = RECEIPT_PATTERNS.some((pattern) => pattern.test(subjectLower) || pattern.test(bodyLower));
-
-  // Look for past-tense completion indicators (ONLY past tense, not future)
-  const hasCompletionIndicators =
-    /(?:thank\s+you|thanks).*(?:for\s+your\s+)?(?:payment|purchase|order|transaction)/i.test(bodyLower) ||
-    /(?:successful|completed|processed|confirmed|received).*(?:payment|purchase|order|transaction)/i.test(bodyLower) ||
-    /(?:payment|purchase|order|transaction).*(?:successful|completed|processed|confirmed|received)(?:\s+successfully)?/i.test(
-      bodyLower
-    ) ||
-    /(?:was|has\s+been|have\s+been)\s+(?:charged|paid|processed|completed|confirmed)/i.test(bodyLower) ||
-    /(?:successfully\s+)?(?:charged|paid)(?:\s+successfully)$/i.test(bodyLower);
-
-  if (hasReceiptPattern && hasCompletionIndicators) {
-    console.log("💰 Gmail webhook: Receipt email detected");
-    return {
-      type: "receipt",
-      confidence: 0.8,
-      method: "pattern-based",
-    };
-  }
-
-  // Job application patterns
-  const JOB_PATTERNS = [
-    /application/i,
-    /interview/i,
-    /position/i,
-    /role\s+at/i,
-    /job/i,
-    /career/i,
-    /hiring/i,
-    /candidate/i,
-  ];
-
-  const hasJobPattern = JOB_PATTERNS.some((pattern) => pattern.test(subjectLower) || pattern.test(bodyLower));
-
-  if (hasJobPattern) {
-    console.log("💼 Job application email detected");
-    return {
-      type: "job_application",
-      confidence: 0.75,
-      method: "pattern-based",
-    };
-  }
-
-  console.log("🤷 No specific category matched - will use AI fallback");
-  return null;
-}
-
-export async function fallbackClassification(
-  subject: string,
-  from: string,
-  emailBody: string
-): Promise<ClassificationResult> {
-  const prompt = `
-    Analyze this email and classify it into one of these categories:
-    - receipt (ONLY for completed purchases/payments - past tense only)
-    - travel (for flight, hotel, or travel-related emails)
-    - job_application (for job-related emails)
-    - other (for emails that don't fit the above categories)
-    
-    CRITICAL RULES FOR RECEIPT CLASSIFICATION:
-    - ONLY classify as "receipt" if the transaction has ALREADY HAPPENED (past tense)
-    - Completed transactions: "thank you for your purchase", "payment processed", "order confirmed", "was charged"
-    - Future billing notifications must be classified as "other": "will renew", "will be charged", "upcoming billing", "subscription will renew soon"
-    - Administrative emails must be classified as "other": tax notices, billing updates, account settings
-    - Marketing/promotional emails must be classified as "other": free offers, announcements, newsletters
-    
-    EXAMPLES OF "OTHER" (NOT RECEIPTS):
-    - "Your subscription will renew soon" 
-    - "Payment method will be charged"
-    - "Billing reminder"
-    - "Update your payment info"
-    - "[Action required]" emails
-    - Any email about FUTURE transactions
-    
-    EXAMPLES OF "RECEIPT":
-    - "Thank you for your purchase"
-    - "Payment successfully processed"
-    - "Your order has been confirmed"
-    - "Receipt for your subscription payment"
-    
-    Email Subject: ${subject}
-    From: ${from}
-    Email Body: ${emailBody.substring(0, 1000)}
-    
-    IMPORTANT: Be very conservative with receipt classification. When in doubt, classify as "other".
-    Respond with ONLY valid JSON, no markdown formatting or code blocks.
-    
-    Format: { "type": "category", "confidence": 0.95 }
-  `;
-
-  try {
-    const completion = await openai.chat.completions.create({
-      model: "gpt-4o-mini",
-      messages: [{ role: "user", content: prompt }],
-      temperature: 0.1,
-    });
-
-    let response = completion.choices[0].message.content;
-
-    if (!response) {
-      throw new Error("Empty response from OpenAI");
-    }
-
-    // Clean up the response
-    response = response.trim();
-    if (response.startsWith("```json")) {
-      response = response.replace(/^```json\s*/, "").replace(/\s*```$/, "");
-    } else if (response.startsWith("```")) {
-      response = response.replace(/^```\s*/, "").replace(/\s*```$/, "");
-    }
-
-    let classification;
-    try {
-      classification = JSON.parse(response);
-    } catch (parseError) {
-      console.error("JSON parse error:", parseError);
-      classification = {
-        type: "other",
-        confidence: 0.5,
-      };
-    }
-
-    return {
-      type: classification.type || "other",
-      confidence: classification.confidence || 0.5,
-      method: "fallback-ai",
-    };
-  } catch (error) {
-    console.error("OpenAI classification error:", error);
-    return {
-      type: "other",
-      confidence: 0.0,
-      method: "error",
-    };
-  }
 }

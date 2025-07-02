@@ -420,29 +420,29 @@ function cleanWebsiteUrl(website: string | null): string {
   return cleaned || "-";
 }
 
-function fallbackJobExtraction(subject: string, from: string, emailBody: string) {
-  console.log("🔄 Using fallback job extraction");
+// function fallbackJobExtraction(subject: string, from: string, emailBody: string) {
+//   console.log("🔄 Using fallback job extraction");
 
-  const company = extractCompanyFromEmail(from) || extractCompanyFromText(subject + " " + emailBody);
-  const position = extractPositionFromText(subject + " " + emailBody);
-  const status = extractStatusFromText(subject + " " + emailBody);
-  const website = extractWebsiteFromEmail(from, emailBody);
+//   const company = extractCompanyFromEmail(from) || extractCompanyFromText(subject + " " + emailBody);
+//   const position = extractPositionFromText(subject + " " + emailBody);
+//   const status = extractStatusFromText(subject + " " + emailBody);
+//   const website = extractWebsiteFromEmail(from, emailBody);
 
-  return {
-    company: company || "Unknown Company",
-    position: position || "Unknown Position",
-    status: status || "applied",
-    appliedDate: null,
-    confidence: 0.3,
-    countryCode: extractCountryFromEmail(from) || extractCountryFromEmailBody(emailBody),
-    website: website,
-    details: {
-      extractionMethod: "fallback",
-      emailFrom: from,
-      emailSubject: subject,
-    },
-  };
-}
+//   return {
+//     company: company || "Unknown Company",
+//     position: position || "Unknown Position",
+//     status: status || "applied",
+//     appliedDate: null,
+//     confidence: 0.3,
+//     countryCode: extractCountryFromEmail(from) || extractCountryFromEmailBody(emailBody),
+//     website: website,
+//     details: {
+//       extractionMethod: "fallback",
+//       emailFrom: from,
+//       emailSubject: subject,
+//     },
+//   };
+// }
 
 function extractCompanyFromEmail(from: string): string | null {
   // Extract company from email domain
@@ -620,73 +620,73 @@ function getCountryName(countryCode: string): string | null {
   return countryNames[countryCode.toUpperCase()] || null;
 }
 
-function extractCompanyFromText(text: string): string | null {
-  const companyPatterns = [
-    // Match "Company Name" at end of subject after dash
-    /-\s*([A-Za-z\s&]+)\s*$/i,
-    // Match "from Company Name team"
-    /from\s+([A-Za-z\s&]+)(?:\s+team|\s+careers|\s+hr)/i,
-    // Match "at Company Name"
-    /at\s+([A-Za-z\s&]+)(?:\s+team|\s+careers|\s+hr)/i,
-    // Match "Company Name team"
-    /([A-Za-z\s&]+)\s+team/i,
-    // Match "Company Name careers"
-    /([A-Za-z\s&]+)\s+careers/i,
-    // Match "Company Name hiring"
-    /([A-Za-z\s&]+)\s+hiring/i,
-    // Match company name before "and your interest"
-    /to\s+the\s+([^,\n\.]+)\s+and\s+your\s+interest/i,
-    // Match "Best Regards, Company Name"
-    /best\s+regards,\s*([A-Za-z\s&]+)/i,
-  ];
+// function extractCompanyFromText(text: string): string | null {
+//   const companyPatterns = [
+//     // Match "Company Name" at end of subject after dash
+//     /-\s*([A-Za-z\s&]+)\s*$/i,
+//     // Match "from Company Name team"
+//     /from\s+([A-Za-z\s&]+)(?:\s+team|\s+careers|\s+hr)/i,
+//     // Match "at Company Name"
+//     /at\s+([A-Za-z\s&]+)(?:\s+team|\s+careers|\s+hr)/i,
+//     // Match "Company Name team"
+//     /([A-Za-z\s&]+)\s+team/i,
+//     // Match "Company Name careers"
+//     /([A-Za-z\s&]+)\s+careers/i,
+//     // Match "Company Name hiring"
+//     /([A-Za-z\s&]+)\s+hiring/i,
+//     // Match company name before "and your interest"
+//     /to\s+the\s+([^,\n\.]+)\s+and\s+your\s+interest/i,
+//     // Match "Best Regards, Company Name"
+//     /best\s+regards,\s*([A-Za-z\s&]+)/i,
+//   ];
 
-  for (const pattern of companyPatterns) {
-    const match = text.match(pattern);
-    if (match && match[1] && match[1].trim().length > 2) {
-      const company = match[1].trim();
-      // Filter out common non-company words
-      const skipWords = ["team", "careers", "hr", "hiring", "department", "position", "role", "application", "job"];
-      if (!skipWords.some((word) => company.toLowerCase().includes(word))) {
-        return company;
-      }
-    }
-  }
-  return null;
-}
+//   for (const pattern of companyPatterns) {
+//     const match = text.match(pattern);
+//     if (match && match[1] && match[1].trim().length > 2) {
+//       const company = match[1].trim();
+//       // Filter out common non-company words
+//       const skipWords = ["team", "careers", "hr", "hiring", "department", "position", "role", "application", "job"];
+//       if (!skipWords.some((word) => company.toLowerCase().includes(word))) {
+//         return company;
+//       }
+//     }
+//   }
+//   return null;
+// }
 
-function extractPositionFromText(text: string): string | null {
-  const positionPatterns = [
-    // Match "Position (Details) - Company" format
-    /to\s+the\s+([^,\n\-]+?)(?:\s*\([^)]*\))?\s*-\s*[A-Za-z\s&]+\s+and/i,
-    // Match "for the Position position"
-    /for\s+the\s+([^,\n\.]+)\s+(?:position|role)/i,
-    // Match "as a/an Position"
-    /as\s+(?:a|an)\s+([^,\n\.]+)/i,
-    // Match "Position:" format
-    /(?:position|role):\s*([^,\n\.]+)/i,
-    // Match "applying for Position"
-    /applying\s+for\s+([^,\n\.]+)/i,
-    // Match "application to the Position"
-    /application\s+to\s+the\s+([^,\n\.]+)/i,
-  ];
+// function extractPositionFromText(text: string): string | null {
+//   const positionPatterns = [
+//     // Match "Position (Details) - Company" format
+//     /to\s+the\s+([^,\n\-]+?)(?:\s*\([^)]*\))?\s*-\s*[A-Za-z\s&]+\s+and/i,
+//     // Match "for the Position position"
+//     /for\s+the\s+([^,\n\.]+)\s+(?:position|role)/i,
+//     // Match "as a/an Position"
+//     /as\s+(?:a|an)\s+([^,\n\.]+)/i,
+//     // Match "Position:" format
+//     /(?:position|role):\s*([^,\n\.]+)/i,
+//     // Match "applying for Position"
+//     /applying\s+for\s+([^,\n\.]+)/i,
+//     // Match "application to the Position"
+//     /application\s+to\s+the\s+([^,\n\.]+)/i,
+//   ];
 
-  for (const pattern of positionPatterns) {
-    const match = text.match(pattern);
-    if (match && match[1] && match[1].trim().length > 2) {
-      const position = match[1].trim();
-      // Clean up the position text
-      const cleanPosition = position
-        .replace(/\s*\([^)]*\)\s*/g, "") // Remove parenthetical content
-        .replace(/\s*-\s*.*$/, "") // Remove everything after dash
-        .trim();
+//   for (const pattern of positionPatterns) {
+//     const match = text.match(pattern);
+//     if (match && match[1] && match[1].trim().length > 2) {
+//       const position = match[1].trim();
+//       // Clean up the position text
+//       const cleanPosition = position
+//         .replace(/\s*\([^)]*\)\s*/g, "") // Remove parenthetical content
+//         .replace(/\s*-\s*.*$/, "") // Remove everything after dash
+//         .trim();
 
-      if (cleanPosition.length > 2) {
-        return cleanPosition;
-      }
-    }
-  }
-  return null;
-}
+//       if (cleanPosition.length > 2) {
+//         return cleanPosition;
+//       }
+//     }
+//   }
+//   return null;
+// }
 
 function extractStatusFromText(text: string): string {
   const lowerText = text.toLowerCase();

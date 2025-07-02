@@ -4,9 +4,8 @@ import { useState, useEffect } from "react";
 import { useQuery, useMutation } from "@tanstack/react-query";
 import { supabase } from "../supabase/client";
 import { toast } from "sonner";
-import { Bubble, Fling, Heart, Spiral, ThreeSplashes } from "../components/illustrations";
 import { cn } from "../utils/cn";
-import { WaitlistForm } from "../components/auth";
+import { WaitlistForm, GridIllustrations } from "../components/auth";
 
 export const authRoute = createRoute({
   getParentRoute: () => rootRoute,
@@ -25,9 +24,6 @@ const checkAuthSession = async () => {
 };
 
 const createPublicUserRecord = async (session: any) => {
-  console.log("📝 Creating public user record for:", session.user?.email);
-  console.log("🔐 Session access token exists:", !!session.access_token);
-
   const response = await fetch(`${import.meta.env.VITE_SUPABASE_URL}/functions/v1/auth/oauth-signin`, {
     method: "POST",
     headers: {
@@ -37,8 +33,6 @@ const createPublicUserRecord = async (session: any) => {
     },
   });
 
-  console.log("🌐 Auth endpoint response status:", response.status);
-
   if (!response.ok) {
     const errorText = await response.text();
     console.error("❌ Auth endpoint error:", errorText);
@@ -46,10 +40,8 @@ const createPublicUserRecord = async (session: any) => {
   }
 
   const result = await response.json();
-  console.log("✅ Auth endpoint result:", result);
 
   if (!result.success) {
-    console.error("❌ Auth endpoint returned failure:", result.error);
     throw new Error(result.error || "Failed to create user record");
   }
 
@@ -78,20 +70,6 @@ function Auth() {
   const [authListenerSetup, setAuthListenerSetup] = useState(false);
   const [showLogin, setShowLogin] = useState(false);
 
-  // CSS animation for cards
-  const cardStyle = `
-    @keyframes fadeInScale {
-      0% {
-        opacity: 0;
-        transform: scale(0.8) translateY(10px);
-      }
-      100% {
-        opacity: 1;
-        transform: scale(1) translateY(0);
-      }
-    }
-  `;
-
   // Check if user is already authenticated using TanStack Query
   const {
     data: session,
@@ -108,8 +86,6 @@ function Auth() {
   const createUserMutation = useMutation({
     mutationFn: createPublicUserRecord,
     onSuccess: (result) => {
-      console.log("✅ Public user record created/found:", result.user_id);
-
       if (result.created) {
         toast.success("Welcome to Actioneer! Your account has been created.");
       } else {
@@ -150,7 +126,6 @@ function Auth() {
   // Redirect if already authenticated
   useEffect(() => {
     if (session?.user && !checkingAuth) {
-      console.log("🔐 User already authenticated, redirecting to dashboard");
       navigate({ to: "/dashboard" });
     }
   }, [session, checkingAuth, navigate]);
@@ -350,180 +325,7 @@ function Auth() {
 
         {/* Colorful Grid Illustration - Mobile & Desktop */}
         <div className="flex items-start lg:items-center justify-center bg-concrete p-4 sm:p-6 lg:p-8">
-          <style>{cardStyle}</style>
-          <div className="grid grid-cols-3 sm:grid-cols-4 lg:grid-cols-5 grid-rows-5 sm:grid-rows-4 lg:grid-rows-3 gap-1 sm:gap-2 lg:gap-0 w-full max-w-sm sm:max-w-md lg:max-w-none lg:w-full lg:h-1/2 h-1/2 sm:h-80">
-            {/* Row 1 */}
-            <div
-              className="bg-heliotrope rounded-3xl overflow-hidden"
-              style={{
-                opacity: 0,
-                animation: "fadeInScale 0.6s ease-out 0.2s forwards",
-              }}
-            >
-              <Fling className="w-[10rem] h-[10rem] lg:w-[16rem] lg:h-[16rem] stroke-lavender stroke-[70px] sm:stroke-[40px] lg:stroke-[70px] stroke-offset-2 lg:bottom-10 lg:right-10 relative" />
-              {/* <Fling className="w-full h-full lg:w-[16rem] lg:h-[16rem] stroke-lavender stroke-[20px] sm:stroke-[40px] lg:stroke-[70px] stroke-offset-2 lg:bottom-10 lg:right-10 relative" /> */}
-            </div>
-            <div
-              className="bg-gold bg-[url('/heart.svg')] bg-contain bg-no-repeat bg-center bg-blend-multiply rounded-3xl"
-              style={{
-                opacity: 0,
-                animation: "fadeInScale 0.6s ease-out 0.8s forwards",
-              }}
-            ></div>
-            <div
-              className="bg-lime bg-[url('/circle-jot.svg')] bg-[length:80%] bg-repeat-y bg-center bg-blend-overlay rounded-3xl"
-              style={{
-                opacity: 0,
-                animation: "fadeInScale 0.6s ease-out 0.4s forwards",
-              }}
-            ></div>
-            <div
-              className="bg-jade bg-[url('/3-splashes.svg')] bg-cover bg-center bg-blend-soft-light rounded-3xl"
-              style={{
-                opacity: 0,
-                animation: "fadeInScale 0.6s ease-out 1.2s forwards",
-              }}
-            ></div>
-            <div
-              className="bg-lavender bg-[url('/bubble-large.svg')] bg-contain bg-no-repeat bg-center bg-blend-color-dodge rounded-3xl"
-              style={{
-                opacity: 0,
-                animation: "fadeInScale 0.6s ease-out 0.6s forwards",
-              }}
-            ></div>
-
-            {/* Row 2 */}
-            <div
-              className="bg-bittersweet rounded-3xl overflow-hidden"
-              style={{
-                opacity: 0,
-                animation: "fadeInScale 0.6s ease-out 1.4s forwards",
-              }}
-            >
-              <div className="text-gold text-xs sm:text-lg lg:text-4xl leading-tight lg:leading-7 font-bold italic">
-                automate
-              </div>
-              <div className="text-gold text-xs sm:text-lg lg:text-4xl leading-tight lg:leading-7 font-bold italic">
-                your
-              </div>
-              <div className="text-gold text-xs sm:text-lg lg:text-4xl leading-tight lg:leading-7 font-bold italic">
-                receipts
-              </div>
-              <div className="text-gold text-xs sm:text-lg lg:text-4xl leading-tight lg:leading-7 font-bold italic">
-                automate
-              </div>
-              <div className="text-gold text-xs sm:text-lg lg:text-4xl leading-tight lg:leading-7 font-bold italic">
-                your
-              </div>
-            </div>
-            <div
-              className="bg-daisy rounded-3xl"
-              style={{
-                opacity: 0,
-                animation: "fadeInScale 0.6s ease-out 0.1s forwards",
-              }}
-            >
-              <Spiral className="w-full h-full stroke-lavender" />
-            </div>
-            <div
-              className="bg-sandy bg-[url('/circle-jot.svg')] bg-[length:70%] bg-no-repeat bg-center bg-blend-multiply rounded-3xl"
-              style={{
-                opacity: 0,
-                animation: "fadeInScale 0.6s ease-out 1.0s forwards",
-              }}
-            >
-              <div className="flex justify-center items-center h-full">
-                <h3 className="text-bittersweet text-xs sm:text-base lg:text-lg font-bold">actioneer</h3>
-              </div>
-            </div>
-            <div
-              className="bg-heliotrope bg-[url('/3-splashes.svg')] bg-cover bg-center bg-blend-color-dodge rounded-3xl"
-              style={{
-                opacity: 0,
-                animation: "fadeInScale 0.6s ease-out 0.3s forwards",
-              }}
-            ></div>
-            <div
-              className="bg-lime rounded-3xl overflow-hidden"
-              style={{
-                opacity: 0,
-                animation: "fadeInScale 0.6s ease-out 1.6s forwards",
-              }}
-            >
-              <div className="flex flex-col gap-0 items-center justify-center h-full overflow-hidden">
-                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">actioneer</div>
-                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">actioneer</div>
-                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">actioneer</div>
-                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">actioneer</div>
-                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">actioneer</div>
-                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">actioneer</div>
-                <div className="text-jade text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">actioneer</div>
-              </div>
-            </div>
-
-            {/* Row 3 */}
-            <div
-              className="bg-jade rounded-3xl overflow-hidden"
-              style={{
-                opacity: 0,
-                animation: "fadeInScale 0.6s ease-out 0.7s forwards",
-              }}
-            >
-              <Bubble className="w-full h-full text-lime relative top-12" />
-            </div>
-            <div
-              className="bg-lavender rounded-3xl overflow-hidden"
-              style={{
-                opacity: 0,
-                animation: "fadeInScale 0.6s ease-out 1.3s forwards",
-              }}
-            >
-              <div className="text-heliotrope text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">
-                automate
-              </div>
-              <div className="text-white text-xs sm:text-base lg:text-3xl leading-3 font-bold italic whitespace-nowrap">
-                job applications
-              </div>
-              <div className="text-heliotrope text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">
-                automate
-              </div>
-              <div className="text-white text-xs sm:text-base lg:text-3xl leading-3 font-bold italic whitespace-nowrap">
-                job applications
-              </div>
-              <div className="text-heliotrope text-xs sm:text-base lg:text-3xl leading-3 font-bold italic">
-                automate
-              </div>
-              <div className="text-white text-xs sm:text-base lg:text-3xl leading-3 font-bold italic whitespace-nowrap">
-                job applications
-              </div>
-            </div>
-            <div
-              className="bg-gold overflow-hidden rounded-3xl"
-              style={{
-                opacity: 0,
-                animation: "fadeInScale 0.6s ease-out 0.5s forwards",
-              }}
-            >
-              <ThreeSplashes className="w-full h-full lg:w-[14rem] lg:h-[14rem] text-sandy" />
-              {/* <ThreeSplashes className="w-full h-full lg:w-[14rem] lg:h-[14rem] text-sandy" /> */}
-            </div>
-            <div
-              className="bg-bittersweet bg-[url('/bubble-small.svg')] bg-cover bg-center bg-blend-color-dodge rounded-3xl"
-              style={{
-                opacity: 0,
-                animation: "fadeInScale 0.6s ease-out 0.9s forwards",
-              }}
-            ></div>
-            <div
-              className="bg-daisy rounded-3xl overflow-hidden"
-              style={{
-                opacity: 0,
-                animation: "fadeInScale 0.6s ease-out 1.1s forwards",
-              }}
-            >
-              <Heart className="w-full h-full stroke-heliotrope stroke-[20px]" />
-            </div>
-          </div>
+          <GridIllustrations />
         </div>
       </div>
     </div>
