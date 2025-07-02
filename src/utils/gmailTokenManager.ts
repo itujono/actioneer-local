@@ -21,9 +21,9 @@ export interface RefreshResult {
  * Provides consistent token validation and refresh logic across all components
  */
 export class GmailTokenManager {
-  private static readonly TOKEN_BUFFER_MINUTES = 5;
-  private static readonly MAX_EXPIRED_MINUTES = 30;
-  private static readonly REFRESH_TIMEOUT = 15000;
+  private static readonly TOKEN_BUFFER_MINUTES = 10;
+  private static readonly MAX_EXPIRED_MINUTES = 60;
+  private static readonly REFRESH_TIMEOUT = 20000;
 
   /**
    * Check the current status of Gmail tokens for a user
@@ -135,17 +135,28 @@ export class GmailTokenManager {
         signal: AbortSignal.timeout(this.REFRESH_TIMEOUT),
       });
 
+      console.log("📡 Refresh response status:", response.status);
+
       if (!response.ok) {
         const errorData = await response.json().catch(() => ({ error: "Unknown error" }));
         console.error("❌ Token refresh request failed:", response.status, errorData);
+
+        const requiresReauth = response.status === 401 || response.status === 404 || errorData.requiresReauth;
+
         return {
           success: false,
           error: `Refresh request failed: ${errorData.error || "Unknown error"}`,
-          requiresReauth: response.status === 401,
+          requiresReauth,
         };
       }
 
       const result = await response.json();
+      console.log("📊 Refresh result:", {
+        success: result.success,
+        hasAccessToken: !!result.accessToken,
+        hasError: !!result.error,
+        requiresReauth: result.requiresReauth,
+      });
 
       if (result.success) {
         console.log("✅ Gmail tokens refreshed successfully");
@@ -160,10 +171,16 @@ export class GmailTokenManager {
       }
     } catch (error) {
       console.error("💥 Error during token refresh:", error);
+
+      const requiresReauth = !(
+        error instanceof Error &&
+        (error.name === "AbortError" || error.message.includes("fetch"))
+      );
+
       return {
         success: false,
         error: error instanceof Error ? error.message : "Unknown error",
-        requiresReauth: true,
+        requiresReauth,
       };
     }
   }
@@ -173,7 +190,12 @@ export class GmailTokenManager {
    */
   static async clearTokens(userId: string): Promise<void> {
     try {
-      await supabase.from("user_auth_tokens").delete().eq("user_id", userId);
+      const { error } = await supabase.from("user_auth_tokens").delete().eq("user_id", userId);
+
+      if (error) {
+        console.error("❌ Failed to clear tokens:", error);
+        throw error;
+      }
 
       console.log("✅ Cleared Gmail tokens for user");
     } catch (error) {
@@ -224,10 +246,8 @@ export class GmailTokenManager {
 
         if (refreshResult.success) {
           console.log("✅ Refresh successful - waiting for DB propagation...");
-          // Wait briefly for database propagation
-          await new Promise((resolve) => setTimeout(resolve, 500));
+          await new Promise((resolve) => setTimeout(resolve, 1000));
 
-          // Verify the refresh worked
           const updatedStatus = await this.checkTokenStatus(userId);
           console.log("🔍 Updated status after refresh:", updatedStatus);
 
@@ -242,14 +262,40 @@ export class GmailTokenManager {
               lastSetupAt: new Date().toISOString(),
             };
           } else {
-            console.log("⚠️ Token refresh verification failed - clearing tokens");
-            await this.clearTokens(userId);
-            this.invalidateQueries(queryClient);
+            console.log("⚠️ Token refresh verification failed");
+            if (updatedStatus.needsRefresh) {
+              console.log("🔄 Attempting secondary refresh...");
+              const secondRefresh = await this.refreshTokens(userEmail);
+
+              if (secondRefresh.success) {
+                await new Promise((resolve) => setTimeout(resolve, 500));
+                const finalStatus = await this.checkTokenStatus(userId);
+
+                if (finalStatus.isValid) {
+                  console.log("✅ Secondary refresh successful");
+                  this.invalidateQueries(queryClient);
+                  return {
+                    isSetup: true,
+                    hasTokens: true,
+                    watchActive: false,
+                    lastSetupAt: new Date().toISOString(),
+                  };
+                }
+              }
+            }
+
+            if (updatedStatus.needsReauth || refreshResult.requiresReauth) {
+              console.log("🧹 Clearing tokens after failed refresh verification");
+              await this.clearTokens(userId);
+              this.invalidateQueries(queryClient);
+            }
           }
-        } else {
-          console.log("⚠️ Token refresh failed - clearing tokens");
+        } else if (refreshResult.requiresReauth) {
+          console.log("⚠️ Token refresh failed requiring re-auth - clearing tokens");
           await this.clearTokens(userId);
           this.invalidateQueries(queryClient);
+        } else {
+          console.log("⚠️ Token refresh failed but may be temporary - not clearing tokens");
         }
       } else if (tokenStatus.needsReauth) {
         console.log("🧹 Tokens need re-authorization - clearing old tokens");
@@ -259,7 +305,7 @@ export class GmailTokenManager {
 
       const finalResult = {
         isSetup: false,
-        hasTokens: false,
+        hasTokens: tokenStatus.hasTokens,
         watchActive: false,
         lastSetupAt: undefined,
         error: tokenStatus.needsReauth ? "Please re-authorize Gmail access" : "Token refresh failed",

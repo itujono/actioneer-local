@@ -2,9 +2,7 @@
 
 > Your personal email autopilot that transforms incoming emails into actionable insights
 
-_Stop drowning in receipts, travel deals, and job applications._ Actioneer turns every email into instant, smart actions—automatically, with just a simple one-time activation.
-
-[IMAGE_HERE: Hero image showing email transformation into organized dashboard]
+_Stop drowning in receipts, travel deals, and job applications._ Actioneer turns every email into instant, ready-to-view insights—automatically, without you lifting a finger.
 
 ## What is Actioneer?
 
@@ -37,13 +35,11 @@ Like having a super-smart assistant working 24/7, the agent automatically parses
 
 Your dashboard fills up with perfectly structured, actionable data. Expense tracking, travel comparisons, job application status—all updated automatically without you lifting a finger.
 
-[IMAGE_HERE: Flow diagram showing email → AI processing → organized dashboard]
-
 ## Supported Categories
 
 Actioneer currently excels at processing three major email categories, with intelligent extraction and organization for each:
 
-### 💰 Finance & Expenses
+### 1. Finance & Expenses
 
 Imagine when you receive a receipt from your favorite coffee shop, and within seconds, it's automatically categorized as "Food & Dining," added to your monthly expense tracker, and factored into your spending analytics—all without you touching a single button. Or picture getting a refund notification and instantly seeing it reflected in your dashboard with full context about the original purchase. Every financial email that lands in your inbox gets the full treatment automatically, while you focus on what matters most.
 
@@ -64,9 +60,7 @@ Imagine when you receive a receipt from your favorite coffee shop, and within se
 - Real-time financial insights and spending patterns
 - Currency breakdown and multi-currency support
 
-[IMAGE_HERE: Finance dashboard showing expense tracking and analytics]
-
-### ✈️ Travel & Promotional Emails
+### 2. Travel & Promotional Emails
 
 Imagine when you receive an email about "75% off hotels in NYC this weekend" or "Flash sale: flights to Tokyo starting at $299," and instead of letting these deals get buried in your inbox, Actioneer automatically captures and organizes them into your travel dashboard—no manual sorting, no forgotten deals, no effort required. Now you can easily browse all the amazing travel deals you've received, compare destinations, and never miss out on that perfect vacation opportunity again, all while the heavy lifting happens completely behind the scenes.
 
@@ -87,9 +81,7 @@ Imagine when you receive an email about "75% off hotels in NYC this weekend" or 
 - Trip planning assistance with AI-powered destination suggestions
 - Quick access to travel deals and promotional offers
 
-[IMAGE_HERE: Travel dashboard showing trip organization and recommendations]
-
-### 💼 Job Applications & Career
+### 3. Job Applications & Career
 
 Imagine when you're juggling applications for your dream job at multiple companies, and every application confirmation, interview invitation, and status update is automatically organized into a comprehensive tracking system—without you having to manually update spreadsheets or remember to log details. No more wondering "Did I follow up with that startup?" or "When was my Google interview again?"—everything is perfectly organized and tracked for you while you sleep, eat, and live your life.
 
@@ -109,8 +101,6 @@ Imagine when you're juggling applications for your dream job at multiple compani
 - Application timeline and progress tracking
 - Success rate analytics and insights
 - Customizable fields for personal notes and rankings
-
-[IMAGE_HERE: Jobs dashboard showing application tracking and status updates]
 
 ## Technical Architecture
 
@@ -179,11 +169,11 @@ Future pricing will be designed with affordability in mind, ensuring that email 
 
 Actioneer is just getting started. Here's what's on the horizon:
 
-### 🔄 Multi-Account Support (Coming Soon)
+### 1. Multi-Account Support (Coming Soon)
 
 Connect up to 2 Gmail accounts (personal + work) for a truly unified dashboard experience. Manage all your email insights from one centralized location.
 
-### 📦 Expanded Categories
+### 2. Expanded Categories
 
 - **Medical Appointments**: Automatically track doctor visits, prescriptions, and health-related correspondence
 - **Package Deliveries**: Monitor shipping confirmations, tracking updates, and delivery notifications
@@ -191,21 +181,21 @@ Connect up to 2 Gmail accounts (personal + work) for a truly unified dashboard e
 - **Event Tickets**: Organize concert tickets, sports events, and entertainment bookings
 - **Financial Services**: Bank statements, investment updates, and financial service notifications
 
-### 🔗 Platform Integrations
+### 3. Platform Integrations
 
 - **Calendar Sync**: Automatic event creation for appointments, travel, and deadlines
 - **Accounting Software**: Direct export to QuickBooks, Xero, and other accounting platforms
 - **Travel Planning**: Integration with popular travel booking and planning services
 - **CRM Systems**: Automatic contact and opportunity creation for business emails
 
-### 🎯 Advanced Analytics
+### 4. Advanced Analytics
 
 - **Spending Insights**: Advanced budgeting tools with predictive analytics
 - **Travel Optimization**: Route planning and cost optimization recommendations
 - **Career Tracking**: Job market insights and application success analytics
 - **Custom Dashboards**: Personalized views and reporting capabilities
 
-### 📧 Email Client Expansion
+### 5. Email Client Expansion
 
 - **Microsoft Outlook**: Full support for Outlook.com and Office 365 accounts
 - **Apple Mail**: Native integration for macOS and iOS users
@@ -226,7 +216,7 @@ No credit card required. Simple one-time activation. Then instant email intellig
 
 Want to see Actioneer in action immediately? Here are the best ways to test the system:
 
-### 🧪 **Quick Test Methods**
+### 1. **Quick Test Methods**
 
 **Option 1: Send Yourself Test Emails**
 The fastest way to see Actioneer work is to send yourself sample emails from another account (or the same account):
@@ -242,7 +232,7 @@ If you prefer to see real-world processing:
 - **Book Travel**: Reserve a hotel or flight and see it appear in your travel dashboard
 - **Apply for Jobs**: Submit job applications and track responses automatically
 
-### 📧 **Sample Test Email Templates**
+### 2. **Sample Test Email Templates**
 
 While you can definitely create your own test emails, we've made it even easier by providing ready-to-use templates below that you can copy and paste into Gmail.
 
@@ -390,13 +380,13 @@ freelancer-payments@startupx.com
 💡 This is your income confirmation. Keep this email for tax records.
 ```
 
-### ⚡ **What to Expect**
+### 1. **What to Expect**
 
 - **Processing Time**: Emails are typically processed within 10-30 seconds of arrival
 - **Dashboard Updates**: Check your dashboard categories (Finance, Travel, Jobs) for new entries
 - **Real-time Magic**: Watch as raw emails transform into organized, actionable data
 
-### 🎯 **Pro Testing Tips**
+### 2. **Pro Testing Tips**
 
 - **Use Realistic Content**: The more realistic your test emails, the better the AI extraction
 - **Try Different Formats**: Test various email styles to see Actioneer's versatility
