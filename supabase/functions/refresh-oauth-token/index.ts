@@ -1,6 +1,12 @@
 import "jsr:@supabase/functions-js/edge-runtime.d.ts";
 import { createClient } from "jsr:@supabase/supabase-js@2";
 
+const corsHeaders = {
+  "Access-Control-Allow-Origin": "*",
+  "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
+  "Access-Control-Allow-Methods": "GET, POST, OPTIONS",
+};
+
 interface RefreshTokenRequest {
   userEmail: string;
   forceRefresh?: boolean; // Add option to force refresh even if token seems valid
@@ -16,9 +22,17 @@ interface RefreshTokenResponse {
 }
 
 Deno.serve(async (req: Request) => {
+  // Handle CORS preflight requests
+  if (req.method === "OPTIONS") {
+    return new Response("ok", { headers: corsHeaders });
+  }
+
   // Only allow POST requests
   if (req.method !== "POST") {
-    return new Response("Method not allowed", { status: 405 });
+    return new Response("Method not allowed", {
+      status: 405,
+      headers: corsHeaders,
+    });
   }
 
   try {
@@ -31,7 +45,7 @@ Deno.serve(async (req: Request) => {
     if (!userEmail) {
       return new Response(JSON.stringify({ success: false, error: "Missing userEmail" }), {
         status: 400,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       });
     }
 
@@ -53,7 +67,10 @@ Deno.serve(async (req: Request) => {
           requiresReauth: true,
           debugInfo: { userError, searchedEmail: userEmail.toLowerCase() },
         }),
-        { status: 404, headers: { "Content-Type": "application/json" } }
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
@@ -82,7 +99,10 @@ Deno.serve(async (req: Request) => {
           requiresReauth: true,
           debugInfo: { tokenError },
         }),
-        { status: 404, headers: { "Content-Type": "application/json" } }
+        {
+          status: 404,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
@@ -98,7 +118,10 @@ Deno.serve(async (req: Request) => {
           reason: "legacy_token",
           instructions: "Please sign in again to refresh your OAuth connection",
         }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
@@ -112,7 +135,10 @@ Deno.serve(async (req: Request) => {
           requiresReauth: true,
           debugInfo: { hasAccessToken: !!tokenData.gmail_access_token },
         }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
@@ -133,7 +159,10 @@ Deno.serve(async (req: Request) => {
           message: "Token is still valid",
           debugInfo: { minutesUntilExpiry },
         }),
-        { status: 200, headers: { "Content-Type": "application/json" } }
+        {
+          status: 200,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
@@ -153,7 +182,10 @@ Deno.serve(async (req: Request) => {
             hasClientSecret: !!clientSecret,
           },
         }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
@@ -212,7 +244,10 @@ Deno.serve(async (req: Request) => {
             googleError: errorDetails.error,
           },
         }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
@@ -235,7 +270,10 @@ Deno.serve(async (req: Request) => {
           requiresReauth: true,
           debugInfo: { refreshData },
         }),
-        { status: 401, headers: { "Content-Type": "application/json" } }
+        {
+          status: 401,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
@@ -295,7 +333,10 @@ Deno.serve(async (req: Request) => {
           requiresReauth: false,
           debugInfo: { updateError, attempts: updateAttempts },
         }),
-        { status: 500, headers: { "Content-Type": "application/json" } }
+        {
+          status: 500,
+          headers: { ...corsHeaders, "Content-Type": "application/json" },
+        }
       );
     }
 
@@ -316,7 +357,7 @@ Deno.serve(async (req: Request) => {
       }),
       {
         status: 200,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   } catch (error) {
@@ -348,7 +389,7 @@ Deno.serve(async (req: Request) => {
       }),
       {
         status: 500,
-        headers: { "Content-Type": "application/json" },
+        headers: { ...corsHeaders, "Content-Type": "application/json" },
       }
     );
   }
