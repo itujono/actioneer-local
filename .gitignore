@@ -9,3 +9,8 @@ dist
 documentations
 
 .DS_Store
+
+.temp
+
+supabase/.temp/
+supabase/.temp/*
