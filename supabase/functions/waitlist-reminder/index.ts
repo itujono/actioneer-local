@@ -6,6 +6,20 @@ const corsHeaders = {
   "Access-Control-Allow-Headers": "authorization, x-client-info, apikey, content-type",
 };
 
+// Utility function to format date in Jakarta timezone
+function formatJakartaTime(dateString: string): string {
+  const date = new Date(dateString);
+  return date.toLocaleString("en-US", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "short",
+    day: "numeric",
+    hour: "2-digit",
+    minute: "2-digit",
+    hour12: true,
+  });
+}
+
 interface WaitlistUser {
   id: string;
   email: string;
@@ -51,7 +65,7 @@ const getOneHourReminderTemplate = (users: WaitlistUser[]) => `
           (user) => `
         <div class="user-card">
           <strong>📧 ${user.email}</strong><br>
-          <small>Joined: ${new Date(user.created_at).toLocaleString()}</small><br>
+          <small>Joined: ${formatJakartaTime(user.created_at)} WIB</small><br>
           <small>Status: ${user.status}</small>
         </div>
       `
@@ -123,7 +137,7 @@ const getUrgentReminderTemplate = (users: WaitlistUser[]) => `
           return `
           <div class="user-card">
             <strong>📧 ${user.email}</strong><br>
-            <small>Joined: ${new Date(user.created_at).toLocaleString()}</small><br>
+            <small>Joined: ${formatJakartaTime(user.created_at)} WIB</small><br>
             <small>Status: ${user.status}</small><br>
             <strong style="color: #EF4444;">⏰ ${minutesLeft} minutes until 2-hour mark!</strong>
           </div>
