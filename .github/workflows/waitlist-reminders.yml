@@ -2,8 +2,8 @@ name: Waitlist Reminder Notifications
 
 on:
   schedule:
-    # Run every 10 minutes (more efficient, still catches all users reliably)
-    - cron: "*/10 * * * *"
+    # Run every hour at minute 0 (e.g., 1:00, 2:00, 3:00, etc.)
+    - cron: "0 * * * *"
   workflow_dispatch: # Allow manual triggering
 
 jobs:
@@ -12,7 +12,32 @@ jobs:
     steps:
       - name: Send Waitlist Reminders
         run: |
-          curl -X POST 'https://whnvhuusxtnuvkhgfxnu.supabase.co/functions/v1/waitlist-reminder' \
+          echo "🕐 Starting waitlist reminder job at $(date)"
+          
+          # Make the request and capture both response body and HTTP status
+          response=$(curl -s -w "\n%{http_code}" -X POST 'https://whnvhuusxtnuvkhgfxnu.supabase.co/functions/v1/waitlist-reminder' \
             -H 'Authorization: Bearer ${{ secrets.SUPABASE_ANON_KEY }}' \
             -H 'Content-Type: application/json' \
-            -d '{}'
+            -d '{}')
+          
+          # Extract response body and status code
+          response_body=$(echo "$response" | head -n -1)
+          status_code=$(echo "$response" | tail -n 1)
+          
+          echo "📋 Response Status: $status_code"
+          echo "📄 Response Body: $response_body"
+          
+          # Check if the request was successful
+          if [[ "$status_code" -ge 200 && "$status_code" -lt 300 ]]; then
+            echo "✅ Waitlist reminders sent successfully!"
+          else
+            echo "❌ Request failed with status code: $status_code"
+            echo "🔍 This might be due to:"
+            echo "   - Invalid or expired SUPABASE_ANON_KEY"
+            echo "   - Supabase function error or timeout"
+            echo "   - Network connectivity issues"
+            echo "   - Rate limiting from Supabase"
+            exit 1
+          fi
+          
+          echo "🏁 Job completed at $(date)"
